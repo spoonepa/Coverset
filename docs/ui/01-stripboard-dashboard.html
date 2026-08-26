@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coverset - Stripboard Schedule</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-high": "#2a2a2a",
+                      "inverse-surface": "#e5e2e1",
+                      "on-error": "#690005",
+                      "on-tertiary-container": "#ffede6",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "error-container": "#93000a",
+                      "secondary-fixed-dim": "#c3c0ff",
+                      "on-surface": "#e5e2e1",
+                      "on-primary": "#002a78",
+                      "background": "#131313",
+                      "on-secondary-fixed-variant": "#3323cc",
+                      "inverse-primary": "#0053db",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "on-secondary": "#1d00a5",
+                      "secondary-fixed": "#e2dfff",
+                      "tertiary-fixed": "#ffdbcd",
+                      "tertiary": "#ffb596",
+                      "surface-variant": "#353534",
+                      "outline": "#8d90a0",
+                      "primary-fixed": "#dbe1ff",
+                      "secondary": "#c3c0ff",
+                      "surface-container-highest": "#353534",
+                      "error": "#ffb4ab",
+                      "surface-container": "#201f1f",
+                      "outline-variant": "#434655",
+                      "primary": "#b4c5ff",
+                      "on-error-container": "#ffdad6",
+                      "on-tertiary": "#581e00",
+                      "on-primary-fixed": "#00174b",
+                      "on-secondary-container": "#b3b1ff",
+                      "surface-bright": "#393939",
+                      "surface-tint": "#b4c5ff",
+                      "tertiary-container": "#bc4800",
+                      "inverse-on-surface": "#313030",
+                      "surface-dim": "#131313",
+                      "on-primary-container": "#eeefff",
+                      "on-secondary-fixed": "#0f0069",
+                      "on-surface-variant": "#c3c6d7",
+                      "surface-container-lowest": "#0e0e0e",
+                      "tertiary-fixed-dim": "#ffb596",
+                      "secondary-container": "#3626ce",
+                      "primary-container": "#2563eb",
+                      "surface-container-low": "#1c1b1b",
+                      "on-tertiary-fixed": "#360f00",
+                      "on-tertiary-fixed-variant": "#7d2d00",
+                      "surface": "#131313",
+                      "on-background": "#e5e2e1",
+                      "amber-alert": "#d97706",
+                      "amber-alert-bg": "rgba(217, 119, 6, 0.1)",
+                      "green-status": "#10b981",
+                      "green-status-bg": "rgba(16, 185, 129, 0.1)",
+                      "indigo-advisory": "#6366f1",
+                      "indigo-advisory-bg": "rgba(99, 102, 241, 0.1)",
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "gutter": "8px",
+                      "rail-width": "64px",
+                      "unit": "4px",
+                      "card-padding": "12px",
+                      "panel-right": "360px"
+              },
+              "fontFamily": {
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "display-sm": [
+                              "Inter"
+                      ],
+                      "label-caps": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-sm": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-caps": [
+                              "10px",
+                              {
+                                      "lineHeight": "12px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "data-mono": [
+                              "13px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-sm": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        /* Custom scrollbar for dense feeling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #434655;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8d90a0;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md h-screen overflow-hidden flex selection:bg-primary-container selection:text-white">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-rail-width bg-background border-r border-white/10 flex flex-col items-center py-4 z-50">
+<div class="mb-8 flex flex-col items-center gap-2">
+<span class="font-display-sm text-display-sm text-primary material-symbols-outlined" style="font-size: 28px;">target</span>
+</div>
+<div class="flex flex-col w-full items-center gap-6">
+<!-- Active Tab: Board -->
+<button class="relative flex flex-col items-center w-full group text-primary scale-95 duration-100" title="Board">
+<div class="absolute left-0 top-1/2 -translate-y-1/2 h-6 border-l-2 border-primary"></div>
+<span class="material-symbols-outlined text-[24px]">dashboard</span>
+<span class="font-label-caps text-label-caps mt-1 tracking-[0.05em] opacity-0 group-hover:opacity-100 transition-opacity">Board</span>
+</button>
+<!-- Inactive Tabs -->
+<button class="relative flex flex-col items-center w-full group text-on-surface-variant opacity-60 hover:text-on-surface hover:opacity-100 transition-colors" title="Scenes">
+<span class="material-symbols-outlined text-[24px]">movie</span>
+</button>
+<button class="relative flex flex-col items-center w-full group text-on-surface-variant opacity-60 hover:text-on-surface hover:opacity-100 transition-colors" title="Grounded Facts">
+<span class="material-symbols-outlined text-[24px]">fact_check</span>
+</button>
+<button class="relative flex flex-col items-center w-full group text-on-surface-variant opacity-60 hover:text-on-surface hover:opacity-100 transition-colors" title="Replan">
+<span class="material-symbols-outlined text-[24px]">event_repeat</span>
+</button>
+<button class="relative flex flex-col items-center w-full group text-on-surface-variant opacity-60 hover:text-on-surface hover:opacity-100 transition-colors" title="Coverage Review">
+<span class="material-symbols-outlined text-[24px]">video_library</span>
+</button>
+<button class="relative flex flex-col items-center w-full group text-on-surface-variant opacity-60 hover:text-on-surface hover:opacity-100 transition-colors" title="Call Sheets">
+<span class="material-symbols-outlined text-[24px]">description</span>
+</button>
+<button class="relative flex flex-col items-center w-full group text-on-surface-variant opacity-60 hover:text-on-surface hover:opacity-100 transition-colors" title="Audit Log">
+<span class="material-symbols-outlined text-[24px]">history</span>
+</button>
+</div>
+<div class="mt-auto">
+<img class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="A highly detailed close-up of an abstract metallic surface with subtle brushed textures, illuminated by cool studio lighting. The aesthetic is extremely modern and professional, fitting for a premium film production dashboard profile avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCikponRz8Jcd4b6rozBi2mjlFdz-e0QKof6Ck1pILhYGZM_qneTGEll-T4AO6Tmv5YEQ5VXRI8JJYQxdCmJ6aSAErCrAZ2_LSsU6UL78KEF188d3Nn7UzhyS6bntabbXQqJa9PKpsJzJCezQyiTullVbUuQ-Lqk8lUzs2Iu6JaoDExmKRP9ZVVEM5xkHTGbppB30ojtqGLhASNKbA9DH94gwx4U-2na7R3USXm5dpatDRZ1r5GnmLDxqvll7hU27XBq4NA-ooQIuGi"/>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-rail-width w-[calc(100%-64px)] h-full flex flex-col relative">
+<!-- TopAppBar -->
+<header class="docked full-width top-0 bg-surface-container flex justify-between items-center h-12 px-gutter z-40 border-b border-white/10 shrink-0">
+<!-- Left: Brand & Navigation -->
+<div class="flex items-center gap-4">
+<span class="font-headline-sm font-bold text-on-surface">The Glasshouse</span>
+<div class="h-4 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-3">
+<span class="text-on-surface font-body-sm">Day 8 of 20</span>
+<span class="bg-surface-variant text-on-surface-variant font-label-caps text-label-caps px-2 py-0.5 rounded-sm">v4</span>
+<div class="flex items-center gap-1 bg-green-status-bg text-green-status px-2 py-0.5 rounded-full font-label-caps text-label-caps">
+<span class="material-symbols-outlined text-[12px]">check_circle</span>
+                        Validated
+                    </div>
+</div>
+</div>
+<!-- Right: Actions -->
+<div class="flex items-center gap-3">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</button>
+<div class="h-4 w-px bg-outline-variant mx-1"></div>
+<button class="font-body-sm text-on-surface border border-outline-variant rounded px-3 py-1 hover:bg-surface-variant transition-colors">Compare Options</button>
+<button class="font-body-sm text-on-surface border border-outline-variant rounded px-3 py-1 hover:bg-surface-variant transition-colors">Export Stripboard</button>
+<button class="font-body-sm text-primary border border-primary rounded px-3 py-1 hover:bg-primary/10 transition-colors">Validate Board</button>
+<button class="font-body-sm bg-primary-container text-white rounded px-3 py-1 hover:bg-primary-container/90 transition-colors shadow-[0_4px_16px_rgba(37,99,235,0.2)]">Generate Board</button>
+<div class="h-4 w-px bg-outline-variant mx-1"></div>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</div>
+</header>
+<!-- Alert Banner -->
+<div class="w-full bg-[#3f2a15] border-b border-amber-alert/30 px-gutter py-2 flex items-center justify-between shrink-0">
+<div class="flex items-center gap-2 text-amber-500">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+<span class="font-body-sm">Rain forecast for Day 14 increased 20% → 85%. Three alternative boards generated.</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="font-body-sm text-amber-500 border border-amber-500/50 rounded px-2 py-0.5 hover:bg-amber-500/10 transition-colors">Compare Options</button>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+</div>
+<!-- Stat Row -->
+<div class="px-gutter py-2 flex gap-2 overflow-x-auto shrink-0 border-b border-white/5">
+<!-- Stat Tile 1 -->
+<div class="bg-surface-container rounded p-2 flex-1 min-w-[120px] border border-white/5">
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">Active Version</div>
+<div class="font-data-mono text-data-mono text-on-surface">v4</div>
+</div>
+<!-- Stat Tile 2 -->
+<div class="bg-surface-container rounded p-2 flex-1 min-w-[120px] border border-white/5">
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">Shoot Days</div>
+<div class="font-data-mono text-data-mono text-on-surface">20</div>
+</div>
+<!-- Stat Tile 3 -->
+<div class="bg-surface-container rounded p-2 flex-1 min-w-[120px] border border-white/5">
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">Locked Days</div>
+<div class="font-data-mono text-data-mono text-on-surface">8</div>
+</div>
+<!-- Stat Tile 4 -->
+<div class="bg-surface-container rounded p-2 flex-1 min-w-[120px] border border-white/5">
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">Company Moves</div>
+<div class="font-data-mono text-data-mono text-on-surface">6</div>
+</div>
+<!-- Stat Tile 5 -->
+<div class="bg-surface-container rounded p-2 flex-1 min-w-[120px] border border-white/5">
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">Holding-Day Cost</div>
+<div class="font-data-mono text-data-mono text-on-surface">$4,200</div>
+</div>
+<!-- Stat Tile 6 -->
+<div class="bg-surface-container rounded p-2 flex-1 min-w-[120px] border border-amber-500/30">
+<div class="font-label-caps text-label-caps text-amber-500 mb-1">Weather Risks</div>
+<div class="font-data-mono text-data-mono text-amber-500">1</div>
+</div>
+<!-- Stat Tile 7 -->
+<div class="bg-surface-container rounded p-2 flex-1 min-w-[120px] border border-white/5">
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">Required Approvals</div>
+<div class="font-data-mono text-data-mono text-on-surface">1</div>
+</div>
+</div>
+<!-- Working Area: Stripboard & Side Panel -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Left: Stripboard List -->
+<div class="flex-1 overflow-y-auto p-gutter flex flex-col gap-2">
+<!-- Day 1 Card -->
+<div class="bg-[#fafafa] text-[#121212] rounded flex relative overflow-hidden shadow-[0_4px_4px_rgba(0,0,0,0.05)] opacity-80 border border-white/10">
+<!-- Status Spine -->
+<div class="w-1 bg-green-500 absolute left-0 top-0 bottom-0"></div>
+<div class="p-card-padding pl-4 w-full flex items-center justify-between">
+<div class="flex flex-col w-1/4">
+<span class="font-body-md font-bold">Day 1</span>
+<span class="font-body-sm text-[#4b5563]">Apr 04</span>
+</div>
+<div class="flex flex-col w-1/4">
+<span class="font-body-sm font-semibold truncate">Glasshouse Residence</span>
+<span class="font-body-sm text-[#4b5563]">INT/NIGHT</span>
+</div>
+<div class="flex flex-col w-1/6">
+<span class="font-body-sm font-data-mono">SC-003</span>
+<span class="font-body-sm text-[#4b5563] truncate">Sarah, Elias</span>
+</div>
+<div class="flex flex-col w-1/6">
+<span class="font-body-sm font-data-mono">16:00 → 02:00</span>
+</div>
+<div class="flex items-center gap-1 w-1/6 justify-end">
+<span class="material-symbols-outlined text-green-600 text-[16px]">check_circle</span>
+</div>
+</div>
+</div>
+<!-- Day 2 Card -->
+<div class="bg-[#fafafa] text-[#121212] rounded flex relative overflow-hidden shadow-[0_4px_4px_rgba(0,0,0,0.05)] border border-white/10">
+<div class="w-1 bg-green-500 absolute left-0 top-0 bottom-0"></div>
+<div class="p-card-padding pl-4 w-full flex items-center justify-between">
+<div class="flex flex-col w-1/4">
+<span class="font-body-md font-bold">Day 2</span>
+<span class="font-body-sm text-[#4b5563]">Apr 05</span>
+</div>
+<div class="flex flex-col w-1/4">
+<span class="font-body-sm font-semibold truncate">Glasshouse Residence</span>
+<span class="font-body-sm text-[#4b5563]">INT/NIGHT</span>
+</div>
+<div class="flex flex-col w-1/6">
+<span class="font-body-sm font-data-mono">SC-018</span>
+<span class="font-body-sm text-[#4b5563] truncate">Sarah, Lucy</span>
+</div>
+<div class="flex flex-col w-1/6">
+<span class="font-body-sm font-data-mono">15:00 → 01:00</span>
+</div>
+<div class="flex items-center gap-1 w-1/6 justify-end flex-wrap">
+<span class="material-symbols-outlined text-green-600 text-[16px]">check_circle</span>
+<div class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-label-caps text-label-caps flex items-center gap-1">
+<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">arrow_back_ios_new</span>
+                                Coverage
+                            </div>
+</div>
+</div>
+</div>
+<!-- Day 8 Card -->
+<div class="bg-[#fafafa] text-[#121212] rounded flex relative overflow-hidden shadow-[0_4px_4px_rgba(0,0,0,0.05)] border border-white/10">
+<div class="w-1 bg-green-500 absolute left-0 top-0 bottom-0"></div>
+<div class="p-card-padding pl-4 w-full flex items-center justify-between">
+<div class="flex flex-col w-1/4">
+<span class="font-body-md font-bold">Day 8</span>
+<span class="font-body-sm text-[#4b5563]">Apr 11</span>
+</div>
+<div class="flex flex-col w-1/4">
+<span class="font-body-sm font-semibold truncate">St. Mark's Church</span>
+<span class="font-body-sm text-[#4b5563]">INT/DAY</span>
+</div>
+<div class="flex flex-col w-1/6">
+<span class="font-body-sm font-data-mono">SC-012</span>
+<span class="font-body-sm text-[#4b5563] truncate">Elias</span>
+</div>
+<div class="flex flex-col w-1/6">
+<span class="font-body-sm font-data-mono">07:00 → 18:30</span>
+</div>
+<div class="flex items-center gap-1 w-1/6 justify-end flex-wrap">
+<span class="material-symbols-outlined text-green-600 text-[16px]">check_circle</span>
+<div class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-label-caps text-label-caps">Permit</div>
+</div>
+</div>
+</div>
+<!-- Day 14 Card (ACTIVE) -->
+<div class="bg-[#ffffff] text-[#121212] rounded flex relative overflow-hidden shadow-[0_4px_16px_rgba(0,0,0,0.1)] border-2 border-primary-container z-10 scale-[1.01] transition-transform">
+<div class="w-1 bg-blue-500 absolute left-0 top-0 bottom-0"></div>
+<div class="p-card-padding pl-4 w-full flex items-center justify-between">
+<div class="flex flex-col w-1/4">
+<span class="font-body-md font-bold">Day 14</span>
+<span class="font-body-sm text-[#4b5563]">Apr 18</span>
+</div>
+<div class="flex flex-col w-1/4">
+<span class="font-body-sm font-semibold truncate">St. Mark's Church</span>
+<span class="font-body-sm text-[#4b5563]">EXT/DAY</span>
+</div>
+<div class="flex flex-col w-1/6">
+<span class="font-body-sm font-data-mono">SC-007, SC-021</span>
+<span class="font-body-sm text-[#4b5563] truncate">Sarah, Elias, Lucy</span>
+</div>
+<div class="flex flex-col w-1/6">
+<span class="font-body-sm font-data-mono font-semibold">06:45 → 19:15</span>
+</div>
+<div class="flex items-center gap-1 w-1/6 justify-end flex-wrap">
+<span class="material-symbols-outlined text-green-600 text-[16px]">check_circle</span>
+<div class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-label-caps text-label-caps flex items-center gap-1 border border-amber-300">
+<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">warning</span>
+                                85%
+                            </div>
+</div>
+</div>
+</div>
+<!-- Day 15 Card -->
+<div class="bg-[#fafafa] text-[#121212] rounded flex relative overflow-hidden shadow-[0_4px_4px_rgba(0,0,0,0.05)] border border-white/10 mt-1">
+<div class="w-1 bg-blue-500 absolute left-0 top-0 bottom-0"></div>
+<div class="p-card-padding pl-4 w-full flex items-center justify-between">
+<div class="flex flex-col w-1/4">
+<span class="font-body-md font-bold">Day 15</span>
+<span class="font-body-sm text-[#4b5563]">Apr 19</span>
+</div>
+<div class="flex flex-col w-1/4">
+<span class="font-body-sm font-semibold truncate">Glasshouse Residence</span>
+<span class="font-body-sm text-[#4b5563]">EXT/DUSK</span>
+</div>
+<div class="flex flex-col w-1/6">
+<span class="font-body-sm font-data-mono">SC-014</span>
+<span class="font-body-sm text-[#4b5563] truncate">Sarah, Elias</span>
+</div>
+<div class="flex flex-col w-1/6">
+<span class="font-body-sm font-data-mono">12:00 → 22:00</span>
+</div>
+<div class="flex items-center gap-1 w-1/6 justify-end flex-wrap">
+<span class="material-symbols-outlined text-green-600 text-[16px]">check_circle</span>
+<div class="bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full font-label-caps text-label-caps">Stunt</div>
+</div>
+</div>
+</div>
+<!-- Padding for bottom drawer -->
+<div class="h-12"></div>
+</div>
+<!-- Right: Detail Panel (Day 14) -->
+<div class="w-panel-right bg-surface-container-low border-l border-white/10 flex flex-col shrink-0 overflow-y-auto">
+<div class="p-4 border-b border-white/10 flex items-center justify-between sticky top-0 bg-surface-container-low z-10">
+<div class="flex flex-col">
+<span class="font-headline-sm text-on-surface">Day 14 · Apr 18</span>
+<span class="font-body-sm text-on-surface-variant">St. Mark's Church</span>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-4 flex flex-col gap-6">
+<!-- Scenes -->
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-2">SCENES</div>
+<div class="flex flex-col gap-2">
+<div class="bg-surface p-2 rounded border border-white/5 flex justify-between items-center">
+<span class="font-data-mono text-body-sm">SC-007</span>
+<span class="font-body-sm">EXT. COURT</span>
+<span class="font-body-sm text-on-surface-variant">3/8 pgs</span>
+</div>
+<div class="bg-surface p-2 rounded border border-white/5 flex justify-between items-center">
+<span class="font-data-mono text-body-sm">SC-021</span>
+<span class="font-body-sm">EXT. STEPS</span>
+<span class="font-body-sm text-on-surface-variant">2/8 pgs</span>
+</div>
+</div>
+</div>
+<!-- Cast -->
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-2">CAST</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded bg-surface-variant flex items-center justify-center font-label-caps">S</div>
+<span class="font-body-sm text-on-surface">Nina Park (Sarah)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded bg-surface-variant flex items-center justify-center font-label-caps">E</div>
+<span class="font-body-sm text-on-surface">Mateo Reyes (Elias)</span>
+</div>
+<div class="flex items-start gap-2">
+<div class="w-6 h-6 rounded bg-amber-500/20 text-amber-500 flex items-center justify-center font-label-caps">L</div>
+<div class="flex flex-col">
+<span class="font-body-sm text-on-surface">Ava Brooks (Lucy)</span>
+<span class="font-body-sm text-amber-500 text-[11px] mt-0.5 border border-amber-500/30 px-1 py-0.5 rounded-sm inline-block w-fit">minor-hours note: max 6h</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Environment & Constraints -->
+<div class="bg-surface rounded border border-white/5 p-3 flex flex-col gap-3">
+<!-- Daylight -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">light_mode</span>
+<span class="font-body-sm font-semibold text-on-surface">Daylight</span>
+</div>
+<div class="font-data-mono text-body-sm pl-6">sunrise 06:22 · sunset 19:31</div>
+<div class="font-body-sm text-[11px] text-on-surface-variant pl-6">Computed · NOAA solar algorithm</div>
+</div>
+<div class="h-px bg-white/5 ml-6"></div>
+<!-- Weather -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-amber-500">
+<span class="material-symbols-outlined text-[16px]">oil_barrel</span>
+<span class="font-body-sm font-semibold">Weather Risk</span>
+<div class="bg-indigo-advisory-bg text-indigo-advisory px-1.5 py-0.5 rounded-full font-label-caps text-[9px] flex items-center gap-0.5 ml-auto border border-indigo-advisory/30">
+<span class="material-symbols-outlined text-[10px]" style="font-variation-settings: 'FILL' 1;">psychology</span>
+                                    Grounded by Parallel
+                                </div>
+</div>
+<div class="font-body-sm pl-6 text-on-surface">Rain probability 85% · forecast issued Apr 17</div>
+<a class="font-body-sm text-[11px] text-primary hover:underline pl-6" href="#">View Sources</a>
+</div>
+<div class="h-px bg-white/5 ml-6"></div>
+<!-- Permit -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-green-status">
+<span class="material-symbols-outlined text-[16px]">gavel</span>
+<span class="font-body-sm font-semibold">Permit Verified</span>
+</div>
+<div class="font-body-sm pl-6 text-on-surface">Tuesdays and Thursdays only</div>
+<a class="font-body-sm text-[11px] text-primary hover:underline pl-6" href="#">Source Document</a>
+</div>
+</div>
+<!-- Panel Actions -->
+<div class="mt-auto pt-4 flex flex-col gap-2">
+<button class="w-full font-body-sm bg-surface-variant text-on-surface rounded py-2 hover:bg-surface-bright transition-colors border border-white/5">Compare Options</button>
+<button class="w-full font-body-sm bg-primary text-on-primary font-semibold rounded py-2 hover:bg-primary/90 transition-colors">Lock Day</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Audit Drawer -->
+<div class="absolute bottom-0 left-0 right-panel-right h-8 bg-surface border-t border-white/10 flex items-center justify-center px-4 cursor-pointer hover:bg-surface-bright transition-colors z-20" title="Expand Audit Log">
+<span class="font-data-mono text-[11px] text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">history</span>
+                Board validated against 42 hard constraints · <span class="text-amber-500">2 soft exposures require review</span> · constraint snapshot <span class="text-primary">8f3c9a1</span>
+<span class="material-symbols-outlined text-[16px] ml-2">expand_less</span>
+</span>
+</div>
+</main>
+</body></html>
