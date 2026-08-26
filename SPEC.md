@@ -111,6 +111,35 @@ Non-negotiable. Decided 26 Aug 2026, per the brief.
 | OUT-001 | A call sheet is generated for a scheduled day. | `planned` |
 | OUT-002 | Two schedule versions can be diffed with the delta quantified. | `planned` |
 
+## REV — Coverage review and human decision
+
+Gemini may flag a coverage item as needing attention. It may not decide the outcome.
+The boundary is enforced structurally rather than by convention, for the same reason
+the solver rather than a model produces the board.
+
+| ID | Requirement | Status |
+|---|---|---|
+| REV-001 | A review finding is advisory. The only status transition a finding can cause is to *needs review*; it cannot accept, reject, or request a pickup. | `built` |
+| REV-002 | A flagged coverage item is marked *needs review* and carries the finding that flagged it. | `built` |
+| REV-003 | Only a decision attributed to a named human can accept, reject, or request a pickup. An automated agent is rejected as the decider. | `built` |
+| REV-004 | A decision records who made it, when, and which finding it responds to. | `built` |
+| REV-005 | An accepted item produces no pickup work. | `built` |
+| REV-006 | A decision may only be applied to an item awaiting review. | `built` |
+| REV-007 | An item cannot be flagged for review before it has been shot. | `built` |
+| REV-008 | A finding may be raised by a human as well as by Gemini. | `planned` |
+
+## PIK — Pickups and re-shoots
+
+| ID | Requirement | Status |
+|---|---|---|
+| PIK-001 | A pickup task cannot be constructed without a human decision authorising it. | `built` |
+| PIK-002 | A pickup task traces to the decision that authorised it and the finding that prompted it. | `built` |
+| PIK-003 | A rejection or pickup request yields exactly one pickup task. | `built` |
+| PIK-004 | A pickup task carries the scene, coverage type, cast, location and duration the solver needs to place it. | `built` |
+| PIK-005 | Replanning admits a pickup task as required work while preserving cast, location, daylight, permit and weather constraints. | `planned` |
+| PIK-006 | Replanning with a pickup treats already-shot days as immutable (see SOL-004). | `planned` |
+| PIK-007 | Each revised board states the disruption cost of accommodating the pickup in production terms rather than solver terms. | `planned` |
+
 ## AUD — Auditability
 
 Cross-cutting. This is the brief's central claim, so it is specified rather than assumed.
@@ -120,3 +149,4 @@ Cross-cutting. This is the brief's central claim, so it is specified rather than
 | AUD-001 | Every scheduling decision traces to an explicit constraint and an explicit objective term. | `planned` |
 | AUD-002 | Every constraint traces to either a source URL or a named deterministic algorithm. | `partial` |
 | AUD-003 | A constraint records whether it was derived from full page content or from excerpts, so downstream confidence can reflect it. | `built` |
+| AUD-004 | Every pickup task traces to a named human decision. No automated process can create shoot work. | `built` |

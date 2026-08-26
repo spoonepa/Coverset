@@ -81,6 +81,10 @@ decision traces to an explicit constraint and an explicit objective, not to a ge
   Extract pulls its full contents; Gemini types the result into a constraint
 - `compute_daylight` — sunrise, sunset, golden and magic hour from coordinates and
   date; deterministic, no retrieval
+- `review_coverage` — Gemini reviews a scene's coverage and raises findings; advisory
+  only, and the strongest effect it can have is putting the item in front of a human
+- `record_review_decision` — the AD or Director's ruling; the only thing that can
+  create pickup work
 - `solve_schedule` — run the constraint model
 - `explain_infeasibility` — return the minimal conflicting constraint set
 - `diff_schedules` — compare two versions and quantify the delta
@@ -165,6 +169,37 @@ which is what a first AD actually optimizes.
 
 **Immutability:** days already shot are locked. Replanning on day 8 cannot move days 1
 through 7.
+
+## Pickups and re-shoots
+
+A scene's coverage is a set of shots — establishing, wide, close-up, reverse, insert.
+Any of them can turn out to be unusable, and finding that out late is expensive: the
+work recurs, but the schedule around it has already hardened.
+
+Gemini can help spot it. Gemini cannot decide it.
+
+1. Gemini reviews a scene's coverage and raises a **finding** when something may need
+   attention — an eyeline that does not match the reverse, coverage that looks short.
+2. The item is marked **Needs AD/Director Review**. That is the entire effect a finding
+   can have.
+3. The AD or Director accepts it, rejects the coverage, or requests a pickup.
+4. A rejection or pickup request creates a **PickupTask**: required work, carrying the
+   scene, coverage type, cast, location and duration the solver needs.
+5. The solver replans the remaining days with already-shot days locked, the pickup
+   admitted as required work, and every original constraint — cast, location, daylight,
+   permit, weather — still in force.
+6. Coverset presents the revised boards and what each one costs.
+
+**The boundary is structural, not procedural.** A `ReviewFinding` has no disposition
+field, so it cannot express an outcome even in principle. A `ReviewDecision` refuses to
+name an automated agent as its decider. A `PickupTask` cannot be constructed without a
+decision that authorises one. Three separate locks, because the realistic failure is not
+someone deliberately overriding the rule — it is a well-meant refactor that wires the
+advisory path into the acting path, and a docstring does not survive that.
+
+The same division as everywhere else in the system: **Gemini interprets, a human
+decides, OR-Tools schedules.** A pickup day costs a crew day, so nothing automated puts
+one on the board.
 
 ## Demo scenario
 
