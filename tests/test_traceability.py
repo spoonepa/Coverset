@@ -206,3 +206,67 @@ def test_the_committed_spec_has_no_defects():
     assert len(spec.requirements) > 100
     assert spec.non_negotiables
     assert spec.use_cases
+
+
+# --------------------------------------------------------------------------
+# Intent tags -- why a requirement belongs to no journey
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.req("TRC-007")
+@pytest.mark.parametrize(
+    "tag", ["invariant", "edge-case", "cross-cutting", "meta", "deferred"]
+)
+def test_an_intent_tag_is_read_from_the_notes_cell(tag):
+    text = HEADER + f"| DAY-001 | Stmt. | unit-built | offline | MVP-0 | [{tag}] why |\n"
+
+    assert parse_spec(text).requirements["DAY-001"].intent == tag
+
+
+@pytest.mark.req("TRC-007")
+def test_a_requirement_with_no_tag_declares_no_intent():
+    assert parse_spec(HEADER + GOOD).requirements["DAY-001"].intent is None
+
+
+@pytest.mark.req("TRC-007")
+def test_an_unknown_intent_tag_is_a_defect():
+    # A misspelt tag would otherwise read as a valid classification and quietly
+    # excuse a requirement from every journey.
+    text = HEADER + "| DAY-001 | Stmt. | unit-built | offline | MVP-0 | [invarient] why |\n"
+
+    defect = only_defect(text)
+    assert "unknown intent tag 'invarient'" in defect
+    assert "expected one of" in defect
+
+
+@pytest.mark.req("TRC-007")
+def test_a_tagged_requirement_still_parses_normally():
+    text = HEADER + "| DAY-001 | Stmt. | unit-built | offline | MVP-0 | [deferred] later |\n"
+
+    assert parse_spec(text).requirements["DAY-001"].maturity == "unit-built"
+
+
+@pytest.mark.req("TRC-007")
+def test_every_unexercised_product_requirement_declares_its_intent():
+    """The discipline A2 exists to create, asserted rather than merely reported.
+
+    A requirement outside every journey with no stated reason is a forgotten
+    workflow requirement until someone says otherwise. Adding one without either
+    citing it from a use case or tagging it fails here.
+    """
+    import pathlib
+
+    from traceability import SELF_AREAS
+
+    spec = parse_spec((pathlib.Path(__file__).parent.parent / "SPEC.md").read_text())
+    cited = {rid for uc in spec.use_cases for rid in uc.exercises}
+    unclassified = sorted(
+        r.id
+        for r in spec.requirements.values()
+        if r.id not in cited and r.area not in SELF_AREAS and r.intent is None
+    )
+
+    assert unclassified == [], (
+        f"{len(unclassified)} requirement(s) belong to no use case and give no reason: "
+        f"{', '.join(unclassified)}"
+    )

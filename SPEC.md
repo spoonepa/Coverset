@@ -52,6 +52,28 @@ The central design is unchanged:
 | `live` | `uv run pytest -m live` | Real provider behavior and fact-binding invariants. Requires `PARALLEL_API_KEY`. |
 | `manual-demo` | Recorded/manual demo script plus artifacts. | End-to-end product journey where automated checking is not yet enough. |
 
+### Intent tags
+
+A requirement that belongs to no use case is not necessarily a gap. It may be an
+invariant, an edge case, or tooling. But *not necessarily a gap* is not the same as
+*deliberately outside*, and the difference is the whole value of the report — so the
+reason is stated rather than inferred.
+
+A requirement exercised by no use case carries a leading tag in its Notes cell:
+
+| Tag | Meaning |
+|---|---|
+| `[invariant]` | A correctness property of a capability some journey already exercises. |
+| `[edge-case]` | A rare path that no ordinary journey reaches. |
+| `[cross-cutting]` | Applies across many journeys and belongs to none of them. |
+| `[meta]` | Constrains the tooling or status reporting, not the product. |
+| `[deferred]` | Post-MVP by design; the journey that needs it does not exist yet. |
+
+Traceability groups unexercised requirements by tag and reports untagged ones
+separately. That last group is the actionable one: a requirement outside every
+journey with no stated reason is a forgotten workflow requirement until someone says
+otherwise.
+
 ### Active slices
 
 | Slice | Purpose | Required outcome |
@@ -478,7 +500,7 @@ No board may be returned as viable unless `status` is `optimal` or `feasible` an
 | CST-005 | Billable days are the greater of engagement span and contracted guarantee. | unit-built | offline | MVP-0 | Existing model/tests. |
 | CST-006 | A minor carries a restricted maximum working day. | unit-built | offline | MVP-0 | Existing model/tests; legal libraries post-MVP. |
 | CST-007 | Minimum turnaround between wrap and next call is modeled for cast individually and crew as a unit. | unit-built | offline | MVP-0 | Existing cast/company model; solver integration missing. |
-| CST-008 | Union agreements and jurisdiction-specific child-labor limits are pluggable constraint libraries. Defaults are illustrative production norms, not authority. | not-started | offline | POST | Keep out of MVP. |
+| CST-008 | Union agreements and jurisdiction-specific child-labor limits are pluggable constraint libraries. Defaults are illustrative production norms, not authority. | not-started | offline | POST | [deferred] Keep out of MVP. |
 | CST-009 | Any scene/work item referencing cast validates all cast IDs against the active roster before solving. | not-started | offline | MVP-0 | Existing coverage path validates cast IDs, but solver work-item validation is not implemented. |
 | CST-010 | A cast availability or minor-work constraint compiled into CP-SAT is also independently evaluable against a returned board. | not-started | offline | MVP-0 | Needed for independent validation. |
 
@@ -498,7 +520,7 @@ permits; Gemini-derived records are candidates until accepted.
 | BRK-002 | Breakdown flags stunts, minors, and VFX as candidate flags requiring validation/acceptance before activation. | not-started | offline | POST | Existing requirement reframed. |
 | BRK-003 | Gemini-derived scene records below the configured confidence threshold are marked `needs_review` and cannot feed the solver. | not-started | offline | POST | Prevents wrong candidate records becoming active. |
 | BRK-004 | Cast extracted from a screenplay is resolved to roster IDs or reported as unresolved; unresolved cast blocks board generation. | not-started | offline | POST | Test with fixture screenplay/candidate output. |
-| BRK-005 | Page eighths are rounded by a documented rule and keep enough provenance to audit the source page/line. | not-started | offline | POST | Avoids untestable page-count claims. |
+| BRK-005 | Page eighths are rounded by a documented rule and keep enough provenance to audit the source page/line. | not-started | offline | POST | [deferred] Avoids untestable page-count claims. |
 
 ---
 
@@ -509,8 +531,8 @@ permits; Gemini-derived records are candidates until accepted.
 | TRK-001 | Parallel Search is called at runtime for every externally grounded fact request. No cache, precomputed fact table, or offline fallback may stand in for it. | unit-built | live | MVP-1 | Existing offline + live tests. |
 | TRK-002 | Parallel Extract retrieves full page contents where excerpt compression would discard the operative value. | unit-built | live | MVP-1 | Existing tests. |
 | TRK-003 | Parallel Monitor watches mutable weather and permit source URLs that a live schedule depends on and emits change events. | not-started | live | POST | Daylight is not monitored. |
-| TRK-004 | Search, Extract, and downstream grounded values in one replan share a Parallel session or explicit correlation ID. | not-started | live | MVP-1 | Existing GRD-008 covers Search/Extract evidence session sharing; downstream grounded-value correlation is not implemented. |
-| TRK-005 | A track-critical requirement with live verification required cannot be reported demo-ready without at least one live test or an explicit documented exemption. | not-started | live | MVP-1 | Strengthens status gating. |
+| TRK-004 | Search, Extract, and downstream grounded values in one replan share a Parallel session or explicit correlation ID. | not-started | live | MVP-1 | [cross-cutting] Existing GRD-008 covers Search/Extract evidence session sharing; downstream grounded-value correlation is not implemented. |
+| TRK-005 | A track-critical requirement with live verification required cannot be reported demo-ready without at least one live test or an explicit documented exemption. | not-started | live | MVP-1 | [meta] Strengthens status gating. |
 
 ---
 
@@ -525,10 +547,10 @@ permits; Gemini-derived records are candidates until accepted.
 | GRD-005 | Permit retrieval is restricted to authoritative domains by default and overridable per production. | unit-built | live | MVP-1 | Existing tests. |
 | GRD-006 | Weather retrieval excludes sources published before the forecast horizon. | unit-built | live | MVP-1 | Existing tests. |
 | GRD-007 | Extract failure degrades to excerpts and is reported as such, never silently presented as full content. | unit-built | offline | MVP-1 | Failure-path live exempt. |
-| GRD-008 | Search and Extract calls within one replan share a Parallel session. | unit-built | live | MVP-1 | Existing tests. |
-| GRD-009 | Weekday-only labels are not accepted as evidence of date coverage. | unit-built | offline | MVP-1 | Existing tests. |
+| GRD-008 | Search and Extract calls within one replan share a Parallel session. | unit-built | live | MVP-1 | [cross-cutting] Existing tests. |
+| GRD-009 | Weekday-only labels are not accepted as evidence of date coverage. | unit-built | offline | MVP-1 | [invariant] Existing tests. |
 | GRD-010 | Weather distinguishes near-term forecasts with predictive skill from long-range climatology/risk priors. | not-started | live | MVP-1 | See WEA section. |
-| GRD-011 | The search request declares the consuming model and geo-targets the location's country. | unit-built | live | MVP-1 | Existing tests. |
+| GRD-011 | The search request declares the consuming model and geo-targets the location's country. | unit-built | live | MVP-1 | [cross-cutting] Existing tests. |
 | GRD-012 | A grounded value records the exact source span, quote, or table row that produced the normalized value. A URL alone is insufficient. | not-started | offline | MVP-1 | New value-level provenance. |
 | GRD-013 | A grounded value records query, retrieval timestamp, provider response ID, content hash, full-content/excerpt flag, normalized value, units, and validator result. | not-started | offline | MVP-1 | New audit contract. |
 | GRD-014 | Conflicting authoritative values raise `GroundingConflict` and cannot silently bind a constraint. | not-started | offline | MVP-1 | Need conflict fixture. |
@@ -541,12 +563,12 @@ permits; Gemini-derived records are candidates until accepted.
 | ID | Requirement | Maturity | Verification | Slice | Notes |
 |---|---|---|---|---|---|
 | DAY-001 | Daylight is computed from coordinates and date, never retrieved. | unit-built | offline | MVP-0 | Existing tests. |
-| DAY-002 | Computed times agree with published almanac tables to within 2 minutes. | unit-built | offline | MVP-0 | Existing tests. |
+| DAY-002 | Computed times agree with published almanac tables to within 2 minutes. | unit-built | offline | MVP-0 | [invariant] Existing tests. |
 | DAY-003 | Times are timezone-aware and DST-correct for the date in question. | unit-built | offline | MVP-0 | Existing tests. |
-| DAY-004 | A window violating chronological invariants raises rather than being returned. | unit-built | offline | MVP-0 | Existing tests. |
-| DAY-005 | Latitudes where the sun does not rise or set are reported as polar day/night, not crashed on. | unit-built | offline | MVP-0 | Existing tests. |
-| DAY-006 | Coordinates without a timezone are rejected at construction. | unit-built | offline | MVP-0 | Existing tests. |
-| DAY-007 | Horizon obstruction at a location can override astronomical sunset. | not-started | offline | POST | Not needed for MVP. |
+| DAY-004 | A window violating chronological invariants raises rather than being returned. | unit-built | offline | MVP-0 | [invariant] Existing tests. |
+| DAY-005 | Latitudes where the sun does not rise or set are reported as polar day/night, not crashed on. | unit-built | offline | MVP-0 | [edge-case] Existing tests. |
+| DAY-006 | Coordinates without a timezone are rejected at construction. | unit-built | offline | MVP-0 | [invariant] Existing tests. |
+| DAY-007 | Horizon obstruction at a location can override astronomical sunset. | not-started | offline | POST | [deferred] Not needed for MVP. |
 | DAY-008 | Deterministic daylight algorithms are rerun during solve/replan; they are not monitored as mutable external sources. | not-started | offline | MVP-0 | Daylight computation exists; solve/replan integration is not implemented. |
 | DAY-009 | A daylight constraint compiled into CP-SAT is independently evaluable against a returned board. | not-started | offline | MVP-0 | Needed for board validation. |
 
@@ -563,7 +585,7 @@ waivable condition, or informational.
 | WEA-001 | Weather evidence is normalized into `ForecastRisk` values with issued_at, valid_for_date, horizon, condition, probability/intensity, source, and confidence tier. | not-started | live | MVP-1 | Connects grounding to scheduler. |
 | WEA-002 | The forecast horizon is explicit. Values outside the horizon are classified as climatology/risk prior, not forecast. | not-started | live | MVP-1 | Makes GRD-010 testable. |
 | WEA-003 | Production policy declares how each weather risk maps to constraint policy: hard, soft_penalty, waivable_by_role, or informational. | not-started | offline | MVP-1 | Solves weather ambiguity. |
-| WEA-004 | Monitor-triggered replans may use near-term forecast changes, not long-range climatology changes, unless production policy explicitly allows it. | not-started | live | POST | Avoids false replan triggers. |
+| WEA-004 | Monitor-triggered replans may use near-term forecast changes, not long-range climatology changes, unless production policy explicitly allows it. | not-started | live | POST | [deferred] Avoids false replan triggers. |
 | WEA-005 | Weather facts used as solver constraints preserve value-level provenance from GRD-012/013. | not-started | offline | MVP-1 | Auditability. |
 
 ---
@@ -668,7 +690,7 @@ solver-ready pickup work.
 | REV-006 | A decision may only be applied to an item awaiting review. | unit-built | offline | MVP-3 | Existing tests. |
 | REV-007 | An item cannot be flagged for review before it has been shot. | unit-built | offline | MVP-3 | Existing tests. |
 | REV-008 | A finding may be raised by a human as well as by Gemini. | not-started | offline | MVP-3 | Existing actor capability, finding path missing. |
-| REV-009 | LLM-generated review findings include confidence and source coverage reference; low-confidence findings are display-only until human confirmation. | not-started | offline | POST | Prevents overacting on weak findings. |
+| REV-009 | LLM-generated review findings include confidence and source coverage reference; low-confidence findings are display-only until human confirmation. | not-started | offline | POST | [deferred] Prevents overacting on weak findings. |
 
 ---
 
@@ -700,7 +722,7 @@ solver-ready pickup work.
 | AUD-004 | Every pickup task traces to a named human decision. No automated process can create shoot work. | unit-built | offline | MVP-3 | Existing tests. |
 | AUD-005 | Every active board records the constraint snapshot hash used to solve and validate it. | not-started | offline | MVP-0 | New board audit. |
 | AUD-006 | A schedule version records parent version, creation trigger, selected board, selecting actor when applicable, and approval state. | not-started | offline | MVP-2 | Needed for replans. |
-| AUD-007 | A live-grounded requirement declares whether live verification is required, exempt, or manual, and traceability reports missing live coverage separately from offline coverage. | not-started | live | MVP-1 | Strengthens traceability. |
+| AUD-007 | A live-grounded requirement declares whether live verification is required, exempt, or manual, and traceability reports missing live coverage separately from offline coverage. | not-started | live | MVP-1 | [meta] Strengthens traceability. |
 
 ---
 
@@ -718,6 +740,7 @@ report and left no symptom but a total nobody had memorised.
 | TRC-004 | Maturity, verification tier and slice values outside their declared vocabularies are reported as defects. | unit-built | offline | MVP-0 | A typo must not remove a requirement from the report. |
 | TRC-005 | A use case with no Exercises line is reported as a defect rather than counted as trivially deliverable. | unit-built | offline | MVP-0 | An empty journey would otherwise read as ready. |
 | TRC-006 | Any spec defect fails the traceability gate. | unit-built | offline | MVP-0 | Non-zero exit, not a warning. |
+| TRC-007 | A requirement exercised by no use case is grouped by its intent tag; an untagged one is reported separately as unclassified. | unit-built | offline | MVP-0 | [meta] Turns a standing warning into a shrinking, actionable list. |
 
 ---
 

@@ -40,6 +40,15 @@ RANK = {m: i for i, m in enumerate(MATURITY)}
 TIERS = ["none", "offline", "live", "manual-demo"]
 SLICES = ["MVP-0", "MVP-1", "MVP-2", "MVP-3", "POST"]
 
+INTENT_TAGS = ("invariant", "edge-case", "cross-cutting", "meta", "deferred")
+"""Why a requirement sits outside every use case.
+
+Stated rather than inferred. "Not necessarily a gap" and "deliberately outside" look
+identical in a bare list, and only one of them is finished thinking.
+"""
+
+INTENT = re.compile(r"^\[([a-z-]+)\]")
+
 SELF_AREAS = {"TRC"}
 """Areas that constrain the traceability tooling rather than the product.
 
@@ -77,6 +86,12 @@ class Requirement:
     @property
     def area(self) -> str:
         return self.id[:3]
+
+    @property
+    def intent(self) -> str | None:
+        """The declared reason this requirement belongs to no journey, if given."""
+        m = INTENT.match(self.notes)
+        return m.group(1) if m else None
 
     @property
     def claims_implementation(self) -> bool:
@@ -210,9 +225,14 @@ def parse_spec(text: str) -> ParsedSpec:
             if bad:
                 continue
 
-            spec.requirements[rid] = Requirement(
+            req = Requirement(
                 id=rid, statement=statement, maturity=maturity,
                 verification=verification, slice=slice_, notes=notes)
+            if (tag := req.intent) and tag not in INTENT_TAGS:
+                spec.defects.append(SpecDefect(
+                    n, f"{rid} has unknown intent tag {tag!r}",
+                    f"expected one of {', '.join(INTENT_TAGS)}"))
+            spec.requirements[rid] = req
 
         elif m := UC_HEADING.match(line):
             uid = m.group(1)
@@ -421,12 +441,23 @@ def main() -> int:
     self_reqs = [r for r in unexercised if r[:3] in SELF_AREAS]
 
     if product:
-        print(f"\n{rule}\nEXERCISED BY NO PRODUCT USE CASE ({len(product)})\n{rule}")
-        print("  Not a failure -- an invariant does not have to belong to a journey -- but")
-        print("  a requirement no journey needs is either genuinely cross-cutting or a")
-        print("  forgotten workflow requirement, and the two are worth telling apart.\n")
-        for i in range(0, len(product), 6):
-            print("  " + ", ".join(product[i:i + 6]))
+        by_intent: dict[str | None, list[str]] = defaultdict(list)
+        for rid in product:
+            by_intent[reqs[rid].intent].append(rid)
+        unclassified = by_intent.pop(None, [])
+
+        print(f"\n{rule}\nPRODUCT REQUIREMENTS EXERCISED BY NO USE CASE ({len(product)})\n{rule}")
+        print("  Grouped by declared intent. These are accounted for, not missing.\n")
+        for tag in INTENT_TAGS:
+            if ids := by_intent.get(tag):
+                print(f"  {tag:<14} ({len(ids)})  {', '.join(ids)}")
+
+        if unclassified:
+            print(f"\n  UNCLASSIFIED ({len(unclassified)}) -- the actionable ones")
+            print("  Outside every journey with no stated reason. Either add them to a use")
+            print("  case, or tag them: " + ", ".join(f"[{x}]" for x in INTENT_TAGS) + ".\n")
+            for i in range(0, len(unclassified), 6):
+                print("  " + ", ".join(unclassified[i:i + 6]))
 
     if self_reqs:
         print(f"\n{rule}\nTRACEABILITY SELF-REQUIREMENTS ({len(self_reqs)})\n{rule}")
