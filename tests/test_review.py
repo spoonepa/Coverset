@@ -11,6 +11,7 @@ import datetime as dt
 
 import pytest
 
+from coverset.actors import Actor, AuthorityError, Role
 from coverset.locations import Location
 from coverset.review import (
     CoverageItem,
@@ -25,6 +26,11 @@ from coverset.review import (
 )
 
 CHURCH = Location(name="First African Baptist Church", locality="Savannah", region="Georgia")
+DIRECTOR = Actor("A. Kowalczyk", Role.DIRECTOR)
+FIRST_AD = Actor("R. Okonkwo", Role.FIRST_AD)
+SUPERVISOR = Actor("J. Alvarez", Role.SCRIPT_SUPERVISOR)
+SECOND_AD = Actor("T. Nguyen", Role.SECOND_AD)
+UPM = Actor("M. Haddad", Role.UPM)
 
 
 @pytest.fixture
@@ -55,7 +61,7 @@ def flagged(planned, finding):
     return planned.mark_shot().flag_for_review(finding)
 
 
-def _decision(disposition, by="A. Director", finding_id="RF-001"):
+def _decision(disposition, by=DIRECTOR, finding_id="RF-001"):
     return ReviewDecision(
         finding_id=finding_id,
         coverage_item_id="S12-CU-01",
@@ -84,17 +90,41 @@ def test_flagging_can_only_move_an_item_to_needs_review(flagged, finding):
     assert flagged.awaits_decision
 
 
-@pytest.mark.req("REV-003", "AUD-004")
+@pytest.mark.req("REV-003", "ACT-002", "AUD-004")
+def test_the_role_enum_has_no_member_an_agent_could_occupy():
+    # The structural guarantee: refusing agents is not a name check that has to
+    # anticipate every name. There is simply no role for a non-human to hold.
+    assert {r.value for r in Role} == {
+        "first_ad", "director", "script_supervisor", "upm", "second_ad"
+    }
+
+
+@pytest.mark.req("REV-003", "ACT-002", "AUD-004")
 @pytest.mark.parametrize("agent", ["gemini", "Gemini", "GEMINI", "system", "ai", "bot", "coverset"])
-def test_an_advisory_agent_cannot_be_the_decider(agent):
-    with pytest.raises(ReviewError, match="advisory agent"):
-        _decision(Disposition.REJECT, by=agent)
+def test_an_agent_name_cannot_be_given_a_human_role(agent):
+    with pytest.raises(AuthorityError, match="advisory agent"):
+        Actor(agent, Role.DIRECTOR)
 
 
-@pytest.mark.req("REV-003", "AUD-004")
+@pytest.mark.req("REV-003", "ACT-001", "AUD-004")
 def test_an_unattributed_decision_is_refused():
-    with pytest.raises(ReviewError, match="who made it"):
-        _decision(Disposition.ACCEPT, by="   ")
+    with pytest.raises(AuthorityError, match="must be named"):
+        Actor("   ", Role.DIRECTOR)
+
+
+@pytest.mark.req("ACT-003")
+@pytest.mark.parametrize("actor", [DIRECTOR, FIRST_AD])
+def test_the_director_and_first_ad_may_rule_on_coverage(flagged, actor):
+    item, _ = flagged.decide(_decision(Disposition.ACCEPT, by=actor))
+
+    assert item.status is CoverageStatus.ACCEPTED
+
+
+@pytest.mark.req("ACT-003", "ACT-006")
+@pytest.mark.parametrize("actor", [SUPERVISOR, SECOND_AD, UPM])
+def test_other_roles_may_not_rule_on_coverage(actor):
+    with pytest.raises(AuthorityError, match="may not rule on coverage"):
+        _decision(Disposition.REJECT, by=actor)
 
 
 @pytest.mark.req("REV-001", "PIK-001")
@@ -102,7 +132,7 @@ def test_no_pickup_can_be_built_from_an_acceptance(flagged):
     accepted, _ = flagged.decide(_decision(Disposition.ACCEPT))
 
     with pytest.raises(ReviewError, match="does not authorise a pickup"):
-        PickupTask.authorised_by(accepted, _decision(Disposition.ACCEPT))
+        PickupTask.from_decision(accepted, _decision(Disposition.ACCEPT))
 
 
 # --------------------------------------------------------------------------
@@ -138,9 +168,10 @@ def test_rejecting_or_requesting_a_pickup_yields_exactly_one_task(
 
 @pytest.mark.req("REV-004")
 def test_a_decision_records_who_decided_and_what_it_responded_to(flagged):
-    item, _ = flagged.decide(_decision(Disposition.REJECT, by="R. Okonkwo, 1st AD"))
+    item, _ = flagged.decide(_decision(Disposition.REJECT, by=FIRST_AD))
 
-    assert item.decision.decided_by == "R. Okonkwo, 1st AD"
+    assert item.decision.decided_by == FIRST_AD
+    assert item.decision.decided_by.role is Role.FIRST_AD
     assert item.decision.finding_id == flagged.finding.id
     assert item.decision.decided_at.tzinfo is dt.UTC
 
@@ -157,7 +188,7 @@ def test_a_decision_for_another_item_is_refused(flagged):
         finding_id="RF-001",
         coverage_item_id="S99-WIDE-01",
         disposition=Disposition.REJECT,
-        decided_by="A. Director",
+        decided_by=DIRECTOR,
     )
 
     with pytest.raises(ReviewError, match="not S12-CU-01"):
@@ -225,11 +256,11 @@ def test_a_pickup_carries_what_the_solver_needs_to_place_it(flagged):
 
 @pytest.mark.req("PIK-002", "AUD-004")
 def test_a_pickup_traces_to_the_decision_and_the_finding(flagged):
-    _, pickup = flagged.decide(_decision(Disposition.REJECT, by="R. Okonkwo, 1st AD"))
+    _, pickup = flagged.decide(_decision(Disposition.REJECT, by=FIRST_AD))
 
-    assert pickup.authorised_by_name == "R. Okonkwo, 1st AD"
+    assert pickup.authorised_by == FIRST_AD
     trail = pickup.audit_trail(flagged.finding)
-    assert "R. Okonkwo, 1st AD" in trail
+    assert "R. Okonkwo" in trail
     assert "RF-001" in trail
     assert "gemini" in trail
     assert "Eyeline appears inconsistent" in trail
@@ -242,7 +273,7 @@ def test_a_pickup_and_its_authorising_decision_must_concern_the_same_item(flagge
         finding_id="RF-001",
         coverage_item_id="S99-WIDE-01",
         disposition=Disposition.REJECT,
-        decided_by="A. Director",
+        decided_by=DIRECTOR,
     )
 
     with pytest.raises(ReviewError, match="disagree"):
@@ -279,11 +310,11 @@ def test_the_full_path_from_advisory_finding_to_authorised_pickup(planned, findi
     flagged = shot.flag_for_review(finding)          # Gemini: advisory only
     assert flagged.awaits_decision                   # ... and it stops here
 
-    decision = _decision(Disposition.REQUEST_PICKUP, by="R. Okonkwo, 1st AD")
+    decision = _decision(Disposition.REQUEST_PICKUP, by=FIRST_AD)
     decided, pickup = flagged.decide(decision)       # the human acts
 
     assert decided.status is CoverageStatus.PICKUP_REQUESTED
     assert pickup.id == "PU-S12-CU-01"
     assert pickup.decision is decision
     # Nothing between the finding and the board that a person did not sign.
-    assert pickup.authorised_by_name == "R. Okonkwo, 1st AD"
+    assert pickup.authorised_by == FIRST_AD

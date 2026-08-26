@@ -29,6 +29,8 @@ SPEC = ROOT / "SPEC.md"
 TESTS = ROOT / "tests"
 
 REQ_ROW = re.compile(r"^\|\s*([A-Z]{3}-\d{3})\s*\|\s*(.+?)\s*\|\s*`(\w+)`\s*\|")
+UC_HEADING = re.compile(r"^### (UC-\d+)\s+[-\u2014]\s+(.+)$")
+UC_EXERCISES = re.compile(r"^\*\*Exercises:\*\*\s*(.+)$")
 VERIFIED_STATUSES = {"built", "partial"}
 EXTERNAL_PREFIXES = ("TRK", "GRD")
 """Areas that depend on a live external service, where offline coverage alone is
@@ -73,6 +75,25 @@ class TestRef:
 
     def __str__(self) -> str:
         return f"{self.file}::{self.name}{' [live]' if self.live else ''}"
+
+
+@dataclass
+class UseCase:
+    """A journey through requirements. Not a requirement itself."""
+
+    id: str
+    title: str
+    exercises: list[str] = field(default_factory=list)
+
+
+def parse_use_cases() -> list[UseCase]:
+    cases: list[UseCase] = []
+    for line in SPEC.read_text().splitlines():
+        if m := UC_HEADING.match(line):
+            cases.append(UseCase(id=m.group(1), title=m.group(2).strip()))
+        elif (m := UC_EXERCISES.match(line)) and cases:
+            cases[-1].exercises = re.findall(r"[A-Z]{3}-\d{3}", m.group(1))
+    return cases
 
 
 def parse_spec() -> dict[str, Requirement]:
@@ -170,6 +191,16 @@ def main() -> int:
     print(f"    tests mapped     {total_tests}")
     print(f"    untagged tests   {len(untagged)}")
 
+    cases_summary = parse_use_cases()
+    if cases_summary:
+        deliverable = sum(
+            1 for uc in cases_summary
+            if all(reqs[r].status != "planned" for r in uc.exercises if r in reqs)
+        )
+        print(f"\n  Use cases          {len(cases_summary)}")
+        print(f"    deliverable      {deliverable}")
+        print(f"    blocked          {len(cases_summary) - deliverable}")
+
     if show_matrix:
         area_of = lambda r: r.id[:3]
         for area in sorted({area_of(r) for r in reqs.values()}):
@@ -179,6 +210,35 @@ def main() -> int:
                 print(f"  {mark} {r.id}  [{r.status}]  {r.statement[:52]}")
                 for t in r.tests:
                     print(f"          {t}")
+
+    cases = parse_use_cases()
+    if cases:
+        print(f"\n{rule}\nUSE CASES -- can a user actually complete the journey?\n{rule}")
+        for uc in cases:
+            known = [reqs[r] for r in uc.exercises if r in reqs]
+            unknown = [r for r in uc.exercises if r not in reqs]
+            ready = [r for r in known if r.status == "built"]
+            blockers = sorted(r.id for r in known if r.status == "planned")
+            bar = f"{len(ready)}/{len(uc.exercises)}"
+            state = "READY  " if not blockers else "BLOCKED"
+            print(f"  {state} {uc.id}  {bar:>7}  {uc.title}")
+            if blockers:
+                print(f"            blocked on: {', '.join(blockers)}")
+            if unknown:
+                print(f"            UNKNOWN IDS: {', '.join(unknown)}")
+                orphans.extend(unknown)
+
+        blocking: dict[str, list[str]] = defaultdict(list)
+        for uc in cases:
+            for rid in uc.exercises:
+                if rid in reqs and reqs[rid].status == "planned":
+                    blocking[rid].append(uc.id)
+        if blocking:
+            print(f"\n{rule}\nCRITICAL PATH -- unbuilt requirements ranked by journeys blocked\n{rule}")
+            ranked = sorted(blocking.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+            for rid, ucs in ranked[:8]:
+                print(f"  {len(ucs)}x  {rid}  {reqs[rid].statement[:44]}")
+                print(f"        blocks {', '.join(ucs)}")
 
     if gaps:
         print(f"\n{rule}\nGAPS -- claimed built or partial, but nothing verifies them\n{rule}")

@@ -33,6 +33,62 @@ separately.
 
 ---
 
+## Actors
+
+Actors matter here because the architecture is fundamentally a statement about
+authority: who may advise, who may decide, and what may put work on a board. The
+table below is the whole design in one view.
+
+| Actor class | May advise | May decide | May schedule |
+|---|:---:|:---:|:---:|
+| Gemini agents (breakdown, constraint, review) | yes | **no** | no |
+| Parallel (Search, Extract) | supplies facts | no | no |
+| Monitor loop | may trigger a replan | **no** | no |
+| Human roles | yes | **yes, scoped by role** | no |
+| CP-SAT solver | no | no | **yes** |
+
+### Human actors
+
+| Role | Uses Coverset to | Authority |
+|---|---|---|
+| **First AD** | Own the board: supply constraints, choose among replan options, lock shot days, diagnose infeasibility | Scheduling decisions |
+| **Director** | Review flagged coverage and rule on it | Creative acceptance of coverage |
+| **Script Supervisor** | Raise coverage findings from the floor; record what was actually shot | Raise findings; record shot status |
+| **UPM / Line Producer** | See what each option costs; approve work that adds a shoot day | Cost approval |
+| **Second AD** | Generate and distribute call sheets | None over the schedule |
+
+Cast, crew, location owners and permit authorities are **not actors**. They never
+touch the system. They are constraint sources — their availability, contracted
+minimums, turnaround rights and permit windows bound the solver, but they do not
+operate it. Conflating the two would invent users the production does not have.
+
+### System actors
+
+| Actor | Role | Boundary |
+|---|---|---|
+| **Breakdown agent** (Gemini) | Screenplay PDF → scene records | Extractive; produces no schedule |
+| **Constraint agent** (Gemini) | Plain English + retrieved facts → typed constraints | Advisory; every constraint is traceable |
+| **Review agent** (Gemini) | Coverage → review findings | Advisory only; cannot decide an outcome |
+| **Grounding service** (Parallel) | Search and Extract | Supplies facts; never interprets them |
+| **Monitor loop** (Parallel Monitor) | Detects a changed fact, triggers a replan | Triggers only; never selects a board |
+| **Solver** (CP-SAT) | Produces the board | The only thing that may |
+
+The Monitor boundary is easy to lose and worth stating plainly. The brief's line is
+*"Nobody presses replan"* — the world changed and the agent acted. But acting means
+*generating options*, not choosing among them. The First AD still picks.
+
+## ACT — Actors and authority
+
+| ID | Requirement | Status |
+|---|---|---|
+| ACT-001 | Every decision that changes the schedule records the actor who made it and the role they made it under. | `built` |
+| ACT-002 | An advisory agent cannot be constructed as a deciding actor. Deciding requires a human role. | `built` |
+| ACT-003 | Ruling on coverage requires Director or First AD authority. | `built` |
+| ACT-004 | Selecting a board among replan options requires First AD authority. | `partial` |
+| ACT-005 | Work that adds a shoot day requires cost approval from the UPM or Line Producer. | `partial` |
+| ACT-006 | The Script Supervisor may raise findings and record what was shot, and may not rule on coverage. | `built` |
+| ACT-007 | The monitor loop may trigger a replan and may not select among the resulting boards. | `planned` |
+
 ## TRK — Track eligibility
 
 Non-negotiable. Decided 26 Aug 2026, per the brief.
@@ -150,3 +206,72 @@ Cross-cutting. This is the brief's central claim, so it is specified rather than
 | AUD-002 | Every constraint traces to either a source URL or a named deterministic algorithm. | `partial` |
 | AUD-003 | A constraint records whether it was derived from full page content or from excerpts, so downstream confidence can reflect it. | `built` |
 | AUD-004 | Every pickup task traces to a named human decision. No automated process can create shoot work. | `built` |
+
+## Use cases
+
+A use case is a journey through requirements, not a new requirement. Each names the
+requirement IDs it exercises, so `scripts/traceability.py` can report whether a whole
+journey is deliverable or is blocked on something unbuilt. Requirement coverage says
+the parts work; use-case coverage says the user can actually get somewhere.
+
+### UC-01 — Build the initial board from a screenplay
+
+The First AD hands Coverset a screenplay and the production's constraints, and gets a
+board back.
+
+**Actors:** First AD (deciding) · Breakdown agent · Constraint agent · Solver
+**Exercises:** BRK-001, BRK-002, CON-001, DAY-001, GRD-005, TRK-001, SOL-001, SOL-002, SOL-006
+
+### UC-02 — State a constraint in plain English
+
+*"Sarah is only available the first two weeks. The church is Tuesdays only."* The
+constraint agent types it, grounding anything that depends on the outside world.
+
+**Actors:** First AD (deciding) · Constraint agent · Grounding service
+**Exercises:** CON-001, CON-002, CON-003, GRD-001, GRD-002, GRD-003, GRD-005, TRK-001, TRK-002
+
+### UC-03 — Replan when the world changes
+
+A monitored forecast moves. The agent regenerates options against locked days; the
+First AD picks one.
+
+**Actors:** Monitor loop (triggering) · Solver · First AD (deciding)
+**Exercises:** TRK-003, MON-001, MON-002, GRD-006, GRD-010, SOL-004, ACT-004, ACT-007
+
+### UC-04 — Review coverage and order a pickup
+
+Gemini flags a coverage item. The Director rules. Only then does re-shoot work reach
+the board.
+
+**Actors:** Review agent (advising) · Director (deciding) · Solver
+**Exercises:** ACT-001, ACT-002, ACT-003, REV-001, REV-002, REV-003, REV-004, REV-005, REV-006, PIK-001, PIK-002, PIK-003, PIK-004, PIK-005, PIK-006, PIK-007, AUD-004, SOL-004
+
+### UC-05 — Produce a call sheet
+
+The Second AD generates the day's call sheet, with call times honouring daylight and
+turnaround.
+
+**Actors:** Second AD
+**Exercises:** OUT-001, DAY-001, DAY-003
+
+### UC-06 — Diagnose an impossible schedule
+
+No valid board exists. The First AD needs to know which constraints conflict, not that
+the solver failed.
+
+**Actors:** First AD (deciding) · Solver
+**Exercises:** SOL-003, AUD-001, AUD-002
+
+### UC-07 — Lock the day as the shoot progresses
+
+The Script Supervisor records what was actually shot. Those days become immutable.
+
+**Actors:** Script Supervisor · First AD (deciding)
+**Exercises:** ACT-006, REV-007, SOL-004, PIK-006
+
+### UC-08 — Approve the cost of a pickup day
+
+The pickup needs a day the schedule does not have. The UPM sees the cost and rules on it.
+
+**Actors:** UPM / Line Producer (deciding)
+**Exercises:** ACT-005, PIK-007, OUT-002

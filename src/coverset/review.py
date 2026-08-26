@@ -13,7 +13,9 @@ The mechanics:
 - `ReviewFinding` has no disposition field. There is nothing on it to set, so it
   cannot express an outcome even in principle -- the only transition it can cause is
   to `NEEDS_REVIEW`.
-- `ReviewDecision` refuses to name an automated agent as its decider.
+- `ReviewDecision` requires an `Actor` holding a human production role with the
+  authority to rule on coverage. `Role` has no member for an automated agent, so the
+  refusal is structural rather than a name check.
 - `PickupTask` cannot be constructed without a decision that authorises one.
 
 Each of those is a separate lock, because the interesting failure is not someone
@@ -27,10 +29,10 @@ import datetime as dt
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 
+from .actors import Actor
 from .locations import Location
 
 __all__ = [
-    "ADVISORY_AGENTS",
     "CoverageItem",
     "CoverageStatus",
     "CoverageType",
@@ -41,17 +43,6 @@ __all__ = [
     "ReviewError",
     "ReviewFinding",
 ]
-
-ADVISORY_AGENTS = frozenset(
-    {"gemini", "coverset", "system", "auto", "automatic", "agent", "ai", "model", "bot"}
-)
-"""Names that may not appear as the decider on a review decision.
-
-Not a security boundary -- a determined caller can pass "A. Director". It is a
-tripwire for the realistic failure: code that passes through whatever raised the
-finding, so the model ends up signing off on its own advisory output.
-"""
-
 
 class ReviewError(Exception):
     """Base for review-workflow violations."""
@@ -126,22 +117,14 @@ class ReviewDecision:
     finding_id: str
     coverage_item_id: str
     disposition: Disposition
-    decided_by: str
+    decided_by: Actor
     note: str = ""
     decided_at: dt.datetime = field(default_factory=lambda: dt.datetime.now(dt.UTC))
 
     def __post_init__(self) -> None:
-        who = self.decided_by.strip()
-        if not who:
-            raise ReviewError(
-                "a review decision must record who made it -- an unattributed "
-                "decision cannot be audited back to a person"
-            )
-        if who.casefold() in ADVISORY_AGENTS:
-            raise ReviewError(
-                f"{self.decided_by!r} is an advisory agent and cannot decide a "
-                f"review outcome. Gemini flags; the AD or Director decides."
-            )
+        # Raises unless the actor's role carries creative authority over coverage.
+        # An advisory agent cannot reach this check at all -- it cannot be an Actor.
+        self.decided_by.require("rule_on_coverage")
 
 
 @dataclass(frozen=True, slots=True)
@@ -224,7 +207,7 @@ class CoverageItem:
 
         if not decision.disposition.creates_pickup:
             return decided, None
-        return decided, PickupTask.authorised_by(decided, decision)
+        return decided, PickupTask.from_decision(decided, decision)
 
     @property
     def awaits_decision(self) -> bool:
@@ -262,7 +245,7 @@ class PickupTask:
             raise ValueError(f"{self.id}: pickup work must have a duration")
 
     @classmethod
-    def authorised_by(
+    def from_decision(
         cls,
         item: CoverageItem,
         decision: ReviewDecision,
@@ -283,7 +266,7 @@ class PickupTask:
         )
 
     @property
-    def authorised_by_name(self) -> str:
+    def authorised_by(self) -> Actor:
         """The person accountable for this appearing on the board."""
         return self.decision.decided_by
 
