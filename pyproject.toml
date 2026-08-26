@@ -23,7 +23,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["tests"]
+pythonpath = ["tests", "scripts"]
 addopts = "-q -m 'not live'"
 markers = [
     "req(*ids): requirement IDs from SPEC.md that this test verifies",

@@ -704,7 +704,24 @@ solver-ready pickup work.
 
 ---
 
-## 21. Use cases
+## 21. TRC — Specification integrity
+
+The traceability report is only as trustworthy as its ability to read this document.
+A row it cannot parse used to be skipped, which removed the requirement from every
+report and left no symptom but a total nobody had memorised.
+
+| ID | Requirement | Maturity | Verification | Slice | Notes |
+|---|---|---|---|---|---|
+| TRC-001 | Every ID-bearing row parses as a well-formed requirement or non-negotiable. Anything else is a reported defect with its line number, never a silent skip. | unit-built | offline | MVP-0 | Closes the silent-drift path. |
+| TRC-002 | A duplicate requirement or use-case ID is reported as a defect naming both line numbers. | unit-built | offline | MVP-0 | Previously overwrote silently. |
+| TRC-003 | A use case citing a requirement that does not exist is reported as a defect. | unit-built | offline | MVP-0 | Catches renamed or deleted IDs. |
+| TRC-004 | Maturity, verification tier and slice values outside their declared vocabularies are reported as defects. | unit-built | offline | MVP-0 | A typo must not remove a requirement from the report. |
+| TRC-005 | A use case with no Exercises line is reported as a defect rather than counted as trivially deliverable. | unit-built | offline | MVP-0 | An empty journey would otherwise read as ready. |
+| TRC-006 | Any spec defect fails the traceability gate. | unit-built | offline | MVP-0 | Non-zero exit, not a warning. |
+
+---
+
+## 22. Use cases
 
 A use case is a journey through requirements, not a requirement. It names the IDs it
 exercises so traceability can report both requirement coverage and journey readiness.
@@ -783,7 +800,7 @@ and rules on it.
 
 ---
 
-## 22. Traceability expectations
+## 23. Traceability expectations
 
 The existing pytest marker approach remains correct:
 
@@ -814,7 +831,7 @@ A future traceability summary should distinguish:
 
 ---
 
-## 23. Immediate implementation order implied by this spec
+## 24. Immediate implementation order implied by this spec
 
 1. Add `SceneRecord`, `WorkItem`, `ConstraintRecord`, `ScheduleProblem`, `Board`, and
    `SolveResult` domain models.

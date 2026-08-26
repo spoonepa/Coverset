@@ -12,9 +12,10 @@ same.
     uv run python scripts/traceability.py           # summary, slices, use cases
     uv run python scripts/traceability.py --matrix  # every requirement, every test
 
-Exits non-zero when an implemented requirement has no test, when a test cites an
-unknown ID, or when a requirement claims `demo-ready` without the verification tier
-the spec says it needs (TRK-005).
+Exits non-zero when the spec document is malformed (unreadable row, unknown
+vocabulary, duplicate ID, use case citing a requirement that does not exist), when an
+implemented requirement has no test, when a test cites an unknown ID, or when a
+requirement claims `demo-ready` without the verification tier it needs (TRK-005).
 """
 
 from __future__ import annotations
@@ -96,31 +97,137 @@ class NonNegotiable:
 class UseCase:
     id: str
     title: str
+    line: int = 0
     exercises: list[str] = field(default_factory=list)
 
 
-def parse_spec() -> tuple[dict[str, Requirement], list[NonNegotiable], list[UseCase]]:
-    reqs: dict[str, Requirement] = {}
-    nngs: list[NonNegotiable] = []
-    cases: list[UseCase] = []
+@dataclass(frozen=True)
+class SpecDefect:
+    """Something wrong with the spec document itself, rather than with coverage.
 
-    for line in SPEC.read_text().splitlines():
+    These exist because the parser used to skip anything it could not read. A
+    mistyped maturity value made the requirement vanish from every report, and the
+    only visible symptom was a total that nobody had memorised. Silence is the worst
+    possible response to a malformed row.
+    """
+
+    line: int
+    problem: str
+    detail: str = ""
+
+    def __str__(self) -> str:
+        where = f"SPEC.md:{self.line}" if self.line else "SPEC.md"
+        return f"{where}  {self.problem}" + (f" -- {self.detail}" if self.detail else "")
+
+
+@dataclass
+class ParsedSpec:
+    requirements: dict[str, Requirement] = field(default_factory=dict)
+    non_negotiables: list[NonNegotiable] = field(default_factory=list)
+    use_cases: list[UseCase] = field(default_factory=list)
+    defects: list[SpecDefect] = field(default_factory=list)
+
+
+REQUIREMENT_CELLS = 5
+"""statement | maturity | verification | slice | notes"""
+NON_NEGOTIABLE_CELLS = 2
+"""contract | rationale"""
+
+
+def _cells(rest: str) -> list[str]:
+    """Split a markdown row body, dropping the empty cell a trailing pipe leaves."""
+    cells = [c.strip() for c in rest.split("|")]
+    while cells and not cells[-1]:
+        cells.pop()
+    return cells
+
+
+def parse_spec(text: str) -> ParsedSpec:
+    """Parse and validate the spec. Every ID-bearing row must account for itself.
+
+    A row that matches the ID pattern is either a well-formed requirement, a
+    well-formed non-negotiable, or a defect. There is no fourth outcome, and in
+    particular there is no silent skip.
+    """
+    spec = ParsedSpec()
+    seen_at: dict[str, int] = {}
+
+    for n, line in enumerate(text.splitlines(), start=1):
         if m := ROW.match(line):
-            rid, rest = m.group(1), m.group(2)
-            cells = [c.strip() for c in rest.split("|")]
-            if len(cells) >= 5 and cells[1] in RANK:
-                reqs[rid] = Requirement(
-                    id=rid, statement=cells[0], maturity=cells[1],
-                    verification=cells[2], slice=cells[3],
-                    notes=cells[4] if len(cells) > 4 else "",
-                )
-            elif rid.startswith("NNG"):
-                nngs.append(NonNegotiable(id=rid, contract=cells[0]))
+            rid, cells = m.group(1), _cells(m.group(2))
+
+            if rid in seen_at:
+                spec.defects.append(SpecDefect(
+                    n, f"duplicate requirement id {rid}",
+                    f"first defined at line {seen_at[rid]}"))
+                continue
+            seen_at[rid] = n
+
+            if rid.startswith("NNG"):
+                if len(cells) != NON_NEGOTIABLE_CELLS:
+                    spec.defects.append(SpecDefect(
+                        n, f"malformed non-negotiable row {rid}",
+                        f"expected {NON_NEGOTIABLE_CELLS} cells, found {len(cells)}"))
+                    continue
+                spec.non_negotiables.append(NonNegotiable(id=rid, contract=cells[0]))
+                continue
+
+            if len(cells) != REQUIREMENT_CELLS:
+                spec.defects.append(SpecDefect(
+                    n, f"malformed requirement row {rid}",
+                    f"expected {REQUIREMENT_CELLS} cells "
+                    f"(statement|maturity|verification|slice|notes), found {len(cells)}"))
+                continue
+
+            statement, maturity, verification, slice_, notes = cells
+            bad = False
+            if not statement:
+                spec.defects.append(SpecDefect(n, f"{rid} has an empty statement"))
+                bad = True
+            if maturity not in RANK:
+                spec.defects.append(SpecDefect(
+                    n, f"{rid} has unknown maturity {maturity!r}",
+                    f"expected one of {', '.join(MATURITY)}"))
+                bad = True
+            if verification not in TIERS:
+                spec.defects.append(SpecDefect(
+                    n, f"{rid} has unknown verification tier {verification!r}",
+                    f"expected one of {', '.join(TIERS)}"))
+                bad = True
+            if slice_ not in SLICES:
+                spec.defects.append(SpecDefect(
+                    n, f"{rid} has unknown slice {slice_!r}",
+                    f"expected one of {', '.join(SLICES)}"))
+                bad = True
+            if bad:
+                continue
+
+            spec.requirements[rid] = Requirement(
+                id=rid, statement=statement, maturity=maturity,
+                verification=verification, slice=slice_, notes=notes)
+
         elif m := UC_HEADING.match(line):
-            cases.append(UseCase(id=m.group(1), title=m.group(2).strip()))
-        elif (m := UC_EXERCISES.match(line)) and cases:
-            cases[-1].exercises = re.findall(r"[A-Z]{3}-\d{3}", m.group(1))
-    return reqs, nngs, cases
+            uid = m.group(1)
+            if any(uc.id == uid for uc in spec.use_cases):
+                spec.defects.append(SpecDefect(n, f"duplicate use case id {uid}"))
+            spec.use_cases.append(UseCase(id=uid, title=m.group(2).strip(), line=n))
+        elif (m := UC_EXERCISES.match(line)) and spec.use_cases:
+            if spec.use_cases[-1].exercises:
+                spec.defects.append(SpecDefect(
+                    n, f"{spec.use_cases[-1].id} has more than one Exercises line"))
+            spec.use_cases[-1].exercises = re.findall(r"[A-Z]{3}-\d{3}", m.group(1))
+
+    for uc in spec.use_cases:
+        if not uc.exercises:
+            spec.defects.append(SpecDefect(
+                uc.line, f"{uc.id} exercises no requirements",
+                "a use case with no Exercises line cannot be reported on"))
+        for rid in uc.exercises:
+            if rid not in spec.requirements:
+                spec.defects.append(SpecDefect(
+                    uc.line, f"{uc.id} cites unknown requirement {rid}"))
+
+    return spec
 
 
 def _marker_ids(node: ast.expr, wanted: str) -> list[str] | None:
@@ -168,7 +275,8 @@ def parse_tests() -> tuple[dict[str, list[TestRef]], list[tuple[str, str]]]:
 
 def main() -> int:
     show_matrix = "--matrix" in sys.argv
-    reqs, nngs, cases = parse_spec()
+    spec = parse_spec(SPEC.read_text())
+    reqs, nngs, cases = spec.requirements, spec.non_negotiables, spec.use_cases
     found, untagged = parse_tests()
 
     orphans = sorted(set(found) - set(reqs))
@@ -290,12 +398,29 @@ def main() -> int:
         for r in missing_live:
             print(f"  {r.id}  {r.statement[:58]}")
 
+    if spec.defects:
+        print(f"\n{rule}\nSPEC DEFECTS -- the document itself is malformed\n{rule}")
+        print("  A row the parser cannot read used to be skipped, which made the")
+        print("  requirement disappear from every report with no other symptom.\n")
+        for d in spec.defects:
+            print(f"  {d}")
+
+    if unexercised := sorted(
+        r.id for r in reqs.values()
+        if not any(r.id in uc.exercises for uc in cases)
+    ):
+        print(f"\n{rule}\nEXERCISED BY NO USE CASE ({len(unexercised)})\n{rule}")
+        print("  Not a failure -- cross-cutting requirements legitimately sit outside any")
+        print("  single journey -- but a requirement no journey needs is worth questioning.\n")
+        for i in range(0, len(unexercised), 6):
+            print("  " + ", ".join(unexercised[i:i + 6]))
+
     if untagged:
         print(f"\n{rule}\nUNTAGGED TESTS -- verify something, but say what\n{rule}")
         for file, name in untagged:
             print(f"  {file}::{name}")
 
-    failed = bool(gaps or orphans or false_demo_ready)
+    failed = bool(spec.defects or gaps or orphans or false_demo_ready)
     print(f"\n{rule}")
     print("FAIL: traceability incomplete" if failed else "PASS: every implemented requirement is traced")
     print(rule)
