@@ -501,7 +501,7 @@ No board may be returned as viable unless `status` is `optimal` or `feasible` an
 | CST-006 | A minor carries a restricted maximum working day. | unit-built | offline | MVP-0 | Existing model/tests; legal libraries post-MVP. |
 | CST-007 | Minimum turnaround between wrap and next call is modeled for cast individually and crew as a unit. | unit-built | offline | MVP-0 | Existing cast/company model; solver integration missing. |
 | CST-008 | Union agreements and jurisdiction-specific child-labor limits are pluggable constraint libraries. Defaults are illustrative production norms, not authority. | not-started | offline | POST | [deferred] Keep out of MVP. |
-| CST-009 | Any scene/work item referencing cast validates all cast IDs against the active roster before solving. | not-started | offline | MVP-0 | Existing coverage path validates cast IDs, but solver work-item validation is not implemented. |
+| CST-009 | Any scene/work item referencing cast validates all cast IDs against the active roster before solving. | unit-built | offline | MVP-0 | Fixture import validates cast against the roster before any record is built. |
 | CST-010 | A cast availability or minor-work constraint compiled into CP-SAT is also independently evaluable against a returned board. | not-started | offline | MVP-0 | Needed for independent validation. |
 
 ---
@@ -513,9 +513,9 @@ permits; Gemini-derived records are candidates until accepted.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
 |---|---|---|---|---|---|
-| SCN-001 | A `SceneRecord` has stable id, scene number, slugline, INT/EXT enum, day/night enum, location reference, page eighths, cast IDs, flags, and source span. | not-started | offline | MVP-0 | New schema requirement. |
-| SCN-002 | Scene fixture import rejects missing required fields, invalid enum values, non-positive page eighths, and unknown cast/location references. | not-started | offline | MVP-0 | Enables deterministic solver fixtures. |
-| SCN-003 | A valid active `SceneRecord` can be converted to a schedulable `WorkItem`. | not-started | offline | MVP-0 | Bridge into solver. |
+| SCN-001 | A `SceneRecord` has stable id, scene number, slugline, INT/EXT enum, day/night enum, location reference, page eighths, cast IDs, flags, and source span. | unit-built | offline | MVP-0 | Implemented as `coverset.scenes.SceneRecord`. |
+| SCN-002 | Scene fixture import rejects missing required fields, invalid enum values, non-positive page eighths, and unknown cast/location references. | unit-built | offline | MVP-0 | Implemented as `coverset.fixtures.load_scenes`; reports every problem at once. |
+| SCN-003 | A valid active `SceneRecord` can be converted to a schedulable `WorkItem`. | unit-built | offline | MVP-0 | Implemented as `SceneRecord.to_work_item`; only active records convert. |
 | BRK-001 | A screenplay PDF can be parsed into candidate `SceneRecord` values. | not-started | offline | POST | Existing broad requirement narrowed to candidate output. |
 | BRK-002 | Breakdown flags stunts, minors, and VFX as candidate flags requiring validation/acceptance before activation. | not-started | offline | POST | Existing requirement reframed. |
 | BRK-003 | Gemini-derived scene records below the configured confidence threshold are marked `needs_review` and cannot feed the solver. | not-started | offline | POST | Prevents wrong candidate records becoming active. |
