@@ -40,6 +40,14 @@ RANK = {m: i for i, m in enumerate(MATURITY)}
 TIERS = ["none", "offline", "live", "manual-demo"]
 SLICES = ["MVP-0", "MVP-1", "MVP-2", "MVP-3", "POST"]
 
+SELF_AREAS = {"TRC"}
+"""Areas that constrain the traceability tooling rather than the product.
+
+Reported apart from product requirements. A self-requirement is *expected* to sit
+outside every use case -- no user journey validates the spec document -- so listing
+it alongside genuine workflow gaps trains the reader to skim the whole section.
+"""
+
 IMPLEMENTED = RANK["unit-built"]
 """At or above this maturity, a requirement claims working behaviour and must be tested."""
 DELIVERABLE = RANK["demo-ready"]
@@ -405,15 +413,26 @@ def main() -> int:
         for d in spec.defects:
             print(f"  {d}")
 
-    if unexercised := sorted(
+    unexercised = sorted(
         r.id for r in reqs.values()
         if not any(r.id in uc.exercises for uc in cases)
-    ):
-        print(f"\n{rule}\nEXERCISED BY NO USE CASE ({len(unexercised)})\n{rule}")
-        print("  Not a failure -- cross-cutting requirements legitimately sit outside any")
-        print("  single journey -- but a requirement no journey needs is worth questioning.\n")
-        for i in range(0, len(unexercised), 6):
-            print("  " + ", ".join(unexercised[i:i + 6]))
+    )
+    product = [r for r in unexercised if r[:3] not in SELF_AREAS]
+    self_reqs = [r for r in unexercised if r[:3] in SELF_AREAS]
+
+    if product:
+        print(f"\n{rule}\nEXERCISED BY NO PRODUCT USE CASE ({len(product)})\n{rule}")
+        print("  Not a failure -- an invariant does not have to belong to a journey -- but")
+        print("  a requirement no journey needs is either genuinely cross-cutting or a")
+        print("  forgotten workflow requirement, and the two are worth telling apart.\n")
+        for i in range(0, len(product), 6):
+            print("  " + ", ".join(product[i:i + 6]))
+
+    if self_reqs:
+        print(f"\n{rule}\nTRACEABILITY SELF-REQUIREMENTS ({len(self_reqs)})\n{rule}")
+        print("  Constrain the tooling, not the product. Expected to sit outside every use")
+        print("  case: no user journey validates the spec document.\n")
+        print("  " + ", ".join(self_reqs))
 
     if untagged:
         print(f"\n{rule}\nUNTAGGED TESTS -- verify something, but say what\n{rule}")

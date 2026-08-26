@@ -732,7 +732,7 @@ The First AD loads pre-parsed scenes and typed constraints, then Coverset produc
 valid stripboard.
 
 **Actors:** First AD · Solver  
-**Exercises:** SCN-001, SCN-002, SCN-003, CON-004, SOL-001, SOL-002, SOL-005, SOL-006, SOL-007, SOL-008, SOL-009, SOL-010, OUT-003, AUD-001, AUD-005
+**Exercises:** AUD-001, AUD-005, CON-004, CON-008, CST-001, CST-003, CST-009, CST-010, DAY-001, DAY-003, DAY-008, DAY-009, OUT-003, SCN-001, SCN-002, SCN-003, SOL-001, SOL-002, SOL-005, SOL-006, SOL-007, SOL-008, SOL-009, SOL-010  
 
 ### UC-01 — Build the initial board from a screenplay
 
@@ -749,7 +749,7 @@ only.” The constraint agent proposes candidate typed constraints. Grounded con
 bind only through validated evidence and human/validation activation.
 
 **Actors:** First AD · Constraint agent · Grounding service  
-**Exercises:** CON-001, CON-002, CON-003, CON-005, CON-007, CST-001, CST-003, GRD-001, GRD-002, GRD-003, GRD-005, GRD-012, GRD-013, GRD-014, GRD-015, AUD-003, TRK-001, TRK-002
+**Exercises:** AUD-003, CON-001, CON-002, CON-003, CON-005, CON-007, CON-009, CST-001, CST-003, GRD-001, GRD-002, GRD-003, GRD-004, GRD-005, GRD-007, GRD-012, GRD-013, GRD-014, GRD-015, TRK-001, TRK-002  
 
 ### UC-03 — Replan when the world changes
 
@@ -757,7 +757,7 @@ A schedule-relevant forecast or permit fact changes. Coverset generates revised 
 against locked days; the First AD picks one.
 
 **Actors:** Change detector / Monitor loop · Solver · First AD  
-**Exercises:** TRK-003, MON-001, MON-002, MON-003, MON-006, MON-007, MON-008, GRD-006, GRD-010, WEA-001, WEA-002, WEA-003, CST-004, CST-005, SOL-004, SOL-012, LCK-001, LCK-002, ACT-004, ACT-007, ACT-009, OUT-002, OUT-005, AUD-006
+**Exercises:** ACT-004, ACT-007, ACT-009, AUD-006, CON-006, CST-004, CST-005, GRD-006, GRD-010, LCK-001, LCK-002, MON-001, MON-002, MON-003, MON-004, MON-005, MON-006, MON-007, MON-008, OUT-002, OUT-005, SOL-004, SOL-012, TRK-003, WEA-001, WEA-002, WEA-003, WEA-005  
 
 ### UC-04 — Review coverage and order a pickup
 
@@ -765,7 +765,7 @@ Gemini flags a coverage item. The Director rules. Only then does re-shoot work r
 the board.
 
 **Actors:** Review agent · Director · Solver  
-**Exercises:** ACT-001, ACT-002, ACT-003, REV-001, REV-002, REV-003, REV-004, REV-005, REV-006, PIK-001, PIK-002, PIK-003, PIK-004, PIK-005, PIK-006, PIK-007, PIK-008, PIK-011, AUD-004, SOL-004
+**Exercises:** ACT-001, ACT-002, ACT-003, AUD-004, PIK-001, PIK-002, PIK-003, PIK-004, PIK-005, PIK-006, PIK-007, PIK-008, PIK-009, PIK-011, REV-001, REV-002, REV-003, REV-004, REV-005, REV-006, SOL-004  
 
 ### UC-05 — Produce a call sheet
 
@@ -773,7 +773,7 @@ The Second AD generates the day's call sheet, with call times honoring daylight 
 turnaround.
 
 **Actors:** Second AD  
-**Exercises:** OUT-001, OUT-004, OUT-006, ACT-010, DAY-001, DAY-003, CST-007
+**Exercises:** ACT-010, CST-006, CST-007, DAY-001, DAY-003, OUT-001, OUT-004, OUT-006  
 
 ### UC-06 — Diagnose an impossible schedule
 
@@ -788,7 +788,7 @@ not a generic solver failure.
 The Script Supervisor records what was actually shot. Those days become immutable.
 
 **Actors:** Script Supervisor · First AD  
-**Exercises:** ACT-006, REV-007, SOL-004, SOL-012, LCK-001, LCK-002, LCK-003, PIK-006
+**Exercises:** ACT-006, LCK-001, LCK-002, LCK-003, LCK-004, PIK-006, REV-007, SOL-004, SOL-012  
 
 ### UC-08 — Approve the cost of a pickup day
 
@@ -797,6 +797,15 @@ and rules on it.
 
 **Actors:** UPM/Line Producer  
 **Exercises:** ACT-005, ACT-008, CST-004, CST-005, PIK-007, PIK-010, OUT-002, OUT-005
+
+### UC-09 — Raise a coverage concern from the floor
+
+The Script Supervisor notices a continuity problem during the shoot and raises a
+finding directly, without Gemini having flagged anything. From there the path is the
+same: the finding is advisory, and the Director rules.
+
+**Actors:** Script Supervisor · Director  
+**Exercises:** ACT-002, ACT-003, ACT-006, REV-002, REV-003, REV-004, REV-006, REV-007, REV-008, PIK-001, AUD-004
 
 ---
 
