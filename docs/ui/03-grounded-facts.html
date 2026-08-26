@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Production Command - Grounded Facts</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary": "#c3c0ff",
+                        "secondary-fixed": "#e2dfff",
+                        "on-error": "#690005",
+                        "on-tertiary-fixed-variant": "#6c3922",
+                        "on-tertiary": "#51230e",
+                        "surface-variant": "#353534",
+                        "surface-tint": "#b4c5ff",
+                        "primary-fixed": "#dbe1ff",
+                        "primary-container": "#2563eb",
+                        "primary": "#b4c5ff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "on-secondary-fixed": "#0f0069",
+                        "tertiary": "#ffb597",
+                        "on-primary-fixed": "#00174b",
+                        "inverse-on-surface": "#313030",
+                        "inverse-primary": "#0053db",
+                        "error-container": "#93000a",
+                        "outline": "#8d90a0",
+                        "on-secondary-container": "#b3b1ff",
+                        "surface-bright": "#393939",
+                        "tertiary-fixed-dim": "#ffb597",
+                        "tertiary-container": "#995e44",
+                        "inverse-surface": "#e5e2e1",
+                        "on-surface": "#e5e2e1",
+                        "on-primary-container": "#eeefff",
+                        "secondary-container": "#3626ce",
+                        "surface-container": "#201f1f",
+                        "surface-container-highest": "#353534",
+                        "on-tertiary-container": "#ffede6",
+                        "on-background": "#e5e2e1",
+                        "error": "#ffb4ab",
+                        "on-tertiary-fixed": "#360f00",
+                        "tertiary-fixed": "#ffdbcd",
+                        "surface-container-high": "#2a2a2a",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-container-lowest": "#0e0e0e",
+                        "surface": "#131313",
+                        "surface-dim": "#131313",
+                        "on-primary": "#002a78",
+                        "on-error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#c3c0ff",
+                        "outline-variant": "#434655",
+                        "on-surface-variant": "#c3c6d7",
+                        "background": "#131313",
+                        "on-secondary-fixed-variant": "#3323cc",
+                        "on-secondary": "#1d00a5"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "4px",
+                        "lg": "4px",
+                        "xl": "4px",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "unit": "4px",
+                        "row-height": "48px",
+                        "panel-right": "360px",
+                        "gutter": "8px",
+                        "card-padding": "12px",
+                        "rail-width": "64px"
+                    },
+                    fontFamily: {
+                        "display-sm": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "label-caps": ["Inter"]
+                    },
+                    fontSize: {
+                        "display-sm": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "headline-sm": ["16px", { lineHeight: "24px", fontWeight: "600" }],
+                        "data-mono": ["13px", { lineHeight: "16px", fontWeight: "500" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "label-caps": ["10px", { lineHeight: "12px", letterSpacing: "0.05em", fontWeight: "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #131313; color: #e5e2e1; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .icon-fill { font-variation-settings: 'FILL' 1; }
+    </style>
+</head>
+<body class="font-body-md text-body-md overflow-hidden flex h-screen">
+<!-- SideNavBar (JSON Component) -->
+<nav class="fixed left-0 top-0 h-full w-rail-width bg-background dark:bg-background border-r border-white/10 flex flex-col items-center py-4 z-50">
+<div class="mb-8 flex flex-col items-center">
+<div class="w-8 h-8 bg-surface-container-high rounded-full flex items-center justify-center mb-2 overflow-hidden">
+<img class="w-full h-full object-cover opacity-80" data-alt="A stark, minimalist vector logo representing a stylized film slate or camera shutter, extremely simplified, pure white against a deep dark background, emphasizing precise geometry and authority. 4k resolution, UI asset." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsGH6A7THkbMdNO95niaPWKDKPV8gdlrz60ODAfhXBZ8coDJR7GH3apTxQHrnH8KYX0v-6E45VhfV69qxJJgqfXGpeixEysXADkQ-ZCUu8mCu1fJHki07lwuGtsFOud9AJC1sXTzYqNrPFsXfQ6Z5SJopw-V_DYx6EcfKk_Q3nCoj4DrKQfd7XTAYdkfVMIVsXs_XlnywIbW-VnsY9kwmf8X7PiIn1x2OKCmg0nY4H7NbPCnRFVZp27JRCLTD-fJ0FpjI-AObofoCd"/>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant opacity-60">Coverset</span>
+</div>
+<div class="flex flex-col gap-6 w-full items-center">
+<a class="flex flex-col items-center text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors p-2 rounded w-full hover:scale-95 duration-100" href="#" title="Board">
+<span class="material-symbols-outlined mb-1">dashboard</span>
+<span class="font-label-caps text-label-caps text-center hidden">Board</span>
+</a>
+<a class="flex flex-col items-center text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors p-2 rounded w-full hover:scale-95 duration-100" href="#" title="Scenes">
+<span class="material-symbols-outlined mb-1">movie</span>
+<span class="font-label-caps text-label-caps text-center hidden">Scenes</span>
+</a>
+<a class="flex flex-col items-center text-primary border-l-2 border-primary bg-surface-container-high transition-colors p-2 w-full scale-95 duration-100" href="#" title="Grounded Facts">
+<span class="material-symbols-outlined icon-fill mb-1 text-primary">fact_check</span>
+<span class="font-label-caps text-label-caps text-center hidden">Facts</span>
+</a>
+<a class="flex flex-col items-center text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors p-2 rounded w-full hover:scale-95 duration-100" href="#" title="Replan">
+<span class="material-symbols-outlined mb-1">event_repeat</span>
+<span class="font-label-caps text-label-caps text-center hidden">Replan</span>
+</a>
+<a class="flex flex-col items-center text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors p-2 rounded w-full hover:scale-95 duration-100" href="#" title="Coverage Review">
+<span class="material-symbols-outlined mb-1">video_library</span>
+<span class="font-label-caps text-label-caps text-center hidden">Coverage</span>
+</a>
+<a class="flex flex-col items-center text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors p-2 rounded w-full hover:scale-95 duration-100" href="#" title="Call Sheets">
+<span class="material-symbols-outlined mb-1">description</span>
+<span class="font-label-caps text-label-caps text-center hidden">Sheets</span>
+</a>
+<a class="flex flex-col items-center text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors p-2 rounded w-full hover:scale-95 duration-100" href="#" title="Audit Log">
+<span class="material-symbols-outlined mb-1">history</span>
+<span class="font-label-caps text-label-caps text-center hidden">Audit</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<div class="flex-1 flex flex-col ml-rail-width w-[calc(100%-64px)] relative h-full">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center h-12 px-gutter bg-surface-container dark:bg-surface-container border-b border-white/10 shrink-0 z-40">
+<div class="flex items-center gap-4">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">The Glasshouse</span>
+<div class="h-4 w-px bg-white/20"></div>
+<div class="flex items-center gap-2">
+<span class="text-on-surface-variant">Day 8 of 20</span>
+<span class="text-on-surface-variant text-sm">·</span>
+<span class="text-on-surface-variant">v4</span>
+<div class="flex items-center gap-1 bg-[#052e16] text-[#4ade80] px-2 py-0.5 rounded ml-2 border border-[#4ade80]/30">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="font-label-caps text-label-caps tracking-wide">VALIDATED</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex gap-2">
+<button class="px-3 py-1.5 text-sm text-on-surface hover:bg-surface-container-high rounded transition-colors border border-white/10">Optimize Schedule</button>
+<button class="px-3 py-1.5 text-sm bg-primary-container text-white rounded hover:bg-blue-700 transition-colors font-medium">Publish Call Sheet</button>
+</div>
+<div class="h-4 w-px bg-white/20"></div>
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">settings</span></button>
+<div class="w-7 h-7 rounded-full bg-surface-container-high overflow-hidden border border-white/10">
+<img class="w-full h-full object-cover" data-alt="A tiny, high-contrast monochrome portrait of a middle-aged film producer, lit with moody studio lighting against a black background, sharp focus, hyper-realistic, dark theme UI avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3QxUBDu52wrXhPTHkHigU6QE-8asy5fv_m9nrIyQhcgkMxCHv2KfqC1ZbvFUCPhuDdMDhRlwfRTeJ2-G4QEx8x2pEu3S7sa1e-SmrDw59T6GPPyww97ZC11hRdjL6QrPL_27PoafvwuLGgldnLB2Kegp-aPsfGOjCD5pKa4RDK9xEAwn68kfxMhVm2uIDedsA_VxAAcPq8HYF7JO065HKA9qZN_Q-0wYhg1o2S80i462x5WkmU96K9forzz3nE5qsfWz6ou-qt-US"/>
+</div>
+</div>
+</header>
+<!-- Sub-header -->
+<div class="px-6 py-4 flex justify-between items-center border-b border-white/5 bg-surface/80 backdrop-blur-sm z-30 shrink-0">
+<div class="flex items-center gap-3">
+<h1 class="text-lg font-medium text-on-surface">12 grounded facts</h1>
+<span class="text-on-surface-variant">·</span>
+<span class="text-red-400 font-medium">1 conflict</span>
+<span class="text-on-surface-variant">·</span>
+<span class="text-on-surface-variant text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">sync</span> last search <span class="font-data-mono text-data-mono">14:22</span>
+</span>
+</div>
+<button class="px-3 py-1.5 text-sm bg-surface-container-high hover:bg-surface-bright text-on-surface rounded border border-white/10 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">search</span> Re-run Search
+            </button>
+</div>
+<!-- Two Column Layout -->
+<div class="flex flex-1 overflow-hidden">
+<!-- Left Column: Fact Cards -->
+<div class="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide pb-24">
+<!-- Weather Group -->
+<section>
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">partly_cloudy_day</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Weather</h2>
+</div>
+<div class="space-y-2">
+<!-- SELECTED CARD -->
+<div class="bg-surface-container-high p-card-padding rounded border-2 border-primary-container relative cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="font-medium">Apr 18</span>
+<span class="text-on-surface-variant text-sm">· Weather Forecast</span>
+</div>
+<div class="flex gap-2">
+<span class="bg-[#312e81] text-[#818cf8] px-2 py-0.5 rounded text-xs font-medium border border-[#4F46E5]/30">Grounded by Parallel</span>
+<span class="bg-[#052e16] text-[#4ade80] px-2 py-0.5 rounded text-xs border border-[#4ade80]/30">Extracted Full Content</span>
+</div>
+</div>
+<div class="mb-3">
+<div class="text-xl font-medium mb-1">Rain probability 85%</div>
+<div class="flex items-center gap-1 text-sm text-[#4ade80] bg-[#052e16]/50 p-1.5 rounded inline-flex border border-[#4ade80]/10">
+<span class="material-symbols-outlined text-[16px]">check</span> Passed date coverage — source explicitly mentions Apr 18
+                                </div>
+</div>
+<div class="text-sm text-on-surface-variant flex items-center gap-1 mb-3">
+<span class="material-symbols-outlined text-[16px]">link</span>
+<a class="hover:text-primary underline decoration-white/20 underline-offset-2" href="#">weather.gov/forecast/32.08,-81.09</a>
+</div>
+<div class="flex justify-between items-center border-t border-white/5 pt-3 mt-1 text-xs text-on-surface-variant">
+<div class="flex gap-3">
+<span>retrieved <span class="font-data-mono text-data-mono">14:22</span></span>
+<span>content hash <span class="font-data-mono text-data-mono">7b21f0c</span></span>
+</div>
+<div>
+                                    Used by: <span class="font-data-mono text-data-mono text-on-surface">WEA-001, CON-006, SOL-006</span>
+</div>
+</div>
+</div>
+<!-- DEGRADED CARD -->
+<div class="bg-surface-container-low p-card-padding rounded border border-white/10 hover:border-white/20 transition-colors cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2">
+<span class="font-medium text-on-surface">Apr 19</span>
+</div>
+<span class="bg-[#451a03] text-[#fbbf24] px-2 py-0.5 rounded text-xs border border-[#fbbf24]/30">Excerpt Fallback</span>
+</div>
+<div class="mb-3">
+<div class="text-lg text-on-surface/90 mb-1">Rain probability 30%</div>
+<div class="flex items-center gap-1 text-sm text-[#fbbf24] bg-[#451a03]/50 p-1.5 rounded inline-flex border border-[#fbbf24]/10">
+<span class="material-symbols-outlined text-[16px]">warning</span> Excerpt only — full extract failed. Confidence reduced.
+                                </div>
+</div>
+</div>
+<!-- FAILED CARD -->
+<div class="bg-surface-container-low p-card-padding rounded border border-red-900/50 hover:border-red-500/50 transition-colors cursor-pointer relative overflow-hidden">
+<div class="absolute inset-0 bg-red-900/5 pointer-events-none"></div>
+<div class="flex justify-between items-start mb-2 relative z-10">
+<div class="flex items-center gap-2">
+<span class="font-medium text-on-surface">Apr 22</span>
+</div>
+<span class="bg-[#450a0a] text-[#f87171] px-2 py-0.5 rounded text-xs border border-[#f87171]/30">Refused</span>
+</div>
+<div class="mb-1 relative z-10">
+<div class="text-lg text-red-400 mb-1 line-through opacity-70">No source explicitly mentions Apr 22</div>
+<div class="text-sm text-red-300">Refusing to bind a value that may belong to another day.</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Permit Group -->
+<section>
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">gavel</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Permit</h2>
+</div>
+<div class="bg-surface-container-low p-card-padding rounded border border-white/10 hover:border-white/20 transition-colors cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<div class="font-medium text-on-surface">Filming Permit — St. Mark's Church</div>
+<div class="flex gap-2">
+<span class="bg-[#052e16] text-[#4ade80] px-2 py-0.5 rounded text-xs border border-[#4ade80]/30">Extracted Full Content</span>
+</div>
+</div>
+<div class="mb-3">
+<div class="text-lg text-on-surface/90 mb-2">Permitted Tuesdays and Thursdays, 07:00–22:00</div>
+<div class="flex items-center gap-1 text-sm text-[#4ade80] bg-[#052e16]/30 p-1.5 rounded inline-flex border border-[#4ade80]/10 mb-2">
+<span class="material-symbols-outlined text-[16px]">verified</span> Authoritative domain (.gov)
+                            </div>
+<div class="text-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">link</span>
+<a class="hover:text-primary underline decoration-white/20 underline-offset-2" href="#">savannahga.gov/957/Filming-Regulations</a>
+</div>
+</div>
+<div class="flex justify-between items-center border-t border-white/5 pt-3 text-xs">
+<span class="text-on-surface-variant/70 italic">Standing rule — no target date required</span>
+<span class="text-on-surface-variant">Used by: <span class="font-data-mono text-data-mono text-on-surface">CON-007, SOL-006</span></span>
+</div>
+</div>
+</section>
+<!-- Location Rules Group -->
+<section>
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">location_on</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Location Rules</h2>
+</div>
+<div class="bg-surface-container-low p-card-padding rounded border border-red-500/50 cursor-pointer">
+<div class="flex justify-between items-start mb-3">
+<div class="font-medium text-on-surface">Company move curfew — Glasshouse Residence</div>
+<span class="bg-[#450a0a] text-[#f87171] px-2 py-0.5 rounded text-xs border border-[#f87171]/30">Conflicting authoritative values found</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-3">
+<div class="bg-surface-container-highest p-3 rounded border border-white/5">
+<div class="text-on-surface mb-1">no move after 18:00</div>
+<a class="text-xs text-on-surface-variant hover:text-primary truncate block" href="#">neighborhood.org/rules/2026</a>
+</div>
+<div class="bg-surface-container-highest p-3 rounded border border-white/5">
+<div class="text-on-surface mb-1">no move after 20:00</div>
+<a class="text-xs text-on-surface-variant hover:text-primary truncate block" href="#">savannah.gov/noise-ordinance</a>
+</div>
+</div>
+<div class="flex justify-between items-center mt-2">
+<span class="text-sm text-red-300">Cannot bind a constraint until resolved.</span>
+<button class="px-3 py-1.5 text-xs bg-red-900/30 text-red-400 border border-red-900 rounded hover:bg-red-900/50 transition-colors">Mark Conflict</button>
+</div>
+</div>
+</section>
+<!-- Computed Section -->
+<section class="border-t border-white/10 pt-6 mt-4">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">calculate</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface-variant">Computed Models</h2>
+</div>
+<div class="bg-surface-container-low/50 p-card-padding rounded border border-white/5 border-dashed">
+<div class="flex justify-between items-start mb-2">
+<div class="font-medium text-on-surface-variant">Daylight — Apr 18, St. Mark's Church</div>
+<span class="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded text-xs border border-white/10 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">functions</span> Computed · NOAA solar algorithm
+                            </span>
+</div>
+<div class="mb-3 text-on-surface/80">
+                            sunrise <span class="font-data-mono text-data-mono">06:22</span> · 
+                            sunset <span class="font-data-mono text-data-mono">19:31</span> · 
+                            golden hour <span class="font-data-mono text-data-mono text-amber-200/70">18:59–19:31</span>
+</div>
+<div class="flex justify-between items-center pt-2 text-xs">
+<span class="text-on-surface-variant/50 max-w-md leading-tight">Not retrieved. Solar geometry is arithmetic, not a web fact — no source URL exists or is needed.</span>
+<span class="text-on-surface-variant">Used by: <span class="font-data-mono text-data-mono text-on-surface-variant">DAY-001, SOL-006</span></span>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Panel: Fact Detail -->
+<aside class="w-panel-right bg-surface-container-low border-l border-white/10 flex flex-col shrink-0 h-full">
+<div class="p-4 border-b border-white/5 flex items-center justify-between">
+<h3 class="font-medium text-on-surface">Fact Detail</h3>
+<button class="text-on-surface-variant hover:text-white"><span class="material-symbols-outlined text-[20px]">close</span></button>
+</div>
+<div class="p-5 flex-1 overflow-y-auto space-y-6">
+<div>
+<div class="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Normalised Value</div>
+<div class="bg-surface-container-highest p-3 rounded border border-white/5 font-data-mono text-data-mono text-primary mb-1">
+                            precipitation_probability = 0.85
+                        </div>
+<div class="text-xs text-on-surface-variant text-right">units: probability 0–1</div>
+</div>
+<div>
+<div class="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Valid For</div>
+<div class="font-data-mono text-data-mono text-on-surface">2026-04-18</div>
+</div>
+<div>
+<div class="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Validator Result</div>
+<div class="flex items-center gap-1 text-sm text-[#4ade80]">
+<span class="material-symbols-outlined text-[16px]">check_circle</span> date coverage PASSED
+                        </div>
+</div>
+<div>
+<div class="text-xs text-on-surface-variant uppercase tracking-wider mb-1">Source Span</div>
+<div class="bg-[#1e1e1e] p-4 rounded border border-white/10 font-data-mono text-data-mono text-sm leading-relaxed overflow-x-auto text-on-surface-variant">
+                            | Sat, <span class="bg-primary/20 text-primary px-1 rounded">Apr 18</span> | <span class="bg-primary/20 text-primary px-1 rounded">85%</span> | 12 kt | 61°F |
+                        </div>
+<div class="text-xs text-on-surface-variant/70 mt-2 italic">This is the exact row that produced the value.</div>
+</div>
+</div>
+<div class="p-4 border-t border-white/10 bg-surface-container space-y-3 shrink-0">
+<div class="grid grid-cols-2 gap-2">
+<button class="px-3 py-2 text-sm bg-surface-container-high hover:bg-surface-bright text-on-surface rounded border border-white/10 transition-colors">Open Source</button>
+<button class="px-3 py-2 text-sm bg-surface-container-high hover:bg-surface-bright text-on-surface rounded border border-white/10 transition-colors">View Extracted Span</button>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<button class="px-3 py-2 text-sm bg-surface-container-high hover:bg-surface-bright text-on-surface rounded border border-white/10 transition-colors">Re-run Search</button>
+<button class="px-3 py-2 text-sm text-red-400 bg-red-900/10 hover:bg-red-900/20 border border-red-900/30 rounded transition-colors">Mark Conflict</button>
+</div>
+<button class="w-full px-4 py-2 bg-primary-container hover:bg-blue-600 text-white font-medium rounded transition-colors flex items-center justify-center gap-2">
+                        Promote to Constraint <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</aside>
+</div>
+</div>
+</body></html>

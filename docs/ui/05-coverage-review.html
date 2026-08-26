@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coverage Review - Film Production Command</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-fixed-dim": "#ffb597",
+                        "surface-tint": "#b4c5ff",
+                        "on-error-container": "#ffdad6",
+                        "background": "#131313",
+                        "surface-container-highest": "#353534",
+                        "on-surface": "#e5e2e1",
+                        "inverse-primary": "#0053db",
+                        "on-primary-fixed": "#00174b",
+                        "on-primary": "#002a78",
+                        "on-secondary-fixed": "#0f0069",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "outline": "#8d90a0",
+                        "tertiary-container": "#995e44",
+                        "surface-dim": "#131313",
+                        "inverse-surface": "#e5e2e1",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-error": "#690005",
+                        "error": "#ffb4ab",
+                        "surface-container-lowest": "#0e0e0e",
+                        "tertiary": "#ffb597",
+                        "on-secondary": "#1d00a5",
+                        "surface-variant": "#353534",
+                        "on-tertiary-container": "#ffede6",
+                        "surface-container": "#201f1f",
+                        "on-secondary-fixed-variant": "#3323cc",
+                        "on-primary-container": "#eeefff",
+                        "surface-container-high": "#2a2a2a",
+                        "surface": "#131313",
+                        "on-tertiary-fixed": "#360f00",
+                        "primary-container": "#2563eb",
+                        "on-tertiary-fixed-variant": "#6c3922",
+                        "primary": "#b4c5ff",
+                        "secondary-fixed-dim": "#c3c0ff",
+                        "on-tertiary": "#51230e",
+                        "on-background": "#e5e2e1",
+                        "secondary-container": "#3626ce",
+                        "secondary": "#c3c0ff",
+                        "primary-fixed": "#dbe1ff",
+                        "on-secondary-container": "#b3b1ff",
+                        "outline-variant": "#434655",
+                        "on-surface-variant": "#c3c6d7",
+                        "inverse-on-surface": "#313030",
+                        "tertiary-fixed": "#ffdbcd",
+                        "surface-bright": "#393939",
+                        "secondary-fixed": "#e2dfff",
+                        "surface-container-low": "#1c1b1b",
+                        "error-container": "#93000a",
+                        "status-green": "#22c55e",
+                        "status-amber": "#f59e0b",
+                        "status-red": "#ef4444",
+                        "status-indigo": "#4f46e5",
+                        "status-gray": "#6b7280"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem",
+                        "ui": "4px"
+                    },
+                    spacing: {
+                        "unit": "4px",
+                        "panel-right": "360px",
+                        "gutter": "8px",
+                        "row-height": "48px",
+                        "card-padding": "12px",
+                        "nav-width": "64px"
+                    },
+                    fontFamily: {
+                        "label-caps": ["Inter", "sans-serif"],
+                        "headline-sm": ["Inter", "sans-serif"],
+                        "display-sm": ["Inter", "sans-serif"],
+                        "data-mono": ["JetBrains Mono", "monospace"],
+                        "body-md": ["Inter", "sans-serif"]
+                    },
+                    fontSize: {
+                        "label-caps": ["10px", { lineHeight: "12px", letterSpacing: "0.05em", fontWeight: "700" }],
+                        "headline-sm": ["16px", { lineHeight: "24px", fontWeight: "600" }],
+                        "display-sm": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "data-mono": ["13px", { lineHeight: "16px", fontWeight: "500" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #131313; color: #e5e2e1; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Custom Scrollbar for dark theme */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #131313; }
+        ::-webkit-scrollbar-thumb { background: #353534; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #434655; }
+    </style>
+</head>
+<body class="bg-background text-on-background h-screen overflow-hidden flex">
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-surface flex flex-col items-center py-gutter w-[64px] h-full z-50 fixed left-0 top-0 h-full w-unit-16 border-r border-surface-container dark:border-surface-container">
+<div class="mb-8 mt-4 flex items-center justify-center w-full">
+<span class="material-symbols-outlined text-primary dark:text-primary" style="font-size: 28px; font-variation-settings: 'FILL' 1;">movie</span>
+</div>
+<div class="flex flex-col gap-2 w-full mt-4">
+<!-- Tab: Board -->
+<a class="flex flex-col items-center justify-center p-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface transition-colors duration-200 ease-in-out rounded group mx-2" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform">dashboard</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 absolute left-full ml-2 bg-surface-container-highest px-2 py-1 rounded whitespace-nowrap z-50">Board</span>
+</a>
+<!-- Tab: Scenes -->
+<a class="flex flex-col items-center justify-center p-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface transition-colors duration-200 ease-in-out rounded group mx-2" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform">movie</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 absolute left-full ml-2 bg-surface-container-highest px-2 py-1 rounded whitespace-nowrap z-50">Scenes</span>
+</a>
+<!-- Tab: Grounded Facts -->
+<a class="flex flex-col items-center justify-center p-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface transition-colors duration-200 ease-in-out rounded group mx-2" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform">fact_check</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 absolute left-full ml-2 bg-surface-container-highest px-2 py-1 rounded whitespace-nowrap z-50">Grounded Facts</span>
+</a>
+<!-- Tab: Replan -->
+<a class="flex flex-col items-center justify-center p-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface transition-colors duration-200 ease-in-out rounded group mx-2" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform">edit_calendar</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 absolute left-full ml-2 bg-surface-container-highest px-2 py-1 rounded whitespace-nowrap z-50">Replan</span>
+</a>
+<!-- Tab: Coverage Review (ACTIVE) -->
+<a class="flex flex-col items-center justify-center p-2 text-primary dark:text-primary border-l-2 border-primary bg-secondary-container/20 transition-colors duration-200 ease-in-out rounded-r group mx-2 ml-0 pl-4 w-[calc(100%-8px)]" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">visibility</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 absolute left-full ml-2 bg-surface-container-highest px-2 py-1 rounded whitespace-nowrap z-50">Coverage Review</span>
+</a>
+<!-- Tab: Call Sheets -->
+<a class="flex flex-col items-center justify-center p-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface transition-colors duration-200 ease-in-out rounded group mx-2" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform">description</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 absolute left-full ml-2 bg-surface-container-highest px-2 py-1 rounded whitespace-nowrap z-50">Call Sheets</span>
+</a>
+<!-- Tab: Audit Log -->
+<a class="flex flex-col items-center justify-center p-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high hover:text-on-surface transition-colors duration-200 ease-in-out rounded group mx-2" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform">history</span>
+<span class="font-label-caps text-label-caps opacity-0 group-hover:opacity-100 absolute left-full ml-2 bg-surface-container-highest px-2 py-1 rounded whitespace-nowrap z-50">Audit Log</span>
+</a>
+</div>
+<div class="mt-auto mb-4 flex flex-col items-center gap-4">
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A dark moody cinematic portrait of a professional film production crew member, lit with subtle neon accents, emphasizing focus and technical expertise, hyper-realistic, 8k resolution, suitable for a professional software UI avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRYxbVemU176X8L6Bq2fBTs-5ahFMsG-TtfjCAc6fkgOLvxphVUi1H4FT7pYFyPKi5rU4EogccRH-tJGAj_iMYC-av-mIfjpCXQR_Mp8AUF_9690ValHpPLEwLK3E6TDnxcC-olYzMEjG5TxS_d_PL7asPKovZpNXj0_2sV4u6LrIU6KygJKkB-56LbzmzzfxzLCALvSOYpGJ9Q2QMTCcW1lGBf_7juI_jr8xvDTfkJYZJdkwaSdY6-ajdm_SEac2Pp6SO0KHJUjmC"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col h-full ml-[64px] bg-background">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full h-row-height px-4 z-40 border-b border-surface-container bg-surface dark:bg-surface shrink-0">
+<div class="flex items-center gap-4">
+<h1 class="font-display-sm text-display-sm font-bold text-on-surface dark:text-on-surface">The Glasshouse · Day 8 of 20 · v4</h1>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex gap-4">
+<a class="text-on-surface-variant dark:text-on-surface-variant text-body-md hover:text-primary dark:hover:text-primary transition-all" href="#">Main Unit</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant text-body-md hover:text-primary dark:hover:text-primary transition-all" href="#">2nd Unit</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant text-body-md hover:text-primary dark:hover:text-primary transition-all" href="#">Splinter</a>
+</nav>
+<div class="h-6 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-3 text-on-surface-variant">
+<button class="hover:text-primary transition-all scale-95 active:scale-90"><span class="material-symbols-outlined">notifications</span></button>
+<button class="hover:text-primary transition-all scale-95 active:scale-90"><span class="material-symbols-outlined">settings</span></button>
+</div>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded-ui font-body-md font-medium hover:bg-primary-fixed-dim transition-colors scale-95 active:scale-90">
+                    Create New Strip
+                </button>
+</div>
+</header>
+<!-- Three Column Layout -->
+<main class="flex-1 flex overflow-hidden p-gutter gap-gutter">
+<!-- Left Column: Scene Coverage List -->
+<section class="w-1/4 min-w-[280px] bg-surface-container-low rounded-ui border border-surface-container flex flex-col overflow-hidden">
+<div class="p-4 border-b border-surface-container flex justify-between items-center bg-surface-container-low shrink-0">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">SC-018 Coverage</h2>
+<p class="font-data-mono text-data-mono text-on-surface-variant mt-1 text-xs">INT. LIVING ROOM - DAY</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">filter_list</span>
+</div>
+<div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
+<!-- Accepted Item -->
+<div class="p-3 bg-surface rounded-ui border-l-4 border-status-green flex justify-between items-center cursor-pointer hover:bg-surface-container-high transition-colors border border-transparent">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-status-green text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div>
+<p class="font-body-md text-on-surface font-medium">Wide</p>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Accepted</p>
+</div>
+</div>
+</div>
+<!-- Accepted Item -->
+<div class="p-3 bg-surface rounded-ui border-l-4 border-status-green flex justify-between items-center cursor-pointer hover:bg-surface-container-high transition-colors border border-transparent">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-status-green text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div>
+<p class="font-body-md text-on-surface font-medium">Close-up (Sarah)</p>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Accepted</p>
+</div>
+</div>
+</div>
+<!-- Selected/Review Item -->
+<div class="p-3 bg-surface-container-high rounded-ui border-l-4 border-status-indigo border-y border-r border-y-primary border-r-primary flex justify-between items-center cursor-pointer shadow-[inset_0_0_0_1px_#2563EB]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-status-indigo text-sm" style="font-variation-settings: 'FILL' 1;">error</span>
+<div>
+<p class="font-body-md text-on-surface font-semibold">Reverse (Lucy)</p>
+<p class="font-label-caps text-label-caps text-status-indigo mt-1">Needs Director Review</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary text-sm">chevron_right</span>
+</div>
+<!-- Planned Item -->
+<div class="p-3 bg-surface rounded-ui border-l-4 border-status-gray flex justify-between items-center cursor-pointer hover:bg-surface-container-high transition-colors border border-transparent opacity-70">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-status-gray text-sm">pending</span>
+<div>
+<p class="font-body-md text-on-surface font-medium">Insert (letter)</p>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Planned</p>
+</div>
+</div>
+</div>
+<!-- Accepted Item -->
+<div class="p-3 bg-surface rounded-ui border-l-4 border-status-green flex justify-between items-center cursor-pointer hover:bg-surface-container-high transition-colors border border-transparent">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-status-green text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div>
+<p class="font-body-md text-on-surface font-medium">Establishing</p>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">Accepted</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Center Column: Details & Rulings -->
+<section class="flex-1 flex flex-col gap-4 overflow-y-auto">
+<!-- Advisory Card -->
+<div class="bg-surface-container-low rounded-ui border border-status-indigo/30 p-6 shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-status-indigo to-primary opacity-50"></div>
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-2 bg-status-indigo/10 px-3 py-1.5 rounded-full border border-status-indigo/20">
+<span class="material-symbols-outlined text-status-indigo text-sm">temp_preferences_custom</span>
+<span class="font-label-caps text-label-caps text-status-indigo">Gemini Advisory</span>
+</div>
+<span class="font-data-mono text-data-mono text-on-surface-variant text-xs">ID: RF-014</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-4 leading-relaxed">
+                        "Eyeline may not match the previous wide shot. The spatial relationship established in SC-018 Wide places Lucy on screen-right, but this reverse angle appears to cross the axis."
+                    </h3>
+<div class="flex items-center gap-4 mb-6 p-4 bg-surface rounded-ui border border-surface-container">
+<div class="flex-1">
+<div class="flex justify-between mb-1">
+<span class="font-label-caps text-label-caps text-on-surface-variant">Confidence Level</span>
+<span class="font-data-mono text-data-mono text-status-amber text-xs">68%</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5">
+<div class="bg-status-amber h-1.5 rounded-full" style="width: 68%"></div>
+</div>
+</div>
+<div class="w-px h-8 bg-surface-container-highest"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">visibility</span>
+<span class="font-data-mono text-data-mono text-xs text-on-surface-variant">Based on 2 previous takes</span>
+</div>
+</div>
+<p class="font-label-caps text-label-caps text-on-surface-variant/70 border-t border-surface-container-highest pt-4">
+                        Gemini cannot decide. Human ruling required.
+                    </p>
+</div>
+<!-- Human Ruling Card -->
+<div class="bg-surface-container-low rounded-ui border border-surface-container p-6 shadow-sm">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Your ruling</h2>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">person</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">Director · Maya Chen</span>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-3 mb-6">
+<button class="flex flex-col items-center justify-center p-4 rounded-ui border border-surface-container-highest bg-surface hover:bg-status-green/10 hover:border-status-green/50 transition-all text-on-surface">
+<span class="material-symbols-outlined text-status-green mb-2">thumb_up</span>
+<span class="font-body-md text-sm font-medium">Accept Coverage</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 rounded-ui border border-surface-container-highest bg-surface hover:bg-status-red/10 hover:border-status-red/50 transition-all text-on-surface">
+<span class="material-symbols-outlined text-status-red mb-2">thumb_down</span>
+<span class="font-body-md text-sm font-medium">Reject Coverage</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 rounded-ui border-2 border-status-amber bg-status-amber/10 text-on-surface shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
+<span class="material-symbols-outlined text-status-amber mb-2" style="font-variation-settings: 'FILL' 1;">videocam</span>
+<span class="font-body-md text-sm font-semibold text-status-amber">Request Pickup</span>
+</button>
+</div>
+<div class="mb-4">
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-2">Director's Notes (Mandatory for Pickup)</label>
+<textarea class="w-full bg-surface border border-surface-container-highest rounded-ui p-3 text-body-md text-on-surface focus:border-status-amber focus:ring-1 focus:ring-status-amber h-24 font-body-md resize-none" placeholder="Explain reasoning for pickup request..."></textarea>
+</div>
+<div class="flex justify-end">
+<button class="flex items-center gap-2 text-primary hover:text-primary-fixed-dim transition-colors font-body-md text-sm font-medium px-4 py-2 rounded-ui hover:bg-primary/10">
+<span class="material-symbols-outlined text-sm">add_circle</span>
+                            Add Human Finding
+                        </button>
+</div>
+</div>
+</section>
+<!-- Right Column: Pickup Task Preview -->
+<section class="w-[360px] min-w-[360px] bg-surface-container-low rounded-ui border border-surface-container flex flex-col overflow-hidden">
+<div class="p-5 border-b border-surface-container bg-surface-container-low shrink-0">
+<div class="flex justify-between items-center mb-3">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Pickup task preview</h2>
+<span class="bg-primary/20 text-primary font-label-caps text-[9px] px-2 py-1 rounded">Not yet scheduled</span>
+</div>
+<div class="bg-status-green/10 border border-status-green/20 p-2 rounded flex items-center gap-2">
+<span class="material-symbols-outlined text-status-green text-sm" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="font-data-mono text-data-mono text-xs text-on-surface">Authorised by Director Maya Chen · 14:08</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
+<!-- Form Fields -->
+<div class="grid grid-cols-2 gap-4">
+<div class="col-span-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Target Scene</label>
+<input class="w-full bg-surface border border-surface-container-highest rounded-ui p-2 text-data-mono font-data-mono text-on-surface focus:border-primary focus:ring-1 focus:ring-primary" readonly="" type="text" value="SC-018"/>
+</div>
+<div class="col-span-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Coverage Required</label>
+<input class="w-full bg-surface border border-surface-container-highest rounded-ui p-2 text-body-md font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary" type="text" value="Reverse (Lucy)"/>
+</div>
+<div class="col-span-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Required Cast</label>
+<div class="flex items-center gap-2 bg-surface border border-surface-container-highest rounded-ui p-2">
+<span class="font-body-md text-sm text-on-surface flex-1">Ava Brooks (Lucy)</span>
+<span class="bg-status-amber/20 text-status-amber font-label-caps text-[9px] px-1.5 py-0.5 rounded border border-status-amber/30">MINOR · max 6h</span>
+</div>
+</div>
+<div class="col-span-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Location</label>
+<input class="w-full bg-surface border border-surface-container-highest rounded-ui p-2 text-body-md font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary" type="text" value="Glasshouse Residence"/>
+</div>
+<div>
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Est. Duration</label>
+<input class="w-full bg-surface border border-surface-container-highest rounded-ui p-2 text-data-mono font-data-mono text-on-surface focus:border-primary focus:ring-1 focus:ring-primary" type="text" value="45 min"/>
+</div>
+<div>
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Priority</label>
+<select class="w-full bg-surface border border-surface-container-highest rounded-ui p-2 text-body-md font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary appearance-none">
+<option>High</option>
+<option>Medium</option>
+<option>Low</option>
+</select>
+</div>
+<div class="col-span-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Target Date</label>
+<input class="w-full bg-surface border border-surface-container-highest rounded-ui p-2 text-data-mono font-data-mono text-on-surface focus:border-primary focus:ring-1 focus:ring-primary" type="text" value="Apr 22"/>
+</div>
+</div>
+<!-- Warning Strip -->
+<div class="bg-status-amber/10 border-l-4 border-status-amber p-3 rounded-r-ui flex items-start gap-3 mt-2">
+<span class="material-symbols-outlined text-status-amber text-sm mt-0.5">warning</span>
+<p class="font-body-md text-sm text-on-surface leading-tight">
+                            Adds one shoot day — UPM approval required before scheduling.
+                        </p>
+</div>
+</div>
+<!-- Bottom Action Buttons -->
+<div class="p-5 border-t border-surface-container bg-surface-container-low shrink-0 flex flex-col gap-3">
+<button class="w-full bg-primary text-on-primary py-2.5 rounded-ui font-body-md font-semibold hover:bg-primary-fixed-dim transition-colors flex items-center justify-center gap-2">
+                        Create Pickup Task
+                    </button>
+<button class="w-full bg-status-amber/20 text-status-amber py-2.5 rounded-ui font-body-md font-semibold border border-status-amber/50 hover:bg-status-amber/30 transition-colors flex items-center justify-center gap-2">
+                        Request UPM Approval
+                    </button>
+</div>
+</section>
+</main>
+</div>
+</body></html>

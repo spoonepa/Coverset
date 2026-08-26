@@ -1,68 +1,74 @@
-# UI — Stitch MCP attempt
+# UI — Stitch MCP
 
-One screen, generated through the Stitch **MCP server** against project
-`13355501855075038394`.
+Seven screens generated through the Stitch **MCP server**, project
+`13355501855075038394`, from `../../STITCH_PROMPT.md`.
 
-This is **not** the UI baseline. The complete seven-screen set, generated through
-`@google/stitch-sdk` across three iteration passes, is in `docs/ui-sling/` — see
-`docs/ui-sling/validation.md` for the reference table. Use that for visual direction.
+A second, independent set exists in `docs/ui-sling/`, generated through
+`@google/stitch-sdk` across three iteration passes. Neither supersedes the other —
+`docs/ui-sling/validation.md` has its own reference table and review notes.
 
-What is kept here is one screen and, more usefully, what the MCP route turned out to do.
+## Screens
 
-## Files
-
-| File | What it is |
+| File | Screen |
 |---|---|
-| `01-stripboard-dashboard.html` / `.png` | Initial generation |
-| `01-stripboard-dashboard.v2.html` / `.v2.png` | After five corrections — the better of the two |
+| `01-stripboard-dashboard.html` / `.png` | Stripboard, initial generation |
+| `01-stripboard-dashboard.v2.html` / `.v2.png` | Stripboard after five corrections — use this one |
+| `02-scene-breakdown` | Candidate scene records and the activation gate |
+| `03-grounded-facts` | Parallel source and value provenance |
+| `04-replan-options` | Weather-triggered replan comparison |
+| `05-coverage-review` | Advisory finding → human ruling → authorised pickup |
+| `06-call-sheet` | Day 15 call sheet for Second AD distribution |
+| `07-audit-log` | Authority and provenance, inspectable |
 
-The v2 corrections were: removing a stray text artifact; adding explicit `LOCKED`
-(green, padlock) and `PLANNED` (blue) status pills, because colour-only spines made
-locked and planned days indistinguishable; unwrapping scene ids; replacing a single
-green tick with named `Cast · Permit · Daylight · Turnaround` badges; and rendering the
-truncated advisory badge in full as `Gemini Advisory · Coverage Needs Review`.
+## What survived into the renders
 
-Lock status mattered most. "What is locked?" is one of the four questions the design
-direction says a tired AD must answer instantly, and immutability of shot days is the
-spine of the whole replan story — if the board does not show it, the core claim is not
-visible.
+The distinctions most likely to be lost in generation all held:
 
-## What survived into the render
+- **Computed is not retrieved.** Daylight reads `Computed · NOAA solar algorithm` and
+  shows no source URL, in the stripboard, grounded facts and call sheet. Weather and
+  permits carry `Grounded by Parallel` with sources, retrieval mode and validator result.
+- **Advisory is not decision.** Indigo appears only on Gemini findings. Coverage review
+  states `Gemini cannot decide. Human ruling required.` beneath the finding, then a
+  separate "Your ruling" panel attributed to Director · Maya Chen, then a green
+  `Authorised by Director Maya Chen` banner on the resulting pickup. The visual order is
+  the argument.
+- **Proposal is not validated board.** Replan options distinguishes `Solver Proposed`
+  from validated boards, and gates the option that adds a shoot day behind UPM approval.
+- **Locked is legible.** `LOCKED` and `PLANNED` are explicit text pills, never colour
+  alone.
+- **Excerpt is not full content.** Grounded facts shows both `Extracted Full Content`
+  and `Excerpt Fallback`, so a degraded retrieval is visible rather than silent.
 
-Worth noting because it is the part most likely to be lost:
-
-- Daylight reads `Computed · NOAA solar algorithm` and shows **no source URL**, because
-  it is arithmetic rather than a web fact.
-- Weather carries `Grounded by Parallel` with `View Sources`; permits cite a source
-  document. Retrieved facts look retrieved.
-- Indigo is used only for the Gemini advisory badge, never for a decision.
-- The audit strip states the hard-constraint count and the constraint snapshot hash.
+The stripboard v2 corrections were: removing a stray text artifact; adding the status
+pills, because colour-only spines made locked and planned days indistinguishable;
+unwrapping scene ids; replacing a single tick with named
+`Cast · Permit · Daylight · Turnaround` badges; and rendering the truncated advisory
+badge in full.
 
 ## Behaviour of the MCP route
 
-Recorded because someone will try it again.
+**Generation is slow, and a timeout tells you nothing.** Every
+`generate_screen_from_text` call timed out at the MCP layer. The work continued
+server-side regardless. The first screen appeared after about two minutes; the rest took
+considerably longer — long enough that polling at two, five and ten minutes showed
+nothing and looked like failure.
 
-**A timeout does not mean failure.** `generate_screen_from_text` timed out on every
-call. The first one still appeared in `list_screens` about two minutes later. Do not
-retry on timeout — poll.
+That misled the session badly. Seven screens were declared failed and three separate
+causes were hypothesised — rate limiting, a bad design system asset, quota contention
+with a concurrent session — before it turned out all seven had generated normally. The
+only real problem was polling too early and treating absence as failure.
 
-**Consecutive submissions stopped producing anything.** After the first success, seven
-further generations were fired in close succession and none ever landed, including one
-sent without a `designSystem` parameter, which rules the design system out as the cause.
-Most likely rate limiting. Space submissions out instead of batching them.
+So: **do not retry on timeout, and do not conclude failure from an empty
+`list_screens`.** Poll for considerably longer than feels reasonable. Retrying instead
+produced three duplicate Scene Breakdown screens in this project.
 
 **`update_design_system` reported success without persisting.** It echoed the submitted
-markdown back in its response, but the stored asset kept the original prose: two
-corrections were silently discarded, and `labelFont` was changed from `JETBRAINS_MONO`
-to `PUBLIC_SANS` unasked — which would undermine the tabular figures a scheduling board
-depends on. Both update calls returned `sessions/...` resource names rather than the
-asset name. Treat the design system as unreliable for carrying intent; put style
-constraints inline in each screen prompt.
+markdown back, but the stored asset kept its original prose: two corrections were
+silently discarded, and `labelFont` changed from `JETBRAINS_MONO` to `PUBLIC_SANS`
+unasked, which would undermine the tabular figures a board depends on. Both update calls
+returned `sessions/...` resource names rather than the asset name. Put style constraints
+inline in each screen prompt rather than relying on the design system to carry them —
+that is what these screens do, and it worked.
 
 **`edit_screens` is reliable** and returns synchronously with the finished screen.
-Iterating on an existing screen worked every time; generating a new one mostly did not.
-
-**Edited screens can end up detached.** The v2 edit returned a complete screen with HTML
-and a screenshot, but that screen never appeared in the project's `screenInstances` or
-in `list_screens`. Download artifacts when you get them rather than assuming you can
-list them later — the files here exist because of that.
+Iterating beats regenerating.

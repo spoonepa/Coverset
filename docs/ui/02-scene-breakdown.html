@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coverset - Scene Breakdown</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Public+Sans:wght@600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#434655",
+                        "error": "#ffb4ab",
+                        "background": "#131313",
+                        "surface-container-low": "#1c1b1b",
+                        "primary": "#b4c5ff",
+                        "outline": "#8d90a0",
+                        "on-secondary-container": "#b3b1ff",
+                        "surface-tint": "#b4c5ff",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed": "#dbe1ff",
+                        "primary-container": "#2563eb",
+                        "inverse-primary": "#0053db",
+                        "tertiary-fixed": "#ffdbcd",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "error-container": "#93000a",
+                        "surface-dim": "#131313",
+                        "surface": "#131313",
+                        "on-tertiary-fixed-variant": "#7d2d00",
+                        "on-primary": "#002a78",
+                        "on-secondary-fixed": "#0f0069",
+                        "secondary-fixed-dim": "#c3c0ff",
+                        "secondary-fixed": "#e2dfff",
+                        "secondary-container": "#3626ce",
+                        "on-primary-container": "#eeefff",
+                        "surface-container": "#201f1f",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-primary-fixed": "#00174b",
+                        "on-background": "#e5e2e1",
+                        "inverse-on-surface": "#313030",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-surface-variant": "#c3c6d7",
+                        "on-tertiary-fixed": "#360f00",
+                        "on-error": "#690005",
+                        "on-surface": "#e5e2e1",
+                        "on-tertiary-container": "#ffede6",
+                        "tertiary": "#ffb596",
+                        "inverse-surface": "#e5e2e1",
+                        "tertiary-container": "#bc4800",
+                        "surface-container-highest": "#353534",
+                        "on-secondary": "#1d00a5",
+                        "on-secondary-fixed-variant": "#3323cc",
+                        "surface-variant": "#353534",
+                        "on-tertiary": "#581e00",
+                        "surface-container-high": "#2a2a2a",
+                        "surface-bright": "#393939",
+                        "secondary": "#c3c0ff",
+                        "status-green": "#22c55e",
+                        "status-green-bg": "rgba(34, 197, 94, 0.1)",
+                        "status-amber": "#f59e0b",
+                        "status-amber-bg": "rgba(245, 158, 11, 0.1)",
+                        "status-indigo": "#6366f1",
+                        "status-indigo-bg": "rgba(99, 102, 241, 0.1)",
+                        "status-red": "#ef4444",
+                        "status-red-bg": "rgba(239, 68, 68, 0.1)"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "8px",
+                        "unit": "4px",
+                        "panel-right": "360px",
+                        "card-padding": "12px",
+                        "rail-width": "64px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "data-mono": ["Public Sans"],
+                        "display-sm": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-caps": ["10px", { "lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "data-mono": ["13px", { "lineHeight": "16px", "fontWeight": "600" }],
+                        "display-sm": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-sm": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .font-variation-fill { font-variation-settings: 'FILL' 1; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-body-sm font-body-sm antialiased">
+<!-- SideNavBar -->
+<nav class="bg-background dark:bg-background text-primary dark:text-primary font-label-caps text-label-caps fixed left-0 top-0 h-full w-rail-width border-r border-white/10 flex flex-col items-center py-4 z-50">
+<div class="mb-8 flex flex-col items-center justify-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
+<div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center">
+<span class="font-display-sm text-display-sm text-primary">C</span>
+</div>
+<span class="sr-only">Production Logo</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-4 w-full">
+<a aria-label="Board" class="w-full flex flex-col items-center gap-1 text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors py-3 group relative" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors text-[20px]" data-icon="dashboard">dashboard</span>
+<span class="text-[9px] uppercase font-semibold">Board</span>
+</a>
+<a aria-label="Scenes" class="w-full flex flex-col items-center gap-1 text-primary border-l-2 border-primary py-3 relative active:scale-95 duration-100 bg-surface-container-high/50" href="#">
+<span class="material-symbols-outlined font-variation-fill text-[20px]" data-icon="movie" data-weight="fill">movie</span>
+<span class="text-[9px] uppercase font-semibold">Scenes</span>
+</a>
+<a aria-label="Grounded Facts" class="w-full flex flex-col items-center gap-1 text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors py-3 group relative" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors text-[20px]" data-icon="fact_check">fact_check</span>
+<span class="text-[9px] uppercase font-semibold text-center leading-tight">Facts</span>
+</a>
+<a aria-label="Replan" class="w-full flex flex-col items-center gap-1 text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors py-3 group relative" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors text-[20px]" data-icon="event_repeat">event_repeat</span>
+<span class="text-[9px] uppercase font-semibold">Replan</span>
+</a>
+<a aria-label="Coverage Review" class="w-full flex flex-col items-center gap-1 text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors py-3 group relative" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors text-[20px]" data-icon="video_library">video_library</span>
+<span class="text-[9px] uppercase font-semibold text-center leading-tight">Review</span>
+</a>
+<a aria-label="Call Sheets" class="w-full flex flex-col items-center gap-1 text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors py-3 group relative" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors text-[20px]" data-icon="description">description</span>
+<span class="text-[9px] uppercase font-semibold text-center leading-tight">Sheets</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col w-full items-center">
+<a aria-label="Audit Log" class="w-full flex flex-col items-center gap-1 text-on-surface-variant opacity-60 hover:bg-surface-container-high transition-colors py-3 group relative" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors text-[20px]" data-icon="history">history</span>
+<span class="text-[9px] uppercase font-semibold">Audit</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 ml-rail-width flex flex-col h-full bg-background relative overflow-hidden">
+<!-- TopAppBar -->
+<header class="bg-surface-container dark:bg-surface-container text-primary dark:text-primary font-headline-sm text-headline-sm docked full-width top-0 border-b border-white/10 flex justify-between items-center h-12 px-gutter shrink-0 z-40 w-full active:opacity-80">
+<div class="flex items-center gap-4 pl-4">
+<div class="font-headline-sm font-bold text-on-surface flex items-center gap-2">
+                    The Glasshouse
+                    <span class="text-on-surface-variant font-normal px-2">·</span>
+                    Day 8 of 20
+                    <span class="text-on-surface-variant font-normal px-2">·</span>
+                    v4
+                    <span class="ml-2 inline-flex items-center rounded-full bg-status-green-bg px-2 py-0.5 text-[10px] font-bold text-status-green border border-status-green/20 uppercase tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-status-green mr-1"></span>
+                        Validated
+                    </span>
+</div>
+</div>
+<div class="flex items-center gap-3 pr-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center p-1.5 rounded hover:bg-surface-variant/50">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center p-1.5 rounded hover:bg-surface-variant/50">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+</button>
+<div class="w-7 h-7 rounded-full bg-surface-variant border border-outline-variant/50 overflow-hidden ml-2 cursor-pointer relative" data-alt="Close up portrait of a serious, sharply dressed film producer looking directly at the camera, dramatic lighting, high quality cinematic feel, 8k resolution, professional headshot style.">
+<img alt="Producer Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfTrO_tGKsMCT7uq7gT_OitokosKj98luWoQ0lvruq60vKbPLkJvBrapSh3YWXRachk_x69ExvoCg3fBwp7OxjeDjVbfdLgRb8wCFdn9yJD-YxjhjMTyMjgrkRdIJ8uPqW5rr5UqqZ8vvMD7npidPBtrPAiQW-83LAjEJ4JPAL472h9EEcGum_r14OpyqBNW-BNTdy9Aq75cuZ0zT8RZsUEUWTzSwOGBOYRd2_IsYASn2FSbaFmLqF9yG3fzC70hkZeKBFE-wU1YfB"/>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 flex overflow-hidden">
+<!-- Left Column: Scene Table -->
+<section class="flex-1 flex flex-col h-full border-r border-white/10 bg-background min-w-0 overflow-hidden relative">
+<!-- Advisory Strips -->
+<div class="flex-none p-3 space-y-2 border-b border-white/5 bg-surface-container-lowest/50 z-10 relative">
+<div class="flex items-center gap-2 p-2 rounded bg-[rgba(245,158,11,0.05)] border border-[rgba(245,158,11,0.2)] text-[#fbbf24]">
+<span class="material-symbols-outlined text-[16px]" data-icon="warning">warning</span>
+<span class="font-body-md text-sm">3 scene records need cast resolution before solving</span>
+</div>
+<div class="flex items-center gap-2 p-2 rounded bg-status-indigo-bg border border-status-indigo/20 text-status-indigo">
+<span class="material-symbols-outlined text-[16px]" data-icon="info">info</span>
+<span class="font-body-md text-sm">Low-confidence breakdown: human acceptance required</span>
+</div>
+</div>
+<!-- Table Header -->
+<div class="flex-none grid grid-cols-[100px_minmax(200px,1fr)_60px_160px_160px_120px_100px] gap-4 px-4 py-3 border-b border-white/10 bg-surface-container sticky top-0 z-10 font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">
+<div>Scene ID</div>
+<div>Slugline</div>
+<div>Pages</div>
+<div>Cast</div>
+<div>Location</div>
+<div>Flags</div>
+<div>Status</div>
+</div>
+<!-- Table Body -->
+<div class="flex-1 overflow-y-auto scrollbar-hide pb-20">
+<!-- Row 1 -->
+<div class="grid grid-cols-[100px_minmax(200px,1fr)_60px_160px_160px_120px_100px] gap-4 px-4 py-3 border-b border-white/5 hover:bg-surface-container-lowest/50 transition-colors items-center group cursor-pointer relative">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-status-green opacity-0 group-hover:opacity-50 transition-opacity"></div>
+<div class="font-data-mono text-data-mono text-on-surface">SC-003</div>
+<div class="truncate text-on-surface font-semibold" title="INT. GLASSHOUSE KITCHEN — NIGHT">INT. GLASSHOUSE KITCHEN — NIGHT</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant">2/8</div>
+<div class="truncate text-on-surface-variant">Sarah, Elias</div>
+<div class="truncate text-on-surface-variant">Glasshouse Residence</div>
+<div><span class="text-outline-variant italic text-xs">--</span></div>
+<div>
+<span class="inline-flex items-center rounded bg-status-green-bg px-1.5 py-0.5 text-[9px] font-bold text-status-green border border-status-green/20 uppercase">Active</span>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-[100px_minmax(200px,1fr)_60px_160px_160px_120px_100px] gap-4 px-4 py-3 border-b border-white/5 hover:bg-surface-container-lowest/50 transition-colors items-center group cursor-pointer relative">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-status-green opacity-0 group-hover:opacity-50 transition-opacity"></div>
+<div class="font-data-mono text-data-mono text-on-surface">SC-007</div>
+<div class="truncate text-on-surface font-semibold" title="EXT. CHURCH COURTYARD — DAY">EXT. CHURCH COURTYARD — DAY</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant">3/8</div>
+<div class="truncate text-on-surface-variant">Sarah, Lucy</div>
+<div class="truncate text-on-surface-variant">St. Mark's Church</div>
+<div>
+<span class="inline-flex items-center rounded bg-status-amber-bg px-1.5 py-0.5 text-[9px] font-bold text-status-amber border border-status-amber/20 uppercase">minor</span>
+</div>
+<div>
+<span class="inline-flex items-center rounded bg-status-green-bg px-1.5 py-0.5 text-[9px] font-bold text-status-green border border-status-green/20 uppercase">Active</span>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="grid grid-cols-[100px_minmax(200px,1fr)_60px_160px_160px_120px_100px] gap-4 px-4 py-3 border-b border-white/5 hover:bg-surface-container-lowest/50 transition-colors items-center group cursor-pointer relative">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-status-green opacity-0 group-hover:opacity-50 transition-opacity"></div>
+<div class="font-data-mono text-data-mono text-on-surface">SC-012</div>
+<div class="truncate text-on-surface font-semibold" title="INT. CHURCH VESTRY — DAY">INT. CHURCH VESTRY — DAY</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant">1/8</div>
+<div class="truncate text-on-surface-variant">Elias</div>
+<div class="truncate text-on-surface-variant">St. Mark's Church</div>
+<div><span class="text-outline-variant italic text-xs">--</span></div>
+<div>
+<span class="inline-flex items-center rounded bg-status-green-bg px-1.5 py-0.5 text-[9px] font-bold text-status-green border border-status-green/20 uppercase">Active</span>
+</div>
+</div>
+<!-- Row 4 -->
+<div class="grid grid-cols-[100px_minmax(200px,1fr)_60px_160px_160px_120px_100px] gap-4 px-4 py-3 border-b border-white/5 hover:bg-surface-container-lowest/50 transition-colors items-center group cursor-pointer relative opacity-60">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary opacity-0 group-hover:opacity-50 transition-opacity"></div>
+<div class="font-data-mono text-data-mono text-on-surface">SC-014</div>
+<div class="truncate text-on-surface font-semibold" title="EXT. GLASSHOUSE DRIVEWAY — DUSK">EXT. GLASSHOUSE DRIVEWAY — DUSK</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant">2/8</div>
+<div class="truncate text-on-surface-variant">Sarah, Elias</div>
+<div class="truncate text-on-surface-variant">Glasshouse Residence</div>
+<div>
+<span class="inline-flex items-center rounded bg-status-red-bg px-1.5 py-0.5 text-[9px] font-bold text-status-red border border-status-red/20 uppercase">stunt</span>
+</div>
+<div>
+<span class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary border border-primary/20 uppercase">Candidate</span>
+</div>
+</div>
+<!-- Row 5 -->
+<div class="grid grid-cols-[100px_minmax(200px,1fr)_60px_160px_160px_120px_100px] gap-4 px-4 py-3 border-b border-white/5 hover:bg-surface-container-lowest/50 transition-colors items-center group cursor-pointer relative opacity-60">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-status-indigo opacity-0 group-hover:opacity-50 transition-opacity"></div>
+<div class="font-data-mono text-data-mono text-on-surface">SC-018</div>
+<div class="truncate text-on-surface font-semibold" title="INT. GLASSHOUSE HALLWAY — NIGHT">INT. GLASSHOUSE HALLWAY — NIGHT</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant">4/8</div>
+<div class="truncate text-on-surface-variant">Sarah, Lucy</div>
+<div class="truncate text-on-surface-variant">Glasshouse Residence</div>
+<div>
+<span class="inline-flex items-center rounded bg-status-amber-bg px-1.5 py-0.5 text-[9px] font-bold text-status-amber border border-status-amber/20 uppercase">minor</span>
+</div>
+<div>
+<span class="inline-flex items-center rounded bg-status-indigo-bg px-1.5 py-0.5 text-[9px] font-bold text-status-indigo border border-status-indigo/20 uppercase">Needs Review</span>
+</div>
+</div>
+<!-- Row 6 (SELECTED) -->
+<div class="grid grid-cols-[100px_minmax(200px,1fr)_60px_160px_160px_120px_100px] gap-4 px-4 py-3 border-b border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors items-center group cursor-pointer relative shadow-[inset_2px_0_0_0_#2563EB]">
+<div class="font-data-mono text-data-mono text-primary font-bold">SC-021</div>
+<div class="truncate text-on-surface font-bold" title="EXT. CHURCH STEPS — DAY">EXT. CHURCH STEPS — DAY</div>
+<div class="font-data-mono text-data-mono text-on-surface">2/8</div>
+<div class="truncate text-status-amber font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+                            Sarah, Elias, Lucy
+                        </div>
+<div class="truncate text-on-surface">St. Mark's Church</div>
+<div class="flex gap-1 flex-wrap">
+<span class="inline-flex items-center rounded bg-status-amber-bg px-1.5 py-0.5 text-[9px] font-bold text-status-amber border border-status-amber/20 uppercase">minor</span>
+<span class="inline-flex items-center rounded bg-purple-500/10 px-1.5 py-0.5 text-[9px] font-bold text-purple-400 border border-purple-500/20 uppercase">vfx</span>
+</div>
+<div class="flex flex-col gap-1 items-start">
+<span class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary border border-primary/20 uppercase">Candidate</span>
+<span class="text-[8px] text-status-amber uppercase font-bold flex items-center gap-0.5"><span class="w-1 h-1 rounded-full bg-status-amber"></span>cast unresolved</span>
+</div>
+</div>
+<!-- Row 7 -->
+<div class="grid grid-cols-[100px_minmax(200px,1fr)_60px_160px_160px_120px_100px] gap-4 px-4 py-3 border-b border-white/5 hover:bg-surface-container-lowest/50 transition-colors items-center group cursor-pointer relative opacity-40 line-through">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-status-red opacity-0 group-hover:opacity-50 transition-opacity"></div>
+<div class="font-data-mono text-data-mono text-on-surface-variant">SC-024</div>
+<div class="truncate text-on-surface-variant font-semibold" title="INT. CHURCH NAVE — DAY">INT. CHURCH NAVE — DAY</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant">5/8</div>
+<div class="truncate text-status-amber italic">(cast unresolved)</div>
+<div class="truncate text-status-amber italic">unresolved location</div>
+<div><span class="text-outline-variant italic text-xs no-underline">--</span></div>
+<div>
+<span class="inline-flex items-center rounded bg-status-red-bg px-1.5 py-0.5 text-[9px] font-bold text-status-red border border-status-red/20 uppercase no-underline">Rejected</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Column: Detail Inspector -->
+<aside class="w-[360px] bg-surface-container flex flex-col h-full shrink-0 border-l border-white/5 shadow-[-8px_0_24px_-8px_rgba(0,0,0,0.5)] z-20">
+<!-- Inspector Header -->
+<div class="p-4 border-b border-white/10 bg-surface-container-highest/30">
+<div class="flex justify-between items-start mb-2">
+<h2 class="font-display-sm text-display-sm text-on-surface font-bold tracking-tight">SC-021</h2>
+<span class="inline-flex items-center rounded bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary border border-primary/20 uppercase tracking-wider">Candidate</span>
+</div>
+<p class="text-on-surface-variant font-headline-sm text-headline-sm">EXT. CHURCH STEPS — DAY</p>
+</div>
+<!-- Scrollable Detail Content -->
+<div class="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-6">
+<!-- Breakdown Source -->
+<div class="space-y-3">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center rounded-full bg-status-indigo-bg px-2 py-0.5 text-[10px] font-bold text-status-indigo border border-status-indigo/20 uppercase tracking-wider gap-1">
+<span class="material-symbols-outlined text-[12px] font-variation-fill">psychiatry</span>
+                                Gemini Advisory
+                            </span>
+<span class="text-xs text-on-surface-variant flex items-center gap-1 border-l border-white/10 pl-2">
+                                conf 0.62
+                                <div class="w-12 h-1.5 bg-surface-bright rounded-full overflow-hidden ml-1 flex">
+<div class="w-[62%] bg-status-indigo h-full"></div>
+</div>
+</span>
+</div>
+<div class="p-3 rounded bg-[rgba(245,158,11,0.05)] border border-[rgba(245,158,11,0.2)] text-[#fbbf24] flex gap-2">
+<span class="material-symbols-outlined text-[16px] shrink-0 mt-0.5">warning</span>
+<p class="text-xs leading-relaxed">Confidence below threshold. This record cannot feed the solver until a person accepts it.</p>
+</div>
+<a class="inline-flex items-center gap-1 text-xs text-primary hover:underline group" href="#">
+<span class="material-symbols-outlined text-[14px]">link</span>
+                            script pages 31–32
+                            <span class="material-symbols-outlined text-[12px] opacity-0 group-hover:opacity-100 transition-opacity translate-x-1">arrow_forward</span>
+</a>
+</div>
+<hr class="border-white/5"/>
+<!-- Cast Section -->
+<div class="space-y-3">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase flex items-center justify-between">
+                            Cast
+                            <span class="text-status-amber bg-status-amber-bg px-1.5 py-0.5 rounded text-[9px]">1 Unresolved</span>
+</h3>
+<ul class="space-y-2">
+<li class="flex items-center justify-between p-2 rounded bg-surface-container-low border border-white/5 group hover:border-white/10 transition-colors">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright border border-white/10 overflow-hidden flex items-center justify-center text-[10px] text-on-surface-variant">NP</div>
+<div class="flex flex-col">
+<span class="text-xs text-on-surface font-semibold">Nina Park</span>
+<span class="text-[10px] text-on-surface-variant">Sarah</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[16px] text-status-green">check_circle</span>
+</li>
+<li class="flex items-center justify-between p-2 rounded bg-surface-container-low border border-white/5 group hover:border-white/10 transition-colors">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright border border-white/10 overflow-hidden flex items-center justify-center text-[10px] text-on-surface-variant">MR</div>
+<div class="flex flex-col">
+<span class="text-xs text-on-surface font-semibold">Mateo Reyes</span>
+<span class="text-[10px] text-on-surface-variant">Elias</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[16px] text-status-green">check_circle</span>
+</li>
+<li class="flex items-center justify-between p-2 rounded bg-status-amber-bg border border-status-amber/30 group relative">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-status-amber/20 border border-status-amber/30 overflow-hidden flex items-center justify-center text-[10px] text-status-amber">AB</div>
+<div class="flex flex-col">
+<span class="text-xs text-status-amber font-semibold">Ava Brooks</span>
+<span class="text-[10px] text-status-amber/70">Lucy</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center rounded bg-surface-container px-1 py-0.5 text-[8px] font-bold text-status-amber border border-status-amber/20 uppercase tracking-wide">MINOR · max 6h</span>
+<span class="material-symbols-outlined text-[16px] text-status-amber">check_circle</span>
+</div>
+</li>
+</ul>
+</div>
+<hr class="border-white/5"/>
+<!-- Location Section -->
+<div class="space-y-3">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase">Location</h3>
+<div class="p-2.5 rounded bg-surface-container-low border border-white/5">
+<div class="flex items-center justify-between mb-1">
+<span class="text-sm text-on-surface font-semibold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">pin_drop</span>
+                                    St. Mark's Church
+                                </span>
+<span class="material-symbols-outlined text-[16px] text-status-green">check_circle</span>
+</div>
+<p class="text-xs text-on-surface-variant pl-5">Tuesdays and Thursdays only</p>
+</div>
+</div>
+<hr class="border-white/5"/>
+<!-- Schedulable Work (Disabled) -->
+<div class="space-y-3 opacity-40 grayscale pointer-events-none select-none">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">lock</span>
+                            Schedulable Work
+                        </h3>
+<div class="p-3 rounded bg-surface-container-lowest border border-white/5 space-y-2">
+<div class="font-data-mono text-data-mono text-on-surface">W-SC-021</div>
+<div class="flex gap-2 text-xs text-on-surface-variant font-semibold">
+<span class="bg-surface-bright px-1.5 py-0.5 rounded">EXT/DAY</span>
+<span class="bg-surface-bright px-1.5 py-0.5 rounded">15 min estimated</span>
+<span class="bg-surface-bright px-1.5 py-0.5 rounded text-status-amber">daylight req</span>
+</div>
+<p class="text-[10px] text-on-surface-variant/70 italic">at the declared page rate (1 page ≈ 1 hour)</p>
+</div>
+</div>
+</div>
+<!-- Fixed Bottom Actions -->
+<div class="p-4 bg-surface-container-high border-t border-white/10 space-y-2 shrink-0">
+<button class="w-full bg-primary-container text-white hover:bg-primary-container/90 active:bg-inverse-primary py-2.5 rounded text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-[0_2px_8px_-2px_rgba(37,99,235,0.4)]">
+<span class="material-symbols-outlined text-[18px]">done_all</span>
+                        Accept Scene Record
+                    </button>
+<div class="grid grid-cols-2 gap-2">
+<button class="w-full bg-transparent border border-outline-variant text-on-surface hover:bg-surface-variant hover:text-primary py-2 rounded text-xs font-semibold transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">rate_review</span>
+                            Send to Review
+                        </button>
+<button class="w-full bg-transparent border border-outline-variant text-on-surface hover:bg-surface-variant hover:text-primary py-2 rounded text-xs font-semibold transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">group</span>
+                            Edit Cast
+                        </button>
+</div>
+<button class="w-full bg-transparent border border-outline-variant text-on-surface hover:bg-surface-variant hover:text-primary py-2 rounded text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 mb-2">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+                        Resolve Location
+                    </button>
+<button class="w-full bg-surface-container-lowest border border-white/5 text-on-surface-variant/50 py-2 rounded text-xs font-semibold flex items-center justify-center gap-1.5 cursor-not-allowed group relative" disabled="">
+<span class="material-symbols-outlined text-[16px]">lock</span>
+                        Convert to Work Item
+                        
+                        <!-- Tooltip -->
+<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-surface-container-highest text-on-surface text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg border border-white/10 z-50">
+                            Available once the record is accepted
+                            <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-surface-container-highest"></div>
+</div>
+</button>
+</div>
+</aside>
+</main>
+</div>
+</body></html>
