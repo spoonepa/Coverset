@@ -5,14 +5,16 @@ Tests declare what they verify with `@pytest.mark.req("GRD-003")`; this reads th
 markers straight out of the AST and reconciles them against `SPEC.md`.
 
 That direction matters. A table maintained by hand drifts silently and then reads as
-reassurance. Here a requirement with no test is a reported gap and a non-zero exit,
-and a test citing a requirement that does not exist is the same.
+reassurance. Here a requirement claiming implementation with no test is a reported
+gap and a non-zero exit, and a test citing a requirement that does not exist is the
+same.
 
-    uv run python scripts/traceability.py           # summary + gaps
+    uv run python scripts/traceability.py           # summary, slices, use cases
     uv run python scripts/traceability.py --matrix  # every requirement, every test
 
-Exits non-zero when a `built` or `partial` requirement has no test, or when a test
-cites an unknown requirement ID.
+Exits non-zero when an implemented requirement has no test, when a test cites an
+unknown ID, or when a requirement claims `demo-ready` without the verification tier
+the spec says it needs (TRK-005).
 """
 
 from __future__ import annotations
@@ -28,43 +30,19 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SPEC = ROOT / "SPEC.md"
 TESTS = ROOT / "tests"
 
-REQ_ROW = re.compile(r"^\|\s*([A-Z]{3}-\d{3})\s*\|\s*(.+?)\s*\|\s*`(\w+)`\s*\|")
-UC_HEADING = re.compile(r"^### (UC-\d+)\s+[-\u2014]\s+(.+)$")
+ROW = re.compile(r"^\|\s*([A-Z]{3}-\d{3})\s*\|(.+)$")
+UC_HEADING = re.compile(r"^### (UC-\d+)\s+[-—]\s+(.+)$")
 UC_EXERCISES = re.compile(r"^\*\*Exercises:\*\*\s*(.+)$")
-VERIFIED_STATUSES = {"built", "partial"}
-EXTERNAL_PREFIXES = ("TRK", "GRD")
-"""Areas that depend on a live external service, where offline coverage alone is
-not sufficient evidence -- every finding so far came from a live run."""
 
-OFFLINE_SUFFICIENT = {
-    "GRD-002": "failure path; an empty live result set cannot be provoked on demand",
-    "GRD-007": "failure path; a live Extract failure cannot be provoked on demand",
-    "GRD-009": "pure function over text, with no external dependency",
-}
-"""Requirements deliberately exempt from live verification, with the reason.
+MATURITY = ["not-started", "domain-model", "unit-built", "integrated", "demo-ready"]
+RANK = {m: i for i, m in enumerate(MATURITY)}
+TIERS = ["none", "offline", "live", "manual-demo"]
+SLICES = ["MVP-0", "MVP-1", "MVP-2", "MVP-3", "POST"]
 
-An explicit reviewed list rather than a silent gap: adding an entry here is a
-decision someone made and can be argued with, which an absent check is not."""
-
-
-@dataclass
-class Requirement:
-    id: str
-    statement: str
-    status: str
-    tests: list[TestRef] = field(default_factory=list)
-
-    @property
-    def needs_test(self) -> bool:
-        return self.status in VERIFIED_STATUSES
-
-    @property
-    def is_external(self) -> bool:
-        return self.id.startswith(EXTERNAL_PREFIXES)
-
-    @property
-    def live_tests(self) -> list[TestRef]:
-        return [t for t in self.tests if t.live]
+IMPLEMENTED = RANK["unit-built"]
+"""At or above this maturity, a requirement claims working behaviour and must be tested."""
+DELIVERABLE = RANK["demo-ready"]
+"""A use case is deliverable only when everything it exercises reaches this."""
 
 
 @dataclass(frozen=True)
@@ -78,31 +56,71 @@ class TestRef:
 
 
 @dataclass
-class UseCase:
-    """A journey through requirements. Not a requirement itself."""
+class Requirement:
+    id: str
+    statement: str
+    maturity: str
+    verification: str
+    slice: str
+    notes: str = ""
+    tests: list[TestRef] = field(default_factory=list)
 
+    @property
+    def area(self) -> str:
+        return self.id[:3]
+
+    @property
+    def claims_implementation(self) -> bool:
+        return RANK.get(self.maturity, 0) >= IMPLEMENTED
+
+    @property
+    def is_deliverable(self) -> bool:
+        return RANK.get(self.maturity, 0) >= DELIVERABLE
+
+    @property
+    def needs_live(self) -> bool:
+        return self.verification == "live"
+
+    @property
+    def live_tests(self) -> list[TestRef]:
+        return [t for t in self.tests if t.live]
+
+
+@dataclass
+class NonNegotiable:
+    id: str
+    contract: str
+
+
+@dataclass
+class UseCase:
     id: str
     title: str
     exercises: list[str] = field(default_factory=list)
 
 
-def parse_use_cases() -> list[UseCase]:
+def parse_spec() -> tuple[dict[str, Requirement], list[NonNegotiable], list[UseCase]]:
+    reqs: dict[str, Requirement] = {}
+    nngs: list[NonNegotiable] = []
     cases: list[UseCase] = []
+
     for line in SPEC.read_text().splitlines():
-        if m := UC_HEADING.match(line):
+        if m := ROW.match(line):
+            rid, rest = m.group(1), m.group(2)
+            cells = [c.strip() for c in rest.split("|")]
+            if len(cells) >= 5 and cells[1] in RANK:
+                reqs[rid] = Requirement(
+                    id=rid, statement=cells[0], maturity=cells[1],
+                    verification=cells[2], slice=cells[3],
+                    notes=cells[4] if len(cells) > 4 else "",
+                )
+            elif rid.startswith("NNG"):
+                nngs.append(NonNegotiable(id=rid, contract=cells[0]))
+        elif m := UC_HEADING.match(line):
             cases.append(UseCase(id=m.group(1), title=m.group(2).strip()))
         elif (m := UC_EXERCISES.match(line)) and cases:
             cases[-1].exercises = re.findall(r"[A-Z]{3}-\d{3}", m.group(1))
-    return cases
-
-
-def parse_spec() -> dict[str, Requirement]:
-    reqs: dict[str, Requirement] = {}
-    for line in SPEC.read_text().splitlines():
-        if m := REQ_ROW.match(line):
-            rid, statement, status = m.groups()
-            reqs[rid] = Requirement(id=rid, statement=statement, status=status)
-    return reqs
+    return reqs, nngs, cases
 
 
 def _marker_ids(node: ast.expr, wanted: str) -> list[str] | None:
@@ -118,7 +136,6 @@ def _marker_ids(node: ast.expr, wanted: str) -> list[str] | None:
 
 
 def parse_tests() -> tuple[dict[str, list[TestRef]], list[tuple[str, str]]]:
-    """Map requirement ID -> tests, and list (file, test) pairs citing nothing."""
     found: dict[str, list[TestRef]] = defaultdict(list)
     untagged: list[tuple[str, str]] = []
 
@@ -151,7 +168,7 @@ def parse_tests() -> tuple[dict[str, list[TestRef]], list[tuple[str, str]]]:
 
 def main() -> int:
     show_matrix = "--matrix" in sys.argv
-    reqs = parse_spec()
+    reqs, nngs, cases = parse_spec()
     found, untagged = parse_tests()
 
     orphans = sorted(set(found) - set(reqs))
@@ -159,117 +176,128 @@ def main() -> int:
         if rid in reqs:
             reqs[rid].tests = refs
 
-    by_status: dict[str, list[Requirement]] = defaultdict(list)
-    for r in reqs.values():
-        by_status[r.status].append(r)
+    implemented = [r for r in reqs.values() if r.claims_implementation]
+    covered = [r for r in implemented if r.tests]
+    gaps = [r for r in implemented if not r.tests]
+    live_required = [r for r in implemented if r.needs_live]
+    live_covered = [r for r in live_required if r.live_tests]
+    # TRK-005: demo-ready plus live-required plus no live test is a false claim.
+    false_demo_ready = [r for r in reqs.values() if r.is_deliverable and r.needs_live and not r.live_tests]
 
-    needs = [r for r in reqs.values() if r.needs_test]
-    covered = [r for r in needs if r.tests]
-    gaps = [r for r in needs if not r.tests]
-    external_no_live = [
-        r for r in needs
-        if r.is_external and not r.live_tests and r.id not in OFFLINE_SUFFICIENT
-    ]
-    exempt = [r for r in needs if r.id in OFFLINE_SUFFICIENT]
-    total_tests = len({(t.file, t.name) for refs in found.values() for t in refs})
-
-    rule = "=" * 74
+    rule = "=" * 76
     print(f"\n{rule}\nCOVERSET REQUIREMENT TRACEABILITY\n{rule}")
 
-    print(f"\n  Requirements       {len(reqs)}")
-    for status in ("built", "partial", "planned"):
-        if n := len(by_status.get(status, [])):
-            print(f"    {status:<16} {n}")
+    print(f"\n  Requirements       {len(reqs)}   (+{len(nngs)} non-negotiable)")
+    for m in MATURITY:
+        if n := sum(1 for r in reqs.values() if r.maturity == m):
+            print(f"    {m:<16} {n:>3}")
 
-    pct = 100 * len(covered) / len(needs) if needs else 100.0
-    print(f"\n  Verification")
-    print(f"    require a test   {len(needs)}")
-    print(f"    have one         {len(covered)}  ({pct:.0f}%)")
-    print(f"    gaps             {len(gaps)}")
-    live_reqs = [r for r in needs if r.live_tests]
-    print(f"    live-verified    {len(live_reqs)}  (of {len([r for r in needs if r.is_external])} external)")
-    print(f"    tests mapped     {total_tests}")
-    print(f"    untagged tests   {len(untagged)}")
+    print(f"\n  Verification required")
+    for t in TIERS:
+        if n := sum(1 for r in reqs.values() if r.verification == t):
+            print(f"    {t:<16} {n:>3}")
 
-    cases_summary = parse_use_cases()
-    if cases_summary:
-        deliverable = sum(
-            1 for uc in cases_summary
-            if all(reqs[r].status != "planned" for r in uc.exercises if r in reqs)
-        )
-        print(f"\n  Use cases          {len(cases_summary)}")
-        print(f"    deliverable      {deliverable}")
-        print(f"    blocked          {len(cases_summary) - deliverable}")
+    pct = 100 * len(covered) / len(implemented) if implemented else 100.0
+    print(f"\n  Tests (requirements claiming implementation)")
+    print(f"    require a test   {len(implemented):>3}")
+    print(f"    have one         {len(covered):>3}  ({pct:.0f}%)")
+    print(f"    gaps             {len(gaps):>3}")
+    print(f"    live required    {len(live_required):>3}")
+    print(f"    live covered     {len(live_covered):>3}")
+    print(f"    untagged tests   {len(untagged):>3}")
+
+    print(f"\n  Use cases          {len(cases)}")
+    ready = [uc for uc in cases if all(reqs[r].is_deliverable for r in uc.exercises if r in reqs)]
+    print(f"    deliverable      {len(ready):>3}")
+    print(f"    blocked          {len(cases) - len(ready):>3}")
+
+    print(f"\n{rule}\nSLICE PROGRESS\n{rule}")
+    for s in SLICES:
+        in_slice = [r for r in reqs.values() if r.slice == s]
+        if not in_slice:
+            continue
+        done = sum(1 for r in in_slice if r.claims_implementation)
+        bar = "#" * round(20 * done / len(in_slice)) if in_slice else ""
+        print(f"  {s:<7} {done:>3}/{len(in_slice):<3} implemented  {bar:<20}")
+        remaining = defaultdict(list)
+        for r in in_slice:
+            if not r.claims_implementation:
+                remaining[r.area].append(r.id)
+        if remaining:
+            top = sorted(remaining.items(), key=lambda kv: -len(kv[1]))
+            print(f"          remaining: " + "  ".join(f"{a}x{len(v)}" for a, v in top))
+
+    print(f"\n{rule}\nUSE CASES -- can a user complete the journey?\n{rule}")
+    for uc in cases:
+        known = [reqs[r] for r in uc.exercises if r in reqs]
+        unknown = [r for r in uc.exercises if r not in reqs]
+        done = [r for r in known if r.is_deliverable]
+        # Two different kinds of blocker, needing two different kinds of work.
+        to_build = sorted(r.id for r in known if not r.claims_implementation)
+        to_integrate = sorted(r.id for r in known if r.claims_implementation and not r.is_deliverable)
+        state = "READY  " if not (to_build or to_integrate) else "BLOCKED"
+        print(f"  {state} {uc.id}  {len(done)}/{len(uc.exercises):<3} {uc.title}")
+        if to_build:
+            print(f"            needs building     ({len(to_build)}): {', '.join(to_build[:6])}"
+                  + (" ..." if len(to_build) > 6 else ""))
+        if to_integrate:
+            print(f"            needs integration  ({len(to_integrate)}): {', '.join(to_integrate[:6])}"
+                  + (" ..." if len(to_integrate) > 6 else ""))
+        if unknown:
+            print(f"            UNKNOWN IDS: {', '.join(unknown)}")
+            orphans.extend(unknown)
+
+    blocking: dict[str, list[str]] = defaultdict(list)
+    for uc in cases:
+        for rid in uc.exercises:
+            if rid in reqs and not reqs[rid].claims_implementation:
+                blocking[rid].append(uc.id)
+    if blocking:
+        print(f"\n{rule}\nCRITICAL PATH -- unbuilt requirements ranked by journeys blocked\n{rule}")
+        for rid, ucs in sorted(blocking.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:8]:
+            r = reqs[rid]
+            print(f"  {len(ucs)}x  {rid}  [{r.slice}]  {r.statement[:40]}")
+            print(f"        blocks {', '.join(ucs)}")
 
     if show_matrix:
-        area_of = lambda r: r.id[:3]
-        for area in sorted({area_of(r) for r in reqs.values()}):
-            print(f"\n{'-' * 74}\n{area}\n{'-' * 74}")
-            for r in sorted((x for x in reqs.values() if area_of(x) == area), key=lambda x: x.id):
-                mark = "OK " if r.tests else ("-- " if not r.needs_test else "GAP")
-                print(f"  {mark} {r.id}  [{r.status}]  {r.statement[:52]}")
+        for area in sorted({r.area for r in reqs.values()}):
+            print(f"\n{'-' * 76}\n{area}\n{'-' * 76}")
+            for r in sorted((x for x in reqs.values() if x.area == area), key=lambda x: x.id):
+                mark = "OK " if r.tests else ("GAP" if r.claims_implementation else "-- ")
+                print(f"  {mark} {r.id}  [{r.maturity}/{r.verification}/{r.slice}]  {r.statement[:40]}")
                 for t in r.tests:
                     print(f"          {t}")
 
-    cases = parse_use_cases()
-    if cases:
-        print(f"\n{rule}\nUSE CASES -- can a user actually complete the journey?\n{rule}")
-        for uc in cases:
-            known = [reqs[r] for r in uc.exercises if r in reqs]
-            unknown = [r for r in uc.exercises if r not in reqs]
-            ready = [r for r in known if r.status == "built"]
-            blockers = sorted(r.id for r in known if r.status == "planned")
-            bar = f"{len(ready)}/{len(uc.exercises)}"
-            state = "READY  " if not blockers else "BLOCKED"
-            print(f"  {state} {uc.id}  {bar:>7}  {uc.title}")
-            if blockers:
-                print(f"            blocked on: {', '.join(blockers)}")
-            if unknown:
-                print(f"            UNKNOWN IDS: {', '.join(unknown)}")
-                orphans.extend(unknown)
-
-        blocking: dict[str, list[str]] = defaultdict(list)
-        for uc in cases:
-            for rid in uc.exercises:
-                if rid in reqs and reqs[rid].status == "planned":
-                    blocking[rid].append(uc.id)
-        if blocking:
-            print(f"\n{rule}\nCRITICAL PATH -- unbuilt requirements ranked by journeys blocked\n{rule}")
-            ranked = sorted(blocking.items(), key=lambda kv: (-len(kv[1]), kv[0]))
-            for rid, ucs in ranked[:8]:
-                print(f"  {len(ucs)}x  {rid}  {reqs[rid].statement[:44]}")
-                print(f"        blocks {', '.join(ucs)}")
-
     if gaps:
-        print(f"\n{rule}\nGAPS -- claimed built or partial, but nothing verifies them\n{rule}")
+        print(f"\n{rule}\nGAPS -- claims implementation, nothing verifies it\n{rule}")
         for r in gaps:
-            print(f"  {r.id}  [{r.status}]  {r.statement}")
+            print(f"  {r.id}  [{r.maturity}]  {r.statement}")
 
     if orphans:
-        print(f"\n{rule}\nORPHANS -- tests cite requirement IDs absent from SPEC.md\n{rule}")
-        for rid in orphans:
-            print(f"  {rid}: {', '.join(str(t) for t in found[rid])}")
+        print(f"\n{rule}\nORPHANS -- tests cite IDs absent from SPEC.md\n{rule}")
+        for rid in sorted(set(orphans)):
+            print(f"  {rid}: {', '.join(str(t) for t in found.get(rid, []))}")
 
-    if external_no_live:
-        print(f"\n{rule}\nUNDER-VERIFIED -- external dependency, offline tests only\n{rule}")
-        print("  Offline tests encode what the API was assumed to return. Every finding")
-        print("  in the brief came from a live run; these have not had one.\n")
-        for r in external_no_live:
-            print(f"  {r.id}  {r.statement[:62]}")
+    if false_demo_ready:
+        print(f"\n{rule}\nFALSE DEMO-READY -- live verification required, none present (TRK-005)\n{rule}")
+        for r in false_demo_ready:
+            print(f"  {r.id}  {r.statement[:60]}")
 
-    if exempt:
-        print(f"\n{rule}\nEXEMPT FROM LIVE VERIFICATION -- deliberate, with reason\n{rule}")
-        for r in exempt:
-            print(f"  {r.id}  {OFFLINE_SUFFICIENT[r.id]}")
+    if missing_live := [r for r in live_required if not r.live_tests]:
+        print(f"\n{rule}\nLIVE COVERAGE MISSING -- spec requires live, only offline present\n{rule}")
+        print("  Not a failure while these are below demo-ready, but they are verified")
+        print("  against fixtures of our own writing, which cannot catch a false assumption.\n")
+        for r in missing_live:
+            print(f"  {r.id}  {r.statement[:58]}")
 
     if untagged:
         print(f"\n{rule}\nUNTAGGED TESTS -- verify something, but say what\n{rule}")
         for file, name in untagged:
             print(f"  {file}::{name}")
 
-    failed = bool(gaps or orphans)
+    failed = bool(gaps or orphans or false_demo_ready)
     print(f"\n{rule}")
-    print("FAIL: traceability incomplete" if failed else "PASS: every verifiable requirement is traced")
+    print("FAIL: traceability incomplete" if failed else "PASS: every implemented requirement is traced")
     print(rule)
     return 1 if failed else 0
 

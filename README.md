@@ -83,8 +83,15 @@ uv run python scripts/traceability.py --matrix   # every requirement, every test
 ```
 
 The matrix is derived from the suite, not from a hand-maintained table, so it cannot
-drift into reassurance. A `built` requirement with no test exits non-zero, as does a
-test citing an ID that is not in the spec.
+drift into reassurance. It exits non-zero when a requirement claiming implementation
+has no test, when a test cites an ID absent from the spec, or when a requirement claims
+`demo-ready` without the live verification the spec says it needs.
+
+Requirements carry a maturity (`not-started` → `domain-model` → `unit-built` →
+`integrated` → `demo-ready`), a required verification tier, and the slice (`MVP-0`
+through `POST`) where they first matter. The report separates two kinds of blocker that
+need different work: **needs building** (nothing exists) and **needs integration**
+(behaviour exists and is tested, but is not wired into a journey).
 
 ### Before committing
 
