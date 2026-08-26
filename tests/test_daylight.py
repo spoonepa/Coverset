@@ -45,6 +45,7 @@ def _minutes_apart(when: dt.datetime, hh: int, mm: int) -> float:
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("DAY-001", "DAY-002")
 @pytest.mark.parametrize(
     ("date", "sunrise", "sunset", "source"),
     [
@@ -65,6 +66,7 @@ def test_computed_times_agree_with_published_almanacs(date, sunrise, sunset, sou
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("DAY-003")
 def test_sunset_follows_the_dst_transition():
     before = daylight_window(SAVANNAH, dt.date(2026, 10, 31))
     after = daylight_window(SAVANNAH, dt.date(2026, 11, 1))
@@ -78,6 +80,7 @@ def test_sunset_follows_the_dst_transition():
     assert abs(before.day_length - after.day_length) < dt.timedelta(minutes=5)
 
 
+@pytest.mark.req("DAY-003")
 def test_times_are_timezone_aware():
     window = daylight_window(SAVANNAH, dt.date(2026, 9, 1))
 
@@ -92,6 +95,7 @@ def test_times_are_timezone_aware():
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("DAY-004")
 def test_window_is_chronologically_ordered():
     w = daylight_window(SAVANNAH, dt.date(2026, 9, 1))
 
@@ -102,6 +106,7 @@ def test_window_is_chronologically_ordered():
     )
 
 
+@pytest.mark.req("DAY-004")
 def test_day_length_shortens_from_summer_towards_winter():
     lengths = [
         daylight_window(SAVANNAH, d).day_length
@@ -111,6 +116,7 @@ def test_day_length_shortens_from_summer_towards_winter():
     assert lengths == sorted(lengths, reverse=True)
 
 
+@pytest.mark.req("DAY-001")
 def test_magic_hour_runs_from_sunset_to_civil_dusk():
     w = daylight_window(SAVANNAH, dt.date(2026, 9, 1))
 
@@ -119,6 +125,7 @@ def test_magic_hour_runs_from_sunset_to_civil_dusk():
     assert dt.timedelta(minutes=15) < end - start < dt.timedelta(minutes=45)
 
 
+@pytest.mark.req("DAY-001")
 def test_golden_hour_precedes_sunset():
     w = daylight_window(SAVANNAH, dt.date(2026, 9, 1))
 
@@ -126,6 +133,7 @@ def test_golden_hour_precedes_sunset():
     assert start < end == w.sunset
 
 
+@pytest.mark.req("DAY-001")
 def test_exterior_day_window_is_sunrise_to_sunset():
     w = daylight_window(SAVANNAH, dt.date(2026, 9, 1))
 
@@ -137,6 +145,7 @@ def test_exterior_day_window_is_sunrise_to_sunset():
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("DAY-005")
 def test_arctic_summer_is_reported_as_polar_day():
     w = daylight_window(SVALBARD, dt.date(2026, 6, 21))
 
@@ -145,6 +154,7 @@ def test_arctic_summer_is_reported_as_polar_day():
     assert w.day_length == dt.timedelta(days=1)
 
 
+@pytest.mark.req("DAY-005")
 def test_arctic_winter_is_reported_as_polar_night():
     w = daylight_window(SVALBARD, dt.date(2026, 12, 21))
 
@@ -158,6 +168,7 @@ def test_arctic_winter_is_reported_as_polar_night():
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("DAY-006")
 def test_a_location_without_coordinates_cannot_be_computed():
     plain = Location(name="Church", locality="Savannah", region="Georgia")
 
@@ -165,11 +176,13 @@ def test_a_location_without_coordinates_cannot_be_computed():
         daylight_window(plain, dt.date(2026, 9, 1))
 
 
+@pytest.mark.req("DAY-006")
 def test_coordinates_without_a_timezone_are_rejected():
     with pytest.raises(ValueError, match="must be set together"):
         Location(name="Church", locality="Savannah", region="Georgia", latitude=32.08)
 
 
+@pytest.mark.req("DAY-006")
 def test_an_unknown_timezone_is_rejected():
     with pytest.raises(ValueError, match="unknown IANA timezone"):
         Location(
@@ -178,6 +191,7 @@ def test_an_unknown_timezone_is_rejected():
         )
 
 
+@pytest.mark.req("AUD-002", "DAY-001")
 def test_a_computed_window_names_its_algorithm_as_provenance():
     w = daylight_window(SAVANNAH, dt.date(2026, 9, 1))
 

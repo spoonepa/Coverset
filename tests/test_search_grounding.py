@@ -43,6 +43,7 @@ CHURCH = Location(
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("TRK-001")
 def test_grounding_calls_parallel_search_at_runtime(parallel_stub):
     client, recorder = parallel_stub(search=permit_search_payload(), extract=permit_extract_payload())
 
@@ -51,6 +52,7 @@ def test_grounding_calls_parallel_search_at_runtime(parallel_stub):
     assert SEARCH_PATH in recorder.paths()
 
 
+@pytest.mark.req("TRK-001")
 def test_repeated_grounding_is_not_served_from_a_cache(parallel_stub):
     client, recorder = parallel_stub(search=permit_search_payload(), extract=permit_extract_payload())
     grounder = SearchGrounder(client)
@@ -66,6 +68,7 @@ def test_repeated_grounding_is_not_served_from_a_cache(parallel_stub):
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("GRD-011")
 def test_search_request_carries_queries_objective_and_consuming_model(parallel_stub):
     client, recorder = parallel_stub()
 
@@ -79,6 +82,7 @@ def test_search_request_carries_queries_objective_and_consuming_model(parallel_s
     assert body["mode"] == "advanced"
 
 
+@pytest.mark.req("GRD-011")
 def test_search_is_geo_targeted_to_the_location_country(parallel_stub):
     client, recorder = parallel_stub()
 
@@ -87,6 +91,7 @@ def test_search_is_geo_targeted_to_the_location_country(parallel_stub):
     assert recorder.only(SEARCH_PATH).settings["location"] == "US"
 
 
+@pytest.mark.req("GRD-005")
 def test_permit_search_restricts_to_authoritative_sources(parallel_stub):
     client, recorder = parallel_stub(search=permit_search_payload(), extract=permit_extract_payload())
 
@@ -95,6 +100,7 @@ def test_permit_search_restricts_to_authoritative_sources(parallel_stub):
     assert recorder.only(SEARCH_PATH).source_policy["include_domains"] == [".gov"]
 
 
+@pytest.mark.req("GRD-006")
 def test_weather_search_drops_sources_older_than_the_forecast_horizon(parallel_stub):
     client, recorder = parallel_stub()
 
@@ -103,6 +109,7 @@ def test_weather_search_drops_sources_older_than_the_forecast_horizon(parallel_s
     assert recorder.only(SEARCH_PATH).source_policy["after_date"] == "2026-03-03"
 
 
+@pytest.mark.req("GRD-005")
 def test_per_production_overrides_widen_the_permit_source_policy(parallel_stub):
     client, recorder = parallel_stub(search=permit_search_payload(), extract=permit_extract_payload())
 
@@ -120,6 +127,7 @@ def test_per_production_overrides_widen_the_permit_source_policy(parallel_stub):
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("GRD-003")
 def test_weather_evidence_records_which_sources_mention_the_date(parallel_stub):
     client, _ = parallel_stub()
 
@@ -129,6 +137,7 @@ def test_weather_evidence_records_which_sources_mention_the_date(parallel_stub):
     assert [s.url for s in evidence.dated_sources] == [FORECAST_URL]
 
 
+@pytest.mark.req("GRD-003")
 def test_weather_for_the_wrong_day_is_refused_rather_than_bound(parallel_stub):
     # Every source is on-topic, well-formed, and describes March 11 instead of the
     # 17th. This is the failure that motivated the guard: extraction would have
@@ -142,6 +151,7 @@ def test_weather_for_the_wrong_day_is_refused_rather_than_bound(parallel_stub):
     assert "another day" in str(excinfo.value)
 
 
+@pytest.mark.req("GRD-004")
 def test_permit_rules_are_not_required_to_mention_the_shoot_date(parallel_stub):
     # A standing ordinance carries no date at all. Requiring one here would reject
     # the authority and keep only incidental coverage that happens to name the day.
@@ -153,6 +163,7 @@ def test_permit_rules_are_not_required_to_mention_the_shoot_date(parallel_stub):
     assert "Historic District" in evidence.primary.full_content
 
 
+@pytest.mark.req("GRD-003", "TRK-002")
 def test_coverage_is_checked_after_escalation_not_before(parallel_stub):
     # The target day's row lives in the part of the page excerpting discarded, so
     # checking coverage on excerpts alone would reject sources that do carry it.
@@ -169,6 +180,7 @@ def test_coverage_is_checked_after_escalation_not_before(parallel_stub):
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("GRD-001", "AUD-002")
 def test_evidence_carries_every_source_url(parallel_stub):
     client, _ = parallel_stub()
 
@@ -179,6 +191,7 @@ def test_evidence_carries_every_source_url(parallel_stub):
     assert evidence.retrieved_at.tzinfo is dt.UTC
 
 
+@pytest.mark.req("GRD-001", "GRD-002")
 def test_evidence_cannot_exist_without_a_source():
     with pytest.raises(GroundingUnavailable):
         Evidence(
@@ -191,6 +204,7 @@ def test_evidence_cannot_exist_without_a_source():
         )
 
 
+@pytest.mark.req("GRD-001")
 def test_a_source_excerpt_cannot_exist_without_its_url():
     with pytest.raises(ValueError, match="must carry its URL"):
         SourceExcerpt(url="  ", excerpts=("85%",))
@@ -201,6 +215,7 @@ def test_a_source_excerpt_cannot_exist_without_its_url():
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("GRD-002")
 def test_no_results_raises_rather_than_returning_empty_evidence(parallel_stub):
     client, _ = parallel_stub(search=search_payload(results=[]))
 
@@ -208,6 +223,7 @@ def test_no_results_raises_rather_than_returning_empty_evidence(parallel_stub):
         SearchGrounder(client).ground(FactKind.PERMIT, CHURCH, SHOOT_DATE)
 
 
+@pytest.mark.req("GRD-002")
 def test_search_failure_is_reported_with_the_fact_it_was_grounding(parallel_stub):
     client, _ = parallel_stub(search_status=500)
 
@@ -224,6 +240,7 @@ def test_search_failure_is_reported_with_the_fact_it_was_grounding(parallel_stub
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("TRK-002")
 def test_permit_grounding_escalates_to_the_single_authoritative_page(parallel_stub):
     client, recorder = parallel_stub(search=permit_search_payload(), extract=permit_extract_payload())
 
@@ -235,6 +252,7 @@ def test_permit_grounding_escalates_to_the_single_authoritative_page(parallel_st
     assert evidence.escalated is True
 
 
+@pytest.mark.req("TRK-002")
 def test_weather_escalates_several_results_since_any_may_carry_the_day(parallel_stub):
     client, recorder = parallel_stub()
 
@@ -243,6 +261,7 @@ def test_weather_escalates_several_results_since_any_may_carry_the_day(parallel_
     assert len(recorder.only(EXTRACT_PATH).body["urls"]) == 3
 
 
+@pytest.mark.req("GRD-007", "AUD-003")
 def test_extract_failure_degrades_to_excerpts_and_flags_it(parallel_stub):
     client, recorder = parallel_stub(search=permit_search_payload(), extract_status=500)
 
@@ -254,6 +273,7 @@ def test_extract_failure_degrades_to_excerpts_and_flags_it(parallel_stub):
     assert evidence.primary.excerpts  # still real, sourced text
 
 
+@pytest.mark.req("GRD-007", "AUD-003")
 def test_extract_returning_no_full_content_is_not_reported_as_escalated(parallel_stub):
     client, _ = parallel_stub(search=permit_search_payload(),
                               extract=extract_payload(omit_full_content=True, urls=[PERMIT_URL]))
@@ -263,6 +283,7 @@ def test_extract_returning_no_full_content_is_not_reported_as_escalated(parallel
     assert evidence.escalated is False
 
 
+@pytest.mark.req("TRK-002")
 def test_source_text_prefers_full_content_over_excerpts(parallel_stub):
     client, _ = parallel_stub(search=permit_search_payload(), extract=permit_extract_payload())
 
@@ -271,6 +292,7 @@ def test_source_text_prefers_full_content_over_excerpts(parallel_stub):
     assert evidence.primary.text.startswith("# Filming Regulations")
 
 
+@pytest.mark.req("GRD-007")
 def test_sources_that_were_not_escalated_keep_their_excerpts(parallel_stub):
     client, _ = parallel_stub(search=permit_search_payload(), extract=permit_extract_payload())
 
@@ -286,6 +308,7 @@ def test_sources_that_were_not_escalated_keep_their_excerpts(parallel_stub):
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.req("GRD-008")
 def test_session_is_threaded_across_search_and_extract_in_one_replan(parallel_stub):
     client, recorder = parallel_stub()
     grounder = SearchGrounder(client)

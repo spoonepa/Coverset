@@ -24,4 +24,8 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["tests"]
-addopts = "-q"
+addopts = "-q -m 'not live'"
+markers = [
+    "req(*ids): requirement IDs from SPEC.md that this test verifies",
+    "live: hits the real Parallel API; needs PARALLEL_API_KEY. Deselected by default.",
+]
