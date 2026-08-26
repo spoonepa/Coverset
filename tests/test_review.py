@@ -318,3 +318,43 @@ def test_the_full_path_from_advisory_finding_to_authorised_pickup(planned, findi
     assert pickup.decision is decision
     # Nothing between the finding and the board that a person did not sign.
     assert pickup.authorised_by == FIRST_AD
+
+
+# --------------------------------------------------------------------------
+# Cast resolution
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.req("CST-002")
+def test_a_coverage_item_resolves_its_cast_against_the_roster(planned):
+    from coverset.people import CastMember, Roster
+
+    roster = Roster((
+        CastMember(id="SARAH", name="S. Idowu", character="Ruth"),
+        CastMember(id="MARCUS", name="D. Whitfield", character="Elias"),
+    ))
+
+    assert [m.character for m in planned.cast_on(roster)] == ["Ruth", "Elias"]
+
+
+@pytest.mark.req("CST-002")
+def test_a_coverage_item_naming_someone_not_on_the_roster_is_rejected(planned):
+    from coverset.people import CastMember, Roster, UnknownCastMember
+
+    roster = Roster((CastMember(id="SARAH", name="S. Idowu", character="Ruth"),))
+
+    with pytest.raises(UnknownCastMember, match="MARCUS"):
+        planned.cast_on(roster)
+
+
+@pytest.mark.req("CST-002", "PIK-004")
+def test_a_pickup_carries_cast_that_resolves_against_the_roster(flagged):
+    from coverset.people import CastMember, Roster
+
+    roster = Roster((
+        CastMember(id="SARAH", name="S. Idowu", character="Ruth"),
+        CastMember(id="MARCUS", name="D. Whitfield", character="Elias"),
+    ))
+    _, pickup = flagged.decide(_decision(Disposition.REQUEST_PICKUP))
+
+    assert pickup.cast_on(roster) == roster.resolve(("SARAH", "MARCUS"))

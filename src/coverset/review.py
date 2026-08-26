@@ -31,6 +31,7 @@ from enum import StrEnum
 
 from .actors import Actor
 from .locations import Location
+from .people import CastMember, Roster
 
 __all__ = [
     "CoverageItem",
@@ -209,6 +210,16 @@ class CoverageItem:
             return decided, None
         return decided, PickupTask.from_decision(decided, decision)
 
+
+    def cast_on(self, roster: Roster) -> tuple[CastMember, ...]:
+        """Resolve this item's cast ids against the production roster.
+
+        Raises `UnknownCastMember` naming every id that does not exist. Cast is held
+        as ids rather than entities so a performer's availability can change in one
+        place; the cost is that the ids need checking, which is what this is for.
+        """
+        return roster.resolve(self.required_cast)
+
     @property
     def awaits_decision(self) -> bool:
         return self.status is CoverageStatus.NEEDS_REVIEW
@@ -264,6 +275,16 @@ class PickupTask:
             estimated_eighths=item.estimated_eighths,
             must_complete_by=must_complete_by,
         )
+
+
+    def cast_on(self, roster: Roster) -> tuple[CastMember, ...]:
+        """Resolve this pickup's cast ids against the production roster.
+
+        Raises `UnknownCastMember` naming every id that does not exist. Cast is held
+        as ids rather than entities so a performer's availability can change in one
+        place; the cost is that the ids need checking, which is what this is for.
+        """
+        return roster.resolve(self.required_cast)
 
     @property
     def authorised_by(self) -> Actor:

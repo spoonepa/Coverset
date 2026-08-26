@@ -57,10 +57,24 @@ table below is the whole design in one view.
 | **UPM / Line Producer** | See what each option costs; approve work that adds a shoot day | Cost approval |
 | **Second AD** | Generate and distribute call sheets | None over the schedule |
 
-Cast, crew, location owners and permit authorities are **not actors**. They never
-touch the system. They are constraint sources — their availability, contracted
-minimums, turnaround rights and permit windows bound the solver, but they do not
-operate it. Conflating the two would invent users the production does not have.
+### Recipients and constraint sources
+
+Cast and crew hold no authority over the schedule, but they are not outside the
+system either, and the distinction is worth drawing precisely — most of the
+constraint set is *about* them.
+
+- **Recipients.** Cast and crew receive call sheets. That is a real interaction with
+  the system, even though it is read-only and confers no authority.
+- **Domain entities.** Availability windows, contracted day minimums, holding-day
+  cost, turnaround and restricted hours for minors are constraint families 1 and 4.
+  They are modelled as typed entities rather than names on a scene — see `CST`.
+
+Location owners and permit authorities are different again: they neither operate
+Coverset nor receive anything from it. Their rules reach the solver only through the
+grounding path, as retrieved facts.
+
+What none of them do is *decide*. That is the sense in which they are not actors,
+and it is the only sense.
 
 ### System actors
 
@@ -88,6 +102,21 @@ The Monitor boundary is easy to lose and worth stating plainly. The brief's line
 | ACT-005 | Work that adds a shoot day requires cost approval from the UPM or Line Producer. | `partial` |
 | ACT-006 | The Script Supervisor may raise findings and record what was shot, and may not rule on coverage. | `built` |
 | ACT-007 | The monitor loop may trigger a replan and may not select among the resulting boards. | `planned` |
+
+## CST — Cast and crew
+
+Constraint families 1 and 4. The people the board is built around.
+
+| ID | Requirement | Status |
+|---|---|---|
+| CST-001 | Cast members are typed entities carrying availability, contract and status, not bare names on a scene. | `built` |
+| CST-002 | A cast id that is not on the roster is rejected, reporting every unknown id at once rather than the first. | `built` |
+| CST-003 | A cast member with no stated availability is available for the whole shoot. | `built` |
+| CST-004 | A performer held between their first and last day accrues holding days, which are paid whether worked or not. | `built` |
+| CST-005 | Billable days are the greater of the engagement span and the contracted guarantee. | `built` |
+| CST-006 | A minor carries a restricted maximum working day. | `built` |
+| CST-007 | Minimum turnaround between wrap and next call is modelled for cast individually and for crew as a unit. | `built` |
+| CST-008 | Union agreements (SAG-AFTRA, IATSE, DGA) and jurisdiction-specific child labour limits are pluggable constraint libraries. The defaults shipped are illustrative production norms, not authority. | `planned` |
 
 ## TRK — Track eligibility
 
@@ -220,7 +249,7 @@ The First AD hands Coverset a screenplay and the production's constraints, and g
 board back.
 
 **Actors:** First AD (deciding) · Breakdown agent · Constraint agent · Solver
-**Exercises:** BRK-001, BRK-002, CON-001, DAY-001, GRD-005, TRK-001, SOL-001, SOL-002, SOL-006
+**Exercises:** BRK-001, BRK-002, CON-001, CST-001, CST-002, CST-003, DAY-001, GRD-005, TRK-001, SOL-001, SOL-002, SOL-006
 
 ### UC-02 — State a constraint in plain English
 
@@ -228,7 +257,7 @@ board back.
 constraint agent types it, grounding anything that depends on the outside world.
 
 **Actors:** First AD (deciding) · Constraint agent · Grounding service
-**Exercises:** CON-001, CON-002, CON-003, GRD-001, GRD-002, GRD-003, GRD-005, TRK-001, TRK-002
+**Exercises:** CON-001, CON-002, CON-003, CST-001, CST-003, GRD-001, GRD-002, GRD-003, GRD-005, TRK-001, TRK-002
 
 ### UC-03 — Replan when the world changes
 
@@ -236,7 +265,7 @@ A monitored forecast moves. The agent regenerates options against locked days; t
 First AD picks one.
 
 **Actors:** Monitor loop (triggering) · Solver · First AD (deciding)
-**Exercises:** TRK-003, MON-001, MON-002, GRD-006, GRD-010, SOL-004, ACT-004, ACT-007
+**Exercises:** TRK-003, MON-001, MON-002, GRD-006, GRD-010, CST-004, CST-005, SOL-004, ACT-004, ACT-007
 
 ### UC-04 — Review coverage and order a pickup
 
@@ -252,7 +281,7 @@ The Second AD generates the day's call sheet, with call times honouring daylight
 turnaround.
 
 **Actors:** Second AD
-**Exercises:** OUT-001, DAY-001, DAY-003
+**Exercises:** OUT-001, DAY-001, DAY-003, CST-007
 
 ### UC-06 — Diagnose an impossible schedule
 
@@ -274,4 +303,4 @@ The Script Supervisor records what was actually shot. Those days become immutabl
 The pickup needs a day the schedule does not have. The UPM sees the cost and rules on it.
 
 **Actors:** UPM / Line Producer (deciding)
-**Exercises:** ACT-005, PIK-007, OUT-002
+**Exercises:** ACT-005, CST-004, CST-005, PIK-007, OUT-002
