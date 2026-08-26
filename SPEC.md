@@ -102,6 +102,7 @@ The Monitor boundary is easy to lose and worth stating plainly. The brief's line
 | ACT-005 | Work that adds a shoot day requires cost approval from the UPM or Line Producer. | `partial` |
 | ACT-006 | The Script Supervisor may raise findings and record what was shot, and may not rule on coverage. | `built` |
 | ACT-007 | The monitor loop may trigger a replan and may not select among the resulting boards. | `planned` |
+| ACT-010 | Cast, crew, location owners and permit authorities are recipients or constraint sources, never deciding actors. No role exists for them, so they cannot be constructed as one. | `built` |
 
 ## CST — Cast and crew
 

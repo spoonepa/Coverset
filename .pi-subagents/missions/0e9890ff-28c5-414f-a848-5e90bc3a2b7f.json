@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "id": "0e9890ff-28c5-414f-a848-5e90bc3a2b7f",
+  "title": "Review Coverset spec for coherence and ambiguity. Read SPEC.md, PROJECT_BRIEF.md, README.md, and ...",
+  "objective": "Review Coverset spec for coherence and ambiguity. Read SPEC.md, PROJECT_BRIEF.md, README.md, and skim src/tests as needed. Focus only on how the spec can be improved: contradictions, unclear requirements, missing definitions, weak status/test mapping. Return prioritized findings with concrete edits suggested.",
+  "status": "completed",
+  "createdAt": "2026-08-26T19:55:27.441Z",
+  "updatedAt": "2026-08-26T19:58:54.322Z",
+  "runs": [
+    {
+      "runId": "call_dTbWlRDn8LOcdt1HzWR5WdNN|fc_04a4dc860cb8e42e016a8f44ab4be087d2881cadd01e13859d",
+      "mode": "workflow",
+      "status": "completed",
+      "startedAt": "2026-08-26T19:58:54.322Z",
+      "completedAt": "2026-08-26T19:58:54.322Z",
+      "usage": {
+        "tokens": 331710
+      }
+    }
+  ],
+  "workflowChildren": [
+    {
+      "workflowRunId": "call_dTbWlRDn8LOcdt1HzWR5WdNN|fc_04a4dc860cb8e42e016a8f44ab4be087d2881cadd01e13859d",
+      "key": "coherence",
+      "status": "completed",
+      "startedAt": "2026-08-26T19:55:27.470Z",
+      "updatedAt": "2026-08-26T19:58:54.318Z",
+      "artifactPaths": [
+        "/Users/surpoone/.sling/agent/sessions/--Users-surpoone-work-git-Coverset--/2026-08-26T19-53-38-997Z_01a03fa2-a5b5-7bc7-80db-28a65234a3d0/b6a055eb/run-0/session.jsonl"
+      ],
+      "runId": "b6a055eb",
+      "agent": "reviewer",
+      "task": "Review Coverset spec for coherence and ambiguity. Read SPEC.md, PROJECT_BRIEF.md, README.md, and skim src/tests as needed. Focus only on how the spec can be improved: contradictions, unclear requirements, missing definitions, weak status/test mapping. Return prioritized findings with concrete edits suggested.",
+      "completedAt": "2026-08-26T19:58:54.318Z",
+      "sessionPath": "/Users/surpoone/.sling/agent/sessions/--Users-surpoone-work-git-Coverset--/2026-08-26T19-53-38-997Z_01a03fa2-a5b5-7bc7-80db-28a65234a3d0/b6a055eb/run-0/session.jsonl",
+      "heartbeat": {
+        "updatedAt": "2026-08-26T19:58:54.318Z",
+        "status": "completed"
+      }
+    },
+    {
+      "workflowRunId": "call_dTbWlRDn8LOcdt1HzWR5WdNN|fc_04a4dc860cb8e42e016a8f44ab4be087d2881cadd01e13859d",
+      "key": "feasibility",
+      "status": "completed",
+      "startedAt": "2026-08-26T19:55:27.499Z",
+      "updatedAt": "2026-08-26T19:58:41.922Z",
+      "artifactPaths": [
+        "/Users/surpoone/.sling/agent/sessions/--Users-surpoone-work-git-Coverset--/2026-08-26T19-53-38-997Z_01a03fa2-a5b5-7bc7-80db-28a65234a3d0/c90c91e4/run-0/session.jsonl"
+      ],
+      "runId": "c90c91e4",
+      "agent": "reviewer",
+      "task": "Review Coverset spec against the actual repository implementation and tests. Read SPEC.md, PROJECT_BRIEF.md, scripts/traceability.py, src/coverset, tests. Focus on implementation-readiness gaps: requirements too broad to build/test, missing interfaces, absent data models, unclear acceptance criteria. Return prioritized findings with concrete spec improvements.",
+      "completedAt": "2026-08-26T19:58:41.922Z",
+      "sessionPath": "/Users/surpoone/.sling/agent/sessions/--Users-surpoone-work-git-Coverset--/2026-08-26T19-53-38-997Z_01a03fa2-a5b5-7bc7-80db-28a65234a3d0/c90c91e4/run-0/session.jsonl",
+      "heartbeat": {
+        "updatedAt": "2026-08-26T19:58:41.922Z",
+        "status": "completed"
+      }
+    },
+    {
+      "workflowRunId": "call_dTbWlRDn8LOcdt1HzWR5WdNN|fc_04a4dc860cb8e42e016a8f44ab4be087d2881cadd01e13859d",
+      "key": "scope",
+      "status": "completed",
+      "startedAt": "2026-08-26T19:55:27.517Z",
+      "updatedAt": "2026-08-26T19:58:28.399Z",
+      "artifactPaths": [
+        "/Users/surpoone/.sling/agent/sessions/--Users-surpoone-work-git-Coverset--/2026-08-26T19-53-38-997Z_01a03fa2-a5b5-7bc7-80db-28a65234a3d0/2a00bad4/run-0/session.jsonl"
+      ],
+      "runId": "2a00bad4",
+      "agent": "reviewer",
+      "task": "Review Coverset SPEC.md as a scope guardian. Read PROJECT_BRIEF.md and SPEC.md, then inspect code/test surface enough to understand current state. Focus on critical path, MVP slicing, requirements that block use cases, status vocabulary, and whether planned work is right-sized. Return prioritized findings and recommended spec restructuring.",
+      "completedAt": "2026-08-26T19:58:28.399Z",
+      "sessionPath": "/Users/surpoone/.sling/agent/sessions/--Users-surpoone-work-git-Coverset--/2026-08-26T19-53-38-997Z_01a03fa2-a5b5-7bc7-80db-28a65234a3d0/2a00bad4/run-0/session.jsonl",
+      "heartbeat": {
+        "updatedAt": "2026-08-26T19:58:28.399Z",
+        "status": "completed"
+      }
+    },
+    {
+      "workflowRunId": "call_dTbWlRDn8LOcdt1HzWR5WdNN|fc_04a4dc860cb8e42e016a8f44ab4be087d2881cadd01e13859d",
+      "key": "adversarial",
+      "status": "completed",
+      "startedAt": "2026-08-26T19:55:27.534Z",
+      "updatedAt": "2026-08-26T19:57:29.594Z",
+      "artifactPaths": [
+        "/Users/surpoone/.sling/agent/sessions/--Users-surpoone-work-git-Coverset--/2026-08-26T19-53-38-997Z_01a03fa2-a5b5-7bc7-80db-28a65234a3d0/10701c34/run-0/session.jsonl"
+      ],
+      "runId": "10701c34",
+      "agent": "reviewer",
+      "task": "Adversarially review Coverset SPEC.md and PROJECT_BRIEF.md. Challenge assumptions in the product/architecture: Gemini vs solver authority, Parallel grounding, monitoring, live verification, schedule immutability, pickup flow. Find holes that could cause wrong schedules or untestable claims. Return only spec-improvement findings with severity and suggested wording.",
+      "completedAt": "2026-08-26T19:57:29.594Z",
+      "sessionPath": "/Users/surpoone/.sling/agent/sessions/--Users-surpoone-work-git-Coverset--/2026-08-26T19-53-38-997Z_01a03fa2-a5b5-7bc7-80db-28a65234a3d0/10701c34/run-0/session.jsonl",
+      "heartbeat": {
+        "updatedAt": "2026-08-26T19:57:29.594Z",
+        "status": "completed"
+      }
+    }
+  ],
+  "decisions": [],
+  "artifacts": [
+    {
+      "kind": "output",
+      "path": "/Users/surpoone/work/git/Coverset/.pi-subagents/artifacts/b6a055eb_reviewer_0_output.md"
+    },
+    {
+      "kind": "other",
+      "path": "/Users/surpoone/work/git/Coverset/.pi-subagents/artifacts/b6a055eb_reviewer_0_transcript.jsonl",
+      "description": "Child transcript"
+    },
+    {
+      "kind": "output",
+      "path": "/Users/surpoone/work/git/Coverset/.pi-subagents/artifacts/c90c91e4_reviewer_0_output.md"
+    },
+    {
+      "kind": "other",
+      "path": "/Users/surpoone/work/git/Coverset/.pi-subagents/artifacts/c90c91e4_reviewer_0_transcript.jsonl",
+      "description": "Child transcript"
+    },
+    {
+      "kind": "output",
+      "path": "/Users/surpoone/work/git/Coverset/.pi-subagents/artifacts/2a00bad4_reviewer_0_output.md"
+    },
+    {
+      "kind": "other",
+      "path": "/Users/surpoone/work/git/Coverset/.pi-subagents/artifacts/2a00bad4_reviewer_0_transcript.jsonl",
+      "description": "Child transcript"
+    },
+    {
+      "kind": "output",
+      "path": "/Users/surpoone/work/git/Coverset/.pi-subagents/artifacts/10701c34_reviewer_0_output.md"
+    },
+    {
+      "kind": "other",
+      "path": "/Users/surpoone/work/git/Coverset/.pi-subagents/artifacts/10701c34_reviewer_0_transcript.jsonl",
+      "description": "Child transcript"
+    }
+  ],
+  "receipts": [],
+  "cwd": "/Users/surpoone/work/git/Coverset",
+  "ownerSessionId": "/Users/surpoone/.sling/agent/sessions/--Users-surpoone-work-git-Coverset--/2026-08-26T19-53-38-997Z_01a03fa2-a5b5-7bc7-80db-28a65234a3d0.jsonl",
+  "summary": "Workflow completed.\n\nReturn:\n[\n  {\n    \"key\": \"coherence\",\n    \"ok\": true,\n    \"agent\": \"reviewer\",\n    \"runId\": \"b6a055eb\",\n    \"output\": \"## Review\\n\\n- **Correct:** `SPEC.md` has a coherent traceability foundation: stable requirement IDs, explicit status vocabulary, pytest `req` markers, and use cases mapped to requirement IDs (`SPEC.md:6-17`, `SPEC.md:239-244`). I verified the current matrix with `uv run python scripts/traceability.py --matrix`: 70 requirements, 45 verifiable, 0 gaps, 110 mapped tests, no untagged tests. `uv run pytest` also passes: 181 passed, 8 deselected.\\n- **Correct:** The strongest parts of the spec are the authority boundary and grounding/date-binding requirements. They are reflected in code and tests: role authority in `src/coverset/actors.py:36-94`, coverage/pickup workflow in `src/coverset/review.py`, and runtime Search/Extract/date-coverage tests in `tests/test_search_grounding.py:46-322`.\\n- **Fixed:** No files changed; this was a review-only task.\\n\\n### Prioritized findings and concrete suggested edits\\n\\n1. **Blocker — hard constraints vs “viable” boards are contradictory/ambiguous.**  \\n   Evidence:\\n   - `SPEC.md:179` says every returned board “provably satisfies its constraint set.”\\n   - `SPEC.md:190` says replanning returns “multiple viable boards.”\\n   - `PROJECT_BRIEF.md:212-219` describes those viable options as including “2 turnaround violations” and “church scenes fall outside the permit window (location unavailable on that date).”\\n   - `PROJECT_BRIEF.md:156-165` and `SPEC.md:183` list turnaround and location/permit windows as constraint families, not merely reporting dimensions.\\n\\n   Why it matters: a board outside a permit window is not viable under the stated solver contract. Turnaround may be waivable/costed in production reality, but the spec does not define which constraints are hard, which are soft, and which require human approval.\\n\\n   Concrete edits:\\n   - Add a short section before `SOL` in `SPEC.md`:\\n ..."
+}

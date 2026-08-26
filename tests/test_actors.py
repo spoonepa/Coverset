@@ -123,3 +123,25 @@ def test_require_passes_silently_for_an_actor_who_holds_it():
 def test_an_unknown_capability_is_a_programming_error_not_a_refusal():
     with pytest.raises(ValueError, match="unknown capability"):
         DIRECTOR.require("fly_the_drone")
+
+
+@pytest.mark.req("ACT-010")
+def test_no_role_exists_for_cast_crew_or_permit_authorities():
+    # Cast and crew are recipients and constraint sources; location owners and permit
+    # authorities are neither. None of them decides anything, so none can hold a Role.
+    # Stated as a test because the claim was got wrong once already: "they never touch
+    # the system" is false (cast receive call sheets) and hid a modelling gap.
+    forbidden = {
+        "cast", "performer", "actor_talent", "crew", "grip", "gaffer",
+        "location_owner", "permit_authority", "vendor",
+    }
+
+    assert forbidden.isdisjoint({r.value for r in Role})
+
+
+@pytest.mark.req("ACT-010")
+@pytest.mark.parametrize("who", ["cast", "crew", "location_owner"])
+def test_a_non_deciding_party_cannot_be_constructed_as_a_deciding_actor(who):
+    # There is no role to give them, so the type system refuses before any check runs.
+    with pytest.raises(ValueError, match="not a valid Role"):
+        Actor(who, Role(who))
