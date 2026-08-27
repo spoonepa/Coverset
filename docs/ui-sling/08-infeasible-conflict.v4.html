@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>08-infeasible-conflict - The Glasshouse</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary": "#e2c0a4",
+                    "primary-container": "#8292a3",
+                    "primary-fixed": "#d4e4f6",
+                    "on-surface": "#e5e2e1",
+                    "surface-container-lowest": "#0e0e0e",
+                    "surface-container-low": "#1c1b1b",
+                    "primary": "#b8c8da",
+                    "on-error-container": "#ffdad6",
+                    "surface-dim": "#131313",
+                    "outline-variant": "#43474c",
+                    "on-secondary-fixed-variant": "#434655",
+                    "on-tertiary-fixed-variant": "#59422d",
+                    "secondary": "#c3c5d8",
+                    "on-tertiary-fixed": "#291806",
+                    "on-secondary": "#2d303e",
+                    "tertiary-container": "#a98b71",
+                    "surface-variant": "#353534",
+                    "on-secondary-container": "#b2b4c6",
+                    "outline": "#8e9196",
+                    "on-background": "#e5e2e1",
+                    "error": "#ffb4ab",
+                    "tertiary-fixed": "#ffdcbf",
+                    "error-container": "#93000a",
+                    "on-secondary-fixed": "#181b28",
+                    "surface-tint": "#b8c8da",
+                    "inverse-primary": "#50606f",
+                    "on-primary-fixed": "#0d1d2a",
+                    "primary-fixed-dim": "#b8c8da",
+                    "secondary-container": "#434655",
+                    "surface": "#131313",
+                    "on-primary-fixed-variant": "#394857",
+                    "on-error": "#690005",
+                    "on-primary-container": "#1c2b39",
+                    "inverse-on-surface": "#313030",
+                    "tertiary-fixed-dim": "#e2c0a4",
+                    "surface-container-high": "#2a2a2a",
+                    "background": "#131313",
+                    "surface-container": "#201f1f",
+                    "surface-bright": "#393939",
+                    "on-surface-variant": "#c4c7cc",
+                    "on-primary": "#223240",
+                    "surface-container-highest": "#353534",
+                    "secondary-fixed": "#e0e1f4",
+                    "on-tertiary-container": "#392612",
+                    "secondary-fixed-dim": "#c3c5d8",
+                    "on-tertiary": "#412c18",
+                    "inverse-surface": "#e5e2e1"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack_compact": "2px",
+                    "rail_width": "64px",
+                    "card_padding": "12px",
+                    "gutter": "8px",
+                    "panel_gap": "4px"
+            },
+            "fontFamily": {
+                    "label-caps": [
+                            "Hanken Grotesk"
+                    ],
+                    "body-md": [
+                            "Hanken Grotesk"
+                    ],
+                    "headline-lg": [
+                            "Hanken Grotesk"
+                    ],
+                    "data-mono": [
+                            "JetBrains Mono"
+                    ],
+                    "headline-md": [
+                            "Hanken Grotesk"
+                    ],
+                    "body-sm": [
+                            "Hanken Grotesk"
+                    ],
+                    "data-mono-sm": [
+                            "JetBrains Mono"
+                    ]
+            },
+            "fontSize": {
+                    "label-caps": [
+                            "10px",
+                            {
+                                    "lineHeight": "12px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "data-mono": [
+                            "13px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-md": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "data-mono-sm": [
+                            "11px",
+                            {
+                                    "lineHeight": "14px",
+                                    "fontWeight": "500"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-surface h-screen flex overflow-hidden selection:bg-primary selection:text-on-primary">
+<nav class="fixed left-0 top-0 h-full w-rail_width bg-surface-container-low border-r border-outline-variant flex flex-col items-center py-4 gap-panel_gap z-50">
+<div class="mb-6 flex flex-col items-center gap-2">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden">
+<span class="font-headline-md text-headline-md font-bold text-primary">GH</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 w-full px-2">
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Dashboard"><span class="material-symbols-outlined">dashboard</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Breakdown"><span class="material-symbols-outlined">list_alt</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Constraints"><span class="material-symbols-outlined">rule_settings</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-primary bg-secondary-container rounded-lg transition-colors active:scale-95 duration-100 group" title="Replan"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">rebase_edit</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Sources"><span class="material-symbols-outlined">source</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Coverage"><span class="material-symbols-outlined">video_library</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Lock Day"><span class="material-symbols-outlined">lock_clock</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Approvals"><span class="material-symbols-outlined">payments</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Call Sheets"><span class="material-symbols-outlined">description</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Audit"><span class="material-symbols-outlined">history</span></button>
+</div>
+<div class="mt-auto flex flex-col items-center gap-2 w-full px-2"><div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center font-data-mono-sm text-data-mono-sm text-on-surface-variant">AD</div></div>
+</nav>
+<div class="flex-1 flex flex-col ml-rail_width overflow-hidden">
+<header class="h-14 shrink-0 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-4 gap-6">
+<div class="flex items-center gap-4 min-w-0">
+<span class="font-headline-md text-headline-md font-bold whitespace-nowrap">The Glasshouse</span>
+<span class="h-6 w-px bg-outline-variant"></span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant whitespace-nowrap">Schedule v4 &middot; solve attempt v5d</span>
+<span class="h-6 w-px bg-outline-variant"></span>
+<span class="font-data-mono-sm text-data-mono-sm text-primary whitespace-nowrap">First AD &middot; M. Okafor</span>
+</div>
+<div class="flex items-center gap-3 shrink-0">
+<button class="px-4 py-2 bg-surface-container border border-outline-variant text-on-surface hover:bg-surface-container-high rounded transition-colors font-data-mono-sm text-data-mono-sm">Compare Options</button>
+<button class="px-4 py-2 bg-surface-container border border-outline-variant text-on-surface hover:bg-surface-container-high rounded transition-colors font-data-mono-sm text-data-mono-sm">Re-solve</button>
+<button class="px-4 py-2 bg-primary text-on-primary font-bold rounded transition-colors font-data-mono-sm text-data-mono-sm">Relax &amp; Re-solve</button>
+<div class="flex gap-2 border-l border-outline-variant pl-3 ml-1 text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+<span class="material-symbols-outlined">settings</span>
+</div>
+</div>
+</header><div class="flex-1 flex overflow-hidden">
+<main class="flex-1 overflow-y-auto p-4 flex flex-col gap-gutter">
+
+<div class="bg-error/10 border border-error rounded p-card_padding">
+<div class="flex items-start justify-between gap-6">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-error text-[22px] mt-0.5">block</span>
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">No valid board exists</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1 max-w-4xl">CP-SAT <span class="text-on-surface">proved</span> this problem infeasible. It did not run out of budget and give up &mdash; the two are different answers and only one of them means &ldquo;change something&rdquo;.</p>
+</div>
+</div>
+<div class="text-right shrink-0 font-data-mono-sm text-data-mono-sm">
+<div class="text-error font-bold">STATUS: INFEASIBLE</div>
+<div class="text-on-surface-variant mt-1">deterministic budget 40.0 &middot; used 6.2</div>
+<div class="text-on-surface-variant">snapshot 2b90e7c4d115</div>
+<div class="text-on-surface-variant">seed 20231011</div>
+</div>
+</div>
+</div>
+
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-card_padding">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Why</div>
+<div class="grid grid-cols-[1fr_auto] gap-6 items-center">
+<div class="font-body-md text-body-md text-on-surface-variant">
+Scene 42 needs <span class="text-on-surface font-data-mono">3h30m</span> at River Street Alley on a night the permit opens at 19:00 and closes at 22:30. Night work cannot start before civil dusk at 19:21, so the usable window is <span class="text-on-surface font-data-mono">3h09m</span>. Every other night day inside L. Hartley&rsquo;s engagement is already committed.
+</div>
+<div class="font-data-mono text-data-mono bg-surface-dim border border-outline-variant rounded p-3 whitespace-pre text-on-surface">22:30  permit closes
+19:21  civil dusk (computed)
+-----  ---------------------
+ 3:09  usable
+ 3:30  required
+-----  ---------------------
+ 0:21  short</div>
+</div>
+</div>
+
+<div class="flex items-center justify-between mt-2">
+<h2 class="font-headline-md text-headline-md text-on-surface">Irreducible conflicting subset &mdash; 4 constraints</h2>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">of 47 active constraints</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant -mt-1">Drop any one of these four and a board exists. Drop none and none exists. The other 43 constraints are not implicated and are not listed.</p>
+
+<div class="bg-surface-container border border-outline-variant rounded p-card_padding">
+<div class="flex items-start justify-between gap-4 mb-2">
+<div class="flex items-center gap-3 min-w-0">
+<span class="font-data-mono text-data-mono text-outline">1</span>
+<span class="font-data-mono text-data-mono text-on-surface">WRK-42-DUR</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">work / duration</span>
+</div>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-sm border border-[#e2c0a4]/50 bg-[#e2c0a4]/10 text-[#e2c0a4]">RELAXABLE</span>
+</div>
+<div class="font-body-md text-body-md text-on-surface mb-2">Scene 42 requires 210 minutes of shooting time.</div>
+<div class="flex items-center gap-2 font-data-mono-sm text-data-mono-sm" style="color:#e2c0a4">
+<span class="material-symbols-outlined text-[14px]">person</span>
+<span class="font-bold">HUMAN RULE</span>
+<span class="text-on-surface-variant">Breakdown, confirmed by First AD 09 Oct</span>
+</div>
+<div class="mt-2 pt-2 border-t border-outline-variant"><div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">If relaxed</div><div class="font-body-sm text-body-sm text-on-surface">Split scene 42 across two nights. First AD may authorise.</div><div class="font-data-mono-sm text-data-mono-sm text-[#e2c0a4] mt-1">no cash cost &middot; 1 extra setup, continuity risk</div></div>
+</div>
+<div class="bg-surface-container border border-outline-variant rounded p-card_padding">
+<div class="flex items-start justify-between gap-4 mb-2">
+<div class="flex items-center gap-3 min-w-0">
+<span class="font-data-mono text-data-mono text-outline">2</span>
+<span class="font-data-mono text-data-mono text-on-surface">LOC-PERMIT-RIVERST</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">location / permit</span>
+</div>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-sm border border-[#e2c0a4]/50 bg-[#e2c0a4]/10 text-[#e2c0a4]">RELAXABLE</span>
+</div>
+<div class="font-body-md text-body-md text-on-surface mb-2">River Street Alley is permitted for filming 19:00&ndash;22:30 only.</div>
+<div class="flex items-center gap-2 font-data-mono-sm text-data-mono-sm" style="color:#60a5fa">
+<span class="material-symbols-outlined text-[14px]">link</span>
+<span class="font-bold">SOURCE URL</span>
+<span class="text-on-surface-variant">savannahga.gov/filmoffice &middot; permit #2023-SAV-0904 &middot; full content &middot; standing rule</span>
+</div>
+<div class="mt-2 pt-2 border-t border-outline-variant"><div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">If relaxed</div><div class="font-body-sm text-body-sm text-on-surface">Amend the permit to 23:30. Savannah Film Office, 5 business days.</div><div class="font-data-mono-sm text-data-mono-sm text-[#e2c0a4] mt-1">$1,150 amendment fee &middot; will not land before Day 12</div></div>
+</div>
+<div class="bg-surface-container border border-outline-variant rounded p-card_padding">
+<div class="flex items-start justify-between gap-4 mb-2">
+<div class="flex items-center gap-3 min-w-0">
+<span class="font-data-mono text-data-mono text-outline">3</span>
+<span class="font-data-mono text-data-mono text-on-surface">SYN-DAYLIGHT-42</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">daylight</span>
+</div>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-sm border border-outline bg-surface-variant text-on-surface-variant">FIXED &mdash; NOT RELAXABLE</span>
+</div>
+<div class="font-body-md text-body-md text-on-surface mb-2">Scene 42 is NIGHT work and cannot begin before civil dusk, 19:21.</div>
+<div class="flex items-center gap-2 font-data-mono-sm text-data-mono-sm" style="color:#4ade80">
+<span class="material-symbols-outlined text-[14px]">functions</span>
+<span class="font-bold">ALGORITHM</span>
+<span class="text-on-surface-variant">NOAA solar position algorithm &middot; 32.0809, -81.0912 &middot; 11 Oct 2023</span>
+</div>
+<div class="mt-2 pt-2 border-t border-outline-variant"><div class="font-body-sm text-body-sm text-on-surface-variant">The sun is not a production decision.</div></div>
+</div>
+<div class="bg-surface-container border border-outline-variant rounded p-card_padding">
+<div class="flex items-start justify-between gap-4 mb-2">
+<div class="flex items-center gap-3 min-w-0">
+<span class="font-data-mono text-data-mono text-outline">4</span>
+<span class="font-data-mono text-data-mono text-on-surface">CST-AVAIL-05</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">cast / availability</span>
+</div>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-sm border border-[#e2c0a4]/50 bg-[#e2c0a4]/10 text-[#e2c0a4]">RELAXABLE</span>
+</div>
+<div class="font-body-md text-body-md text-on-surface mb-2">L. Hartley (cast 5) is available 09&ndash;20 Oct only.</div>
+<div class="flex items-center gap-2 font-data-mono-sm text-data-mono-sm" style="color:#e2c0a4">
+<span class="material-symbols-outlined text-[14px]">person</span>
+<span class="font-bold">HUMAN RULE</span>
+<span class="text-on-surface-variant">Engagement recorded by UPM 02 Oct</span>
+</div>
+<div class="mt-2 pt-2 border-t border-outline-variant"><div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">If relaxed</div><div class="font-body-sm text-body-sm text-on-surface">Extend the engagement past 20 Oct. Requires the performer&rsquo;s agent.</div><div class="font-data-mono-sm text-data-mono-sm text-[#e2c0a4] mt-1">+$8,400 for 3 held days &middot; agent approval, not guaranteed</div></div>
+</div>
+
+<div class="bg-surface-container-lowest border border-[#4ade80]/40 rounded p-card_padding">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-[#4ade80] text-[16px]">verified</span>
+<span class="font-data-mono text-data-mono text-[#4ade80] font-bold">SUBSET VERIFIED</span>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Minimality</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Re-solved 4 times, dropping one member each time. Every run returned a board, so no member is redundant.</div>
+</div>
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Not a vacuous answer</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Re-solved with all four relaxed: <span class="text-[#4ade80] font-data-mono">FEASIBLE</span>. The problem is this subset, not the model. A conflict set that names constraints for a problem infeasible with everything switched off is the confident wrong answer this check exists to catch.</div>
+</div>
+</div>
+</div>
+</main>
+
+<aside class="w-96 bg-surface border-l border-outline-variant flex flex-col shrink-0 overflow-y-auto">
+<div class="p-4 border-b border-outline-variant bg-surface-dim">
+<h2 class="font-headline-md text-headline-md text-on-surface">What you can do</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Coverset will not pick for you. Relaxing a constraint is a production decision with a cost, and it is recorded as one.</p>
+</div>
+<div class="p-4 flex flex-col gap-3">
+<div class="bg-surface-container border border-outline-variant rounded p-3">
+<div class="font-data-mono text-data-mono text-on-surface mb-1">Split scene 42</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mb-2">Cheapest. Costs a setup and some continuity risk.</div>
+<div class="flex items-center gap-1 font-data-mono-sm text-data-mono-sm text-primary"><span class="material-symbols-outlined text-[14px]">shield_person</span> First AD may authorise</div>
+</div>
+<div class="bg-surface-container border border-outline-variant rounded p-3">
+<div class="font-data-mono text-data-mono text-on-surface mb-1">Amend the permit</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mb-2">$1,150, five business days. Will not land before Day 12.</div>
+<div class="flex items-center gap-1 font-data-mono-sm text-data-mono-sm text-primary"><span class="material-symbols-outlined text-[14px]">shield_person</span> UPM / Line Producer &middot; cost approval</div>
+</div>
+<div class="bg-surface-container border border-outline-variant rounded p-3">
+<div class="font-data-mono text-data-mono text-on-surface mb-1">Extend L. Hartley</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mb-2">+$8,400 for 3 held days. Needs the agent, and may be refused.</div>
+<div class="flex items-center gap-1 font-data-mono-sm text-data-mono-sm text-primary"><span class="material-symbols-outlined text-[14px]">shield_person</span> UPM / Line Producer &middot; cost approval</div>
+</div>
+<div class="bg-surface-container-lowest border border-dashed border-outline-variant rounded p-3">
+<div class="font-data-mono text-data-mono text-on-surface-variant mb-1">Move scene 42 past 20 Oct</div>
+<div class="font-body-sm text-body-sm text-outline">Unavailable while <span class="font-data-mono">CST-AVAIL-05</span> stands. Listed so it reads as considered and ruled out, not overlooked.</div>
+</div>
+</div>
+<div class="mt-auto p-4 border-t border-outline-variant bg-surface-dim flex flex-col gap-2">
+<button class="w-full py-2 bg-primary text-on-primary rounded font-data-mono-sm text-data-mono-sm font-bold">Relax a constraint &amp; re-solve</button>
+<button class="w-full py-2 bg-surface-container border border-outline-variant rounded font-data-mono-sm text-data-mono-sm text-on-surface">Export conflict set</button>
+<p class="text-[10px] font-data-mono text-outline leading-tight mt-1">Relaxing records the actor, the constraint, the reason and a new snapshot hash. The board that results is a different board, comparable only against the same weights.</p>
+</div>
+</aside>
+</div>
+</div>
+</body>
+</html>

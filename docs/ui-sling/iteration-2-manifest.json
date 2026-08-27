@@ -1,0 +1,133 @@
+{
+  "generatedAt": "2026-08-26T21:26:54.798Z",
+  "projectId": "15809028121194640782",
+  "sourceManifest": "docs/ui-sling/manifest.json",
+  "edits": [
+    {
+      "key": "01-stripboard-dashboard",
+      "title": "Stripboard schedule dashboard",
+      "originalScreenId": "ba2bbd1c37d84626b0c2190724ce7818",
+      "screenId": "a54acff921f14c5b87dcdd513138e78e",
+      "prompt": "Revise this screen to strictly respect the Coverset authority model. Replace any label like \"AI Scheduled\" with \"CP-SAT Scheduled\" or \"Solver Proposed\". Gemini may advise only; it never schedules. Make the right inspector show \"Board validated by independent validator\" and keep locked days visually immutable. Keep the professional stripboard dashboard layout.",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzkxOGQ5MmMyMzRlZTRiZjViYzUyZWIwMzViOGUxNjU4EgsSBxCkwrS7kR0YAZIBJAoKcHJvamVjdF9pZBIWQhQxNTgwOTAyODEyMTE5NDY0MDc4Mg&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1Ukjr_5HgiR1V5TBGan5e8bsj6QIi62VoTt_wtaNhprGOdiYse0zbM2PiQELZcB3kOzb_DqcVzApOgz0eNoGtgx_81frwuvHGn6LzcmGs1slYANRJBeKrn9hT_oSThJba1NrTZwAbi3GR5-GVfcGQeU6Y1PECEe22nl0Vo705_pjXQe5aCi_RIqM0UfcV3yt76rsIOFzjDKOlRi4v0UOVAR85b__sslAZ6QwVYjlDNnhqGau2oU-6Yv1bIy",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/01-stripboard-dashboard.v2.html",
+        "bytes": 25650
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/01-stripboard-dashboard.v2.png",
+        "bytes": 70814
+      }
+    },
+    {
+      "key": "02-replan-options",
+      "title": "Replan alert and option comparison",
+      "originalScreenId": "3050744d01dd44ebb553d7f33951e2c4",
+      "screenId": "3f902e64f7b34ac68519f60ec783c77e",
+      "prompt": "Revise this screen to strictly respect the Coverset authority model. Rename \"Weather Constraint Violation Detected\" to \"Material Weather Fact Changed\". Replace \"AI Advised\" with \"Monitor Triggered\" or \"Solver Replan\". Exception Scenario C must be visually separate and clearly labelled \"Not an active schedule\". Do not say Producers/Studio unless defined; use \"weather-risk waiver required by production policy\" and keep UPM/Line Producer only for added shoot-day cost approval.",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sX2I5NDI2YjYyMmExODQzZmU4YmM0MDAyNDY2NGY3NWUxEgsSBxCkwrS7kR0YAZIBJAoKcHJvamVjdF9pZBIWQhQxNTgwOTAyODEyMTE5NDY0MDc4Mg&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VA01U14PVl8lU1VwmInnEBgazKCqF2ze8hd3pw-bQd4n3Uhpzx1NnzSsw5qff0sCjowjU-8rkdzvSQkob45ktsx84ymsNZM2DApeCkbAw8_6IHFSYtYZXyCNpSAIA9R8y6abYobLLgvtnYxeMYLpg3dIixaCewm8SgtyU6t8nfZOKHjfii6SFKoQqfpvzho652AK2ofJ8n6noXG6TiQMgJkVJf00xFmMU9ir4Pv4gAKs_55BUiB6qv-4U",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/02-replan-options.v2.html",
+        "bytes": 23929
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/02-replan-options.v2.png",
+        "bytes": 163717
+      }
+    },
+    {
+      "key": "03-grounded-facts",
+      "title": "Grounded facts and source provenance",
+      "originalScreenId": "dc1ae7596f2745188ca724111ca0386d",
+      "screenId": "45019ab7f3c943f9bfe22ed06fc7afd2",
+      "prompt": "Revise this screen to strictly respect grounding provenance. Do not use DarkSky. Do not imply Gemini retrieved full content. Parallel Search locates sources and Parallel Extract retrieves full content; Gemini may only type candidate values after validation. Replace vague confidence emphasis with source span, content hash, retrieval timestamp, provider response ID, validator result, and normalized value. Show authoritative permit/weather sources and conflict state without relying on AI confidence.",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzhmNzYyYjc5ZGVkNzQ0NTNiMzQ5N2U3Y2Q0MjFjMDk5EgsSBxCkwrS7kR0YAZIBJAoKcHJvamVjdF9pZBIWQhQxNTgwOTAyODEyMTE5NDY0MDc4Mg&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UvfHaRomZBaA-R9aNppkxJEJ0alhUlRTMM2uRBYJDsZ4OE_hzWsqiyVGuYkrhlJqCYd_y05PgVmr2V4sLO7vdaGLLZ1aVvyGHWwJ5gwQfeDP5xeV-755vGI5xYmockPiqDZ5TAfrOYiWuRf_ONF_ujYypJnXRNrPyhGMnlgGFzgphmF0ALQRQNOMsME0-6ESAp-XlezoHfh_uWBNiv4Eg-4LYm7XJ22bFEGq8DCjuhIXd9on6AsfPlW_Ax",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/03-grounded-facts.v2.html",
+        "bytes": 26560
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/03-grounded-facts.v2.png",
+        "bytes": 90381
+      }
+    },
+    {
+      "key": "04-coverage-pickup",
+      "title": "Coverage review and pickup decision",
+      "originalScreenId": "30025a7fb3ab4be2a479c6743d3c7d16",
+      "screenId": "304c48f463324477b0108fc8353004f3",
+      "prompt": "Revise this screen to make the human authority boundary unmistakable. Replace \"AI Flag\" with \"Gemini Advisory\". Keep the warning \"Gemini can flag this; only a human can decide it.\" Make Director decision buttons prominent. Pickup task should become schedulable only after human-confirmed task spec: scene, shot type, cast, location, estimated duration, priority, must-complete-by.",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzExOTkxMTJlNzRlYjQxOGNhN2RlOTQ0N2I5YjNhMTEzEgsSBxCkwrS7kR0YAZIBJAoKcHJvamVjdF9pZBIWQhQxNTgwOTAyODEyMTE5NDY0MDc4Mg&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1V-iRKZ021ksdpq85bCwQjqjrafhHmLoEtf-Hr6oHuWeg8DBYkiZWUv9Dl_vkIKgFcPQNDkZYdulSBc4ENht6P37uToNz8deJsjIkRZ4j6sTq0tLiiXHHzvHFGP-Tb0-n7MoozvHUsxREzRNEBGYEN53tIVy9NDbYX7Qm7CDVvT0ypx4JW1YRmOYbuyB9oC9gql61yMCjSHOiTqXspvRZu2T9iBrXz0JLLsuZSmDGQitJNtX8wp5JVj9bcH",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/04-coverage-pickup.v2.html",
+        "bytes": 29396
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/04-coverage-pickup.v2.png",
+        "bytes": 56929
+      }
+    },
+    {
+      "key": "05-call-sheet",
+      "title": "Call sheet preview",
+      "originalScreenId": "e44153b20f1941388357c4548e00b2ae",
+      "screenId": "a8f5946eef9642198c33014f83ffc76d",
+      "prompt": "Revise this screen for the Second AD workflow. The current role/profile should be Second AD, not First AD. Recipients are read-only and gain no scheduling authority. Keep validation warning/validated board source visible: call sheet generated from schedule v4 after board validation.",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzQ2YmNjMTQ0NTllYjQ3ZmI5NWEyMGE1MzIyOWE4YTI3EgsSBxCkwrS7kR0YAZIBJAoKcHJvamVjdF9pZBIWQhQxNTgwOTAyODEyMTE5NDY0MDc4Mg&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1Wya8yTLJEYoEXfSFbG2e_zSlu2ulwh5z3CgWSVUkGk7QucX6OejTa1rpx4Hd6B-2QYqZNIIx8g1jb_RlNt2kTOSFGhnGRIRfopbpSQ53B2ktZZSVWJx48KclzgWSQMgRcdR_ZreJGITRwm9WxMAjbXjF-mX9-9twtlrA-ubwTczfL4zWd2IMGXiu_mxltmAn03pA_wEI68j3V-gw5Oxtsyd8qdzHY37nx-LEA0TdNq90JJS5f0hlrhfbVt",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/05-call-sheet.v2.html",
+        "bytes": 20541
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/05-call-sheet.v2.png",
+        "bytes": 57720
+      }
+    },
+    {
+      "key": "06-audit-log",
+      "title": "Audit log",
+      "originalScreenId": "02b7100f3dcd41ae8b40603d7c58553b",
+      "screenId": "a4da720d7fd8472eac2e0e12beb9c86e",
+      "prompt": "Revise this audit log to use correct component names. Parallel Search calls search. Parallel Extract retrieves full content. Gemini Constraint Agent types a candidate value; Policy/validator activates constraints. CP-SAT Solver generates board proposals. Independent Validator validates boards. Humans decide: First AD selects option, Director requests pickup, UPM/Line Producer approves added shoot-day cost. Do not show Gemini extracting full content or deciding.",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzBmOWExM2VhZTY4NTQ2ZjhhNTQ1Y2E5NWQxY2YyN2Q3EgsSBxCkwrS7kR0YAZIBJAoKcHJvamVjdF9pZBIWQhQxNTgwOTAyODEyMTE5NDY0MDc4Mg&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1Ucr9cDDQj-MqdNa_hR0cHWQGlCWen6WYkXs7iieZNNlnohvlJaUtT9BJL0YpOUSY27C-0x1eOCav5zodXOpNOkJEYlImRCIGp5eGYNAT8TExEFaS2jdiDWV34wF-D67xgPpfbKPpnDRer95gAyL3FCsnXuE0596kjSKnhiL-8-MqMTqGeRHuZxZBgZShFRv_gLIuMCi4JNEYbYIWQV6L5-2M6HzCqlUhOwbIN6m8Fo792cRcV_dy_behg",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/06-audit-log.v2.html",
+        "bytes": 28480
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/06-audit-log.v2.png",
+        "bytes": 80184
+      }
+    }
+  ]
+}

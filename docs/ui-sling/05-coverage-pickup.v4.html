@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Glasshouse - Coverage</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-container": "#8292a3",
+                        "on-primary-container": "#1c2b39",
+                        "on-surface": "#e5e2e1",
+                        "surface-container-low": "#1c1b1b",
+                        "on-secondary-container": "#b2b4c6",
+                        "on-primary-fixed": "#0d1d2a",
+                        "on-primary": "#223240",
+                        "inverse-on-surface": "#313030",
+                        "on-tertiary": "#412c18",
+                        "outline": "#8e9196",
+                        "surface-container-lowest": "#0e0e0e",
+                        "tertiary-fixed-dim": "#e2c0a4",
+                        "on-secondary": "#2d303e",
+                        "tertiary-container": "#a98b71",
+                        "outline-variant": "#43474c",
+                        "surface-container-highest": "#353534",
+                        "secondary-fixed": "#e0e1f4",
+                        "surface-dim": "#131313",
+                        "surface": "#131313",
+                        "surface-container": "#201f1f",
+                        "surface-container-high": "#2a2a2a",
+                        "secondary-container": "#434655",
+                        "on-error-container": "#ffdad6",
+                        "tertiary": "#e2c0a4",
+                        "on-secondary-fixed-variant": "#434655",
+                        "inverse-primary": "#50606f",
+                        "error-container": "#93000a",
+                        "on-tertiary-container": "#392612",
+                        "on-surface-variant": "#c4c7cc",
+                        "secondary-fixed-dim": "#c3c5d8",
+                        "primary-fixed-dim": "#b8c8da",
+                        "on-secondary-fixed": "#181b28",
+                        "on-error": "#690005",
+                        "inverse-surface": "#e5e2e1",
+                        "primary": "#b8c8da",
+                        "tertiary-fixed": "#ffdcbf",
+                        "secondary": "#c3c5d8",
+                        "error": "#ffb4ab",
+                        "on-tertiary-fixed": "#291806",
+                        "surface-variant": "#353534",
+                        "primary-fixed": "#d4e4f6",
+                        "on-background": "#e5e2e1",
+                        "surface-bright": "#393939",
+                        "surface-tint": "#b8c8da",
+                        "on-tertiary-fixed-variant": "#59422d",
+                        "on-primary-fixed-variant": "#394857",
+                        "background": "#131313"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    spacing: {
+                        "panel_gap": "4px",
+                        "card_padding": "12px",
+                        "gutter": "8px",
+                        "stack_compact": "2px",
+                        "rail_width": "64px"
+                    },
+                    fontFamily: {
+                        "headline-md": ["Hanken Grotesk"],
+                        "label-caps": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "data-mono": ["JetBrains Mono"],
+                        "data-mono-sm": ["JetBrains Mono"],
+                        "body-sm": ["Hanken Grotesk"]
+                    },
+                    fontSize: {
+                        "headline-md": ["18px", { lineHeight: "24px", fontWeight: "600" }],
+                        "label-caps": ["10px", { lineHeight: "12px", letterSpacing: "0.05em", fontWeight: "700" }],
+                        "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "600" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "data-mono": ["13px", { lineHeight: "16px", letterSpacing: "-0.01em", fontWeight: "500" }],
+                        "data-mono-sm": ["11px", { lineHeight: "14px", fontWeight: "500" }],
+                        "body-sm": ["12px", { lineHeight: "16px", fontWeight: "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+    </style>
+</head>
+<body class="antialiased overflow-hidden flex font-body-md">
+<!-- SideNavBar -->
+<nav class="w-rail_width h-screen fixed left-0 top-0 bg-surface-container border-r border-outline-variant flex flex-col items-center py-4 space-y-4 z-50">
+<div class="mb-8 flex flex-col items-center">
+<span class="material-symbols-outlined fill-icon text-headline-lg text-on-surface mb-2" data-icon="movie">movie</span>
+<div class="font-label-caps text-label-caps text-on-surface-variant text-center">v4.0</div>
+</div>
+<div class="flex flex-col space-y-6 w-full items-center">
+<a class="flex flex-col items-center w-full py-2 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<a class="flex flex-col items-center w-full py-2 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform" data-icon="list_alt">list_alt</span>
+<span class="font-label-caps text-label-caps">Breakdown</span>
+</a>
+<a class="flex flex-col items-center w-full py-2 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform" data-icon="event_repeat">event_repeat</span>
+<span class="font-label-caps text-label-caps">Replan</span>
+</a>
+<a class="flex flex-col items-center w-full py-2 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform" data-icon="folder_open">folder_open</span>
+<span class="font-label-caps text-label-caps">Sources</span>
+</a>
+<a class="flex flex-col items-center w-full py-2 text-primary bg-surface-container-highest border-l-2 border-primary transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined fill-icon mb-1" data-icon="movie">movie</span>
+<span class="font-label-caps text-label-caps">Coverage</span>
+</a>
+<a class="flex flex-col items-center w-full py-2 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform" data-icon="description">description</span>
+<span class="font-label-caps text-label-caps">Call Sheets</span>
+</a>
+<a class="flex flex-col items-center w-full py-2 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors duration-150 ease-in-out group" href="#">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform" data-icon="history">history</span>
+<span class="font-label-caps text-label-caps">Audit</span>
+</a>
+</div>
+</nav>
+<!-- TopAppBar -->
+<header class="h-12 w-[calc(100%-64px)] fixed top-0 left-rail_width bg-surface border-b border-outline-variant flex items-center justify-between px-gutter z-40">
+<div class="flex items-center space-x-6">
+<div class="font-headline-lg text-headline-lg text-on-surface uppercase tracking-tight">
+                The Glasshouse
+            </div>
+<div class="flex space-x-4 font-data-mono text-data-mono text-on-surface-variant">
+<span class="cursor-pointer hover:text-on-surface transition-opacity text-tertiary font-bold">Schedule v4 (Active)</span>
+<span class="cursor-pointer hover:text-on-surface transition-opacity">Day 8 of 20</span>
+</div>
+</div>
+<div class="flex items-center space-x-4 text-on-surface-variant">
+<button class="hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Workspace -->
+<main class="ml-rail_width mt-12 w-full h-[calc(100vh-48px)] flex">
+<!-- Center Canvas: Coverage Table -->
+<div class="flex-1 overflow-y-auto bg-surface-dim p-gutter flex flex-col space-y-gutter">
+<div class="flex items-center justify-between mb-2 px-2">
+<h1 class="font-headline-md text-headline-md text-on-surface">Completed Coverage</h1>
+<div class="flex space-x-4 font-data-mono-sm text-data-mono-sm">
+<div class="flex flex-col items-end">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">Day 8</span>
+<span class="text-on-surface">14/22 Setups</span>
+</div>
+</div>
+</div>
+<!-- Stripboard Item 1 (Needs Review) -->
+<div class="bg-surface-container border-b border-outline-variant p-card_padding hover:bg-surface-container-high transition-colors cursor-pointer border-l-2 border-[#b8782e]">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center space-x-3">
+<span class="font-data-mono text-data-mono text-on-surface px-2 py-1 bg-surface-container-highest rounded-sm border border-outline-variant">42</span>
+<span class="font-headline-md text-headline-md text-on-surface uppercase tracking-tight">EXT. ALLEYWAY - NIGHT</span>
+</div>
+<!-- Status Pill: Needs Review (Amber) -->
+<span class="bg-[#2a2214] border border-[#b8782e] text-[#b8782e] font-label-caps text-label-caps px-2 py-1 rounded-sm uppercase flex items-center space-x-1">
+<span class="material-symbols-outlined text-[12px]" data-icon="warning">warning</span>
+<span>NEEDS REVIEW</span>
+</span>
+</div>
+<div class="grid grid-cols-3 gap-4 mb-3">
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">CAST</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface space-x-1">
+<span class="bg-surface px-1 border border-outline-variant rounded-sm" title="E. Vance &mdash; Marcus">1</span>
+<span class="bg-surface px-1 border border-outline-variant rounded-sm" title="L. Hartley &mdash; Lucy">5</span>
+<span class="bg-surface px-1 border border-outline-variant rounded-sm" title="R. Bell &mdash; Det. Shaw">12</span>
+</div>
+</div>
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">LOCATION</div>
+<div class="font-body-sm text-body-sm text-on-surface truncate">River Street Alley (Exterior)</div>
+</div>
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">SETUPS CAPTURED</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface">4 / 5</div>
+</div>
+</div>
+<!-- Gemini Advisory Card inside Strip -->
+<div class="mt-2 bg-[#1b1c2b] border border-[#5c63b8] rounded-sm p-3 relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-[#5c63b8]"></div>
+<div class="flex items-start space-x-3">
+<span class="material-symbols-outlined text-[#8e94e8] mt-0.5" data-icon="auto_awesome">auto_awesome</span>
+<div class="flex-1">
+<div class="font-label-caps text-label-caps text-[#8e94e8] mb-1 uppercase">Gemini Advisory</div>
+<p class="font-body-sm text-body-sm text-[#d4d6f4] leading-relaxed mb-2">
+                                Potential coverage gap on reverse angles. Master and Close-up A captured; no reverse on L. Hartley (Lucy, cast 5) through the chase beat.
+                            </p>
+<div class="font-label-caps text-label-caps text-[#8e94e8] opacity-75 flex items-center space-x-1">
+<span class="material-symbols-outlined text-[10px]" data-icon="info">info</span>
+<span>Gemini can flag this; only a human can decide it.</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Stripboard Item 2 (Validated) -->
+<div class="bg-surface-container border-b border-outline-variant p-card_padding hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center space-x-3">
+<span class="font-data-mono text-data-mono text-on-surface px-2 py-1 bg-surface-container-highest rounded-sm border border-outline-variant">43</span>
+<span class="font-headline-md text-headline-md text-on-surface-variant uppercase tracking-tight">INT. BASEMENT - NIGHT</span>
+</div>
+<!-- Status Pill: Validated (Green) -->
+<span class="bg-[#142a1a] border border-[#2eb85c] text-[#2eb85c] font-label-caps text-label-caps px-2 py-1 rounded-sm uppercase flex items-center space-x-1">
+<span class="material-symbols-outlined text-[12px]" data-icon="check_circle">check_circle</span>
+<span>VALIDATED</span>
+</span>
+</div>
+<div class="grid grid-cols-3 gap-4">
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">CAST</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant space-x-1">
+<span class="bg-surface px-1 border border-outline-variant rounded-sm" title="E. Vance &mdash; Marcus">1</span>
+<span class="bg-surface px-1 border border-outline-variant rounded-sm" title="R. Bell &mdash; Det. Shaw">12</span>
+</div>
+</div>
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">LOCATION</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant truncate">Abandoned Warehouse (Interior)</div>
+</div>
+<div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">SETUPS CAPTURED</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">3 / 3</div>
+</div>
+</div>
+</div>
+<!-- Stripboard Item 3 (Validated) -->
+<div class="bg-surface-container border-b border-outline-variant p-card_padding hover:bg-surface-container-high transition-colors opacity-75">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center space-x-3">
+<span class="font-data-mono text-data-mono text-on-surface px-2 py-1 bg-surface-container-highest rounded-sm border border-outline-variant">44</span>
+<span class="font-headline-md text-headline-md text-on-surface-variant uppercase tracking-tight">INT. WAREHOUSE OFFICE - NIGHT</span>
+</div>
+<!-- Status Pill: Validated (Green) -->
+<span class="bg-[#142a1a] border border-[#2eb85c] text-[#2eb85c] font-label-caps text-label-caps px-2 py-1 rounded-sm uppercase flex items-center space-x-1">
+<span class="material-symbols-outlined text-[12px]" data-icon="check_circle">check_circle</span>
+<span>VALIDATED</span>
+</span>
+</div>
+</div>
+</div>
+<!-- Right Inspector Panel -->
+<aside class="w-[400px] bg-surface-container border-l border-outline-variant flex flex-col flex-shrink-0 h-full overflow-y-auto">
+<!-- Inspector Header -->
+<div class="p-4 border-b border-outline-variant bg-surface-container-high">
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-2 flex items-center space-x-2">
+<span>Day 8</span>
+<span class="material-symbols-outlined text-[12px]" data-icon="chevron_right">chevron_right</span>
+<span class="text-primary">42 &middot; Reverse</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">Coverage Inspector</h2>
+</div>
+<div class="p-4 flex-1 space-y-6">
+<!-- Decision Buttons -->
+<div class="space-y-2 border-b border-outline-variant pb-6">
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-3 uppercase tracking-wider">Director Decision</div>
+<button class="w-full h-[32px] bg-[#142a1a] border border-[#2eb85c] hover:bg-[#1a3822] text-[#2eb85c] font-data-mono text-data-mono rounded-sm transition-colors flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined text-[16px]" data-icon="thumb_up">thumb_up</span>
+<span>Accept Coverage</span>
+</button>
+<button class="w-full h-[32px] bg-[#2a1414] border border-[#b82e2e] hover:bg-[#381a1a] text-[#ff8a8a] font-data-mono text-data-mono rounded-sm transition-colors flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined text-[16px]" data-icon="thumb_down">thumb_down</span>
+<span>Reject Coverage</span>
+</button>
+<button class="w-full h-[32px] bg-primary-container text-on-primary-container hover:bg-primary-fixed font-data-mono text-data-mono rounded-sm transition-colors flex items-center justify-center space-x-2 border border-transparent shadow-[0_0_10px_rgba(130,146,163,0.2)]">
+<span class="material-symbols-outlined text-[16px]" data-icon="add_task">add_task</span>
+<span>Request Pickup</span>
+</button>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-[11px] leading-tight">No ruling recorded yet. Requesting a pickup opens the task spec below; the task becomes schedulable only once a human has completed every required field.</p>
+<button class="w-full h-[32px] bg-transparent border border-outline hover:bg-surface-container-high text-on-surface font-data-mono text-data-mono rounded-sm transition-colors flex items-center justify-center space-x-2 mt-4">
+<span class="material-symbols-outlined text-[16px]" data-icon="edit_note">edit_note</span>
+<span>Add Human Finding</span>
+</button>
+</div>
+<!-- Pickup Task Spec Form -->
+<div class="space-y-4">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary" data-icon="assignment">assignment</span>
+<div class="font-headline-md text-headline-md text-on-surface">Pickup Task Spec</div>
+</div>
+<div class="bg-surface border border-outline-variant rounded-sm p-2 space-y-1">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">Authorisation Trace</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface">decision RD-0142 &middot; Director M. Chen &middot; 11 Oct 23:58 ET</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">responds to finding GF-2291 &middot; Gemini &middot; advisory</div>
+<div class="text-[10px] font-data-mono text-outline leading-tight">No pickup exists without a named human decision. The finding could only put this in front of a person.</div>
+</div>
+<div class="bg-surface border border-[#5c63b8]/40 rounded-sm p-2">
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant leading-tight">This is <span class="text-on-surface">NIGHT</span> work. It cannot be placed on a day shoot &mdash; the replan must find a night day or add one.</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">SCENE</label>
+<input class="w-full h-[28px] bg-surface border border-outline-variant text-on-surface font-data-mono-sm px-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none rounded-sm" disabled="" type="text" value="42"/>
+</div>
+<div class="space-y-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">SHOT TYPE</label>
+<input class="w-full h-[28px] bg-surface border border-outline-variant text-on-surface font-data-mono-sm px-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none rounded-sm" type="text" value="Close-up (Reaction)"/>
+</div>
+</div>
+<div class="space-y-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">CAST</label>
+<input class="w-full h-[28px] bg-surface border border-outline-variant text-on-surface font-data-mono-sm px-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none rounded-sm" type="text" value="5 &mdash; L. Hartley (Lucy)"/>
+</div>
+<div class="space-y-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">LOCATION</label>
+<input class="w-full h-[28px] bg-surface border border-outline-variant text-on-surface font-data-mono-sm px-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none rounded-sm" type="text" value="River Street Alley (Exterior)"/>
+</div>
+<div class="grid grid-cols-3 gap-4 border-t border-outline-variant pt-4 mt-4">
+<div class="space-y-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">EST DURATION</label>
+<input class="w-full h-[28px] bg-surface border border-outline-variant text-on-surface font-data-mono-sm px-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none rounded-sm" type="text" value="0:45"/>
+</div>
+<div class="space-y-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">PRIORITY</label>
+<select class="w-full h-[28px] bg-[#2a1414] border border-[#b82e2e] text-[#ff8a8a] font-data-mono-sm px-2 focus:ring-1 focus:ring-primary outline-none rounded-sm">
+<option selected="">HIGH</option>
+<option>MEDIUM</option>
+<option>LOW</option>
+</select>
+</div>
+<div class="space-y-1">
+<label class="font-label-caps text-label-caps text-on-surface-variant">COMPLETE BY</label>
+<input class="w-full h-[28px] bg-surface border border-outline-variant text-on-surface font-data-mono-sm px-2 focus:ring-1 focus:ring-primary focus:border-primary outline-none rounded-sm" type="text" value="Day 12 (Wed 18 Oct)"/>
+</div>
+</div>
+<!-- UPM Warning -->
+<div class="mt-4 bg-[#2a2214] border-l-2 border-[#b8782e] p-3 rounded-r-sm">
+<div class="flex items-start space-x-2">
+<span class="material-symbols-outlined text-[#b8782e] text-[16px] mt-0.5" data-icon="attach_money">attach_money</span>
+<div>
+<div class="font-label-caps text-label-caps text-[#b8782e] mb-1 uppercase">UPM Approval Required</div>
+<p class="font-body-sm text-body-sm text-on-surface opacity-80">
+                                    UPM approval required if selected board adds a shoot day.
+                                </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="p-4 border-t border-outline-variant bg-surface-container-high mt-auto">
+<button class="w-full h-[36px] bg-surface border border-outline-variant hover:bg-surface-container text-on-surface font-data-mono text-data-mono rounded-sm transition-colors flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined text-[16px]" data-icon="save">save</span>
+<span>Add Pickup to Replan</span>
+</button>
+</div>
+</aside>
+</main>
+</body></html>

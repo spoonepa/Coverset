@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coverset - Coverage Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-surface": "#0b1c30",
+                      "inverse-primary": "#b9c7e0",
+                      "surface": "#f8f9ff",
+                      "on-tertiary-fixed": "#00174b",
+                      "tertiary-container": "#00389a",
+                      "on-primary-container": "#9eadc5",
+                      "on-error-container": "#93000a",
+                      "surface-bright": "#f8f9ff",
+                      "on-primary": "#ffffff",
+                      "primary": "#1d2b3e",
+                      "on-secondary": "#ffffff",
+                      "on-primary-fixed-variant": "#3a485c",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed": "#0d1c2f",
+                      "surface-tint": "#515f74",
+                      "tertiary": "#00246b",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary-fixed-dim": "#c7c6c5",
+                      "surface-container": "#e5eeff",
+                      "on-tertiary-container": "#8da9ff",
+                      "on-error": "#ffffff",
+                      "on-secondary-fixed-variant": "#464746",
+                      "on-secondary-fixed": "#1a1c1b",
+                      "tertiary-fixed-dim": "#b4c5ff",
+                      "inverse-on-surface": "#eaf1ff",
+                      "surface-variant": "#d3e4fe",
+                      "error-container": "#ffdad6",
+                      "secondary-fixed": "#e3e2e0",
+                      "primary-container": "#334155",
+                      "surface-dim": "#cbdbf5",
+                      "on-surface-variant": "#44474c",
+                      "secondary-container": "#e0dfde",
+                      "primary-fixed-dim": "#b9c7e0",
+                      "background": "#f8f9ff",
+                      "on-tertiary-fixed-variant": "#003ea8",
+                      "outline-variant": "#c5c6cd",
+                      "outline": "#75777d",
+                      "inverse-surface": "#213145",
+                      "surface-container-low": "#eff4ff",
+                      "on-background": "#0b1c30",
+                      "on-secondary-container": "#626361",
+                      "secondary": "#5e5e5d",
+                      "tertiary-fixed": "#dbe1ff",
+                      "surface-container-high": "#dce9ff",
+                      "error": "#ba1a1a",
+                      "primary-fixed": "#d5e3fd"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "container-padding": "24px",
+                      "unit": "4px",
+                      "row-height-standard": "40px",
+                      "row-height-dense": "32px",
+                      "gutter": "12px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "title-sm": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "data-tabular": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "label-caps": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "title-sm": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "data-tabular": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+            },
+          }
+        }
+    </script>
+<style>
+        body {
+            background-color: #F9F8F6; /* Surface 0 (Background): Warm off-white */
+            color: #0b1c30;
+        }
+        
+        /* Tactical Subtleties */
+        .paper-texture {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+        }
+        
+        /* Recessed Well */
+        .recessed-well {
+            background-color: #F1F5F9;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+        }
+        
+        /* Surface 2 Modal shadow (ambient) */
+        .ambient-shadow {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Data grid row hover */
+        .data-row-hover:hover {
+            background-color: #F8FAFC; /* Faint slate-50 */
+        }
+        
+        /* Input Focus Glow */
+        .focus-ring-glow:focus-within {
+            border-color: #3B82F6; /* Accent blue */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        /* Scene Strips */
+        .strip-int-day { border-left: 5px solid #EAB308; } /* Yellow */
+        .strip-ext-day { border-left: 5px solid #22C55E; } /* Green */
+        .strip-int-night { border-left: 5px solid #3B82F6; } /* Blue */
+        .strip-ext-night { border-left: 5px solid #6366F1; } /* Indigo */
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8; 
+        }
+    </style>
+</head>
+<body class="font-body-md text-body-md bg-surface antialiased overflow-hidden flex">
+<!-- JSON: SideNavBar -->
+<nav class="bg-surface dark:bg-inverse-surface border-r border-outline-variant dark:border-outline fixed left-0 top-0 h-full w-64 flex flex-col py-container-padding z-40">
+<!-- Brand Header -->
+<div class="px-container-padding mb-8">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-sm">
+                    TG
+                </div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed leading-tight tracking-tight">The Glasshouse</h1>
+<p class="text-secondary dark:text-secondary-fixed-dim font-body-sm text-body-sm text-xs">v4 - Active</p>
+</div>
+</div>
+</div>
+<!-- Navigation Links -->
+<ul class="flex-1 overflow-y-auto px-gutter space-y-1">
+<li>
+<a class="text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors flex items-center gap-3 px-3 h-row-height-standard rounded-DEFAULT" href="#">
+<span class="material-symbols-outlined text-lg">dashboard</span>
+<span class="font-data-tabular text-data-tabular">Board</span>
+</a>
+</li>
+<li>
+<a class="text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors flex items-center gap-3 px-3 h-row-height-standard rounded-DEFAULT" href="#">
+<span class="material-symbols-outlined text-lg">stream_apps</span>
+<span class="font-data-tabular text-data-tabular">Scenes</span>
+</a>
+</li>
+<li>
+<a class="text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors flex items-center gap-3 px-3 h-row-height-standard rounded-DEFAULT" href="#">
+<span class="material-symbols-outlined text-lg">anchor</span>
+<span class="font-data-tabular text-data-tabular">Grounding</span>
+</a>
+</li>
+<li>
+<a class="text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors flex items-center gap-3 px-3 h-row-height-standard rounded-DEFAULT" href="#">
+<span class="material-symbols-outlined text-lg">rebase_edit</span>
+<span class="font-data-tabular text-data-tabular">Replans</span>
+</a>
+</li>
+<!-- Active State: Coverage Review matches the prompt intent -->
+<li>
+<a class="text-on-primary-fixed-variant font-bold border-r-4 border-primary dark:border-primary-fixed hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors flex items-center gap-3 px-3 h-row-height-standard rounded-DEFAULT bg-surface-container-low" href="#">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">fact_check</span>
+<span class="font-data-tabular text-data-tabular">Coverage Review</span>
+</a>
+</li>
+<li>
+<a class="text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors flex items-center gap-3 px-3 h-row-height-standard rounded-DEFAULT" href="#">
+<span class="material-symbols-outlined text-lg">description</span>
+<span class="font-data-tabular text-data-tabular">Call Sheets</span>
+</a>
+</li>
+<li>
+<a class="text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors flex items-center gap-3 px-3 h-row-height-standard rounded-DEFAULT" href="#">
+<span class="material-symbols-outlined text-lg">history</span>
+<span class="font-data-tabular text-data-tabular">Audit Log</span>
+</a>
+</li>
+</ul>
+<!-- User Profile Area Bottom -->
+<div class="px-container-padding pt-4 border-t border-outline-variant mt-auto">
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full object-cover border border-outline-variant" data-alt="A small, professional headshot photo of an assistant director wearing a headset on a bright, busy film set. The lighting is natural daylight. The style is sharp, clean corporate photography suitable for a modern digital avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxT6_Ye8fpWfUHMHlJntaYsnk3SxMQ7zRx0tr4bqpgamN2e5IlFCA0g3QsubnGfpOIzy1xHeFez4P3y9VAYL789GKipA24Fcigj7skaCAXaw4WKmdfkDN8Jzn1GgTt0dpS49WqIRn7htpDKTM7OrHnB_SIkD_Qnn1nDOsZ4mkhwqgA6KgcTgdtl_n69ingVq7n35VbShA0rBtTVZL08n8qyWDcuMT24suMsRPww2I1_UnM2-vVPDsON5ul0DJrIV5AeMtAz0_1FcR3"/>
+<div>
+<p class="font-data-tabular text-data-tabular font-medium">First AD Profile</p>
+<p class="font-body-sm text-body-sm text-xs text-secondary">Operations</p>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-64 flex-1 h-screen flex flex-col relative overflow-hidden bg-[#F9F8F6]">
+<!-- JSON: TopAppBar -->
+<header class="bg-surface dark:bg-background border-b border-outline-variant dark:border-outline fixed top-0 right-0 w-[calc(100%-16rem)] h-row-height-standard flex justify-between items-center px-gutter h-16 z-30">
+<div class="flex items-center gap-4">
+<span class="font-title-sm text-title-sm font-semibold text-primary">Coverage Review</span>
+<div class="h-4 w-px bg-outline-variant mx-2"></div>
+<div class="flex gap-4">
+<span class="font-data-tabular text-data-tabular text-secondary hover:text-primary transition-colors cursor-pointer">Day 8 of 20</span>
+<span class="font-data-tabular text-data-tabular text-secondary hover:text-primary transition-colors cursor-pointer">Validated</span>
+<span class="font-data-tabular text-data-tabular text-secondary hover:text-primary transition-colors cursor-pointer">12 min ago</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<!-- Search Bar: right aligned per JSON -->
+<div class="relative focus-ring-glow rounded-DEFAULT transition-all w-64">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-secondary text-sm">search</span>
+<input class="w-full h-8 pl-8 pr-3 bg-surface border border-outline-variant rounded-DEFAULT font-body-sm text-body-sm text-primary placeholder-secondary focus:outline-none bg-[#F1F5F9]" placeholder="Search Coverage..." type="text"/>
+</div>
+<div class="h-6 w-px bg-outline-variant mx-1"></div>
+<span class="font-data-tabular text-data-tabular text-primary font-medium">First AD</span>
+<button class="w-8 h-8 rounded-DEFAULT hover:bg-surface-container transition-colors flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-lg">notifications</span>
+</button>
+</div>
+</header>
+<!-- Workspace Area (Below TopAppBar) -->
+<div class="flex-1 mt-16 flex overflow-hidden paper-texture">
+<!-- List View (Left Pane) -->
+<div class="w-1/2 xl:w-5/12 border-r border-outline-variant bg-surface flex flex-col">
+<!-- List Header / Filters -->
+<div class="h-12 border-b border-outline-variant flex items-center justify-between px-4 bg-white shrink-0">
+<div class="flex items-center gap-2">
+<span class="font-title-sm text-title-sm">Coverage Items</span>
+<span class="bg-surface-container-high text-on-surface text-xs px-2 py-0.5 rounded-full font-data-tabular">24</span>
+</div>
+<div class="flex gap-2">
+<button class="px-2 h-7 rounded border border-outline-variant text-xs font-data-tabular text-secondary flex items-center gap-1 hover:bg-surface-container">
+<span class="material-symbols-outlined text-sm">filter_list</span> Filter
+                        </button>
+</div>
+</div>
+<!-- Grid Data -->
+<div class="flex-1 overflow-y-auto">
+<!-- Table Header Sticky -->
+<div class="sticky top-0 bg-surface z-10 grid grid-cols-[3rem_1fr_6rem_8rem] gap-2 px-4 py-2 border-b-2 border-slate-200 text-xs font-label-caps text-secondary uppercase tracking-wider">
+<div>Sc</div>
+<div>Setup / Shot</div>
+<div>Cast</div>
+<div class="text-right">Status</div>
+</div>
+<!-- Row 1: Normal -->
+<div class="grid grid-cols-[3rem_1fr_6rem_8rem] gap-2 px-4 py-3 border-b border-outline-variant data-row-hover cursor-pointer items-center strip-int-day bg-white">
+<div class="font-data-tabular text-data-tabular font-medium text-primary">017</div>
+<div>
+<div class="font-data-tabular text-data-tabular text-primary">Master Wide - Living Room</div>
+<div class="text-xs text-secondary mt-0.5">24mm • Steadicam</div>
+</div>
+<div class="font-data-tabular text-xs text-secondary">ALL</div>
+<div class="text-right flex justify-end">
+<span class="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded tracking-wide uppercase shadow-sm">Wrapped</span>
+</div>
+</div>
+<!-- Row 2: HIGHLIGHTED (Needs Director Review & Gemini) -->
+<div class="grid grid-cols-[3rem_1fr_6rem_8rem] gap-2 px-4 py-3 border-b border-outline-variant cursor-pointer items-center strip-int-day bg-blue-50/40 relative">
+<!-- Active indicator line -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="font-data-tabular text-data-tabular font-medium text-primary">018</div>
+<div>
+<div class="font-data-tabular text-data-tabular text-primary font-semibold flex items-center gap-1">
+                                Reverse on Lucy
+                                <!-- AI Badge -->
+<span class="inline-flex items-center gap-0.5 bg-purple-50 border border-purple-200 text-purple-700 text-[9px] font-bold px-1 py-0.5 rounded uppercase tracking-wider ml-1">
+<span class="material-symbols-outlined text-[10px]">auto_awesome</span> AI Flag
+                                </span>
+</div>
+<div class="text-xs text-secondary mt-0.5">85mm • Over the Shoulder</div>
+</div>
+<div class="font-data-tabular text-xs text-secondary">1, 2</div>
+<div class="text-right flex flex-col items-end gap-1">
+<span class="border border-amber-500 bg-amber-50 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded tracking-wide uppercase">Dir Review</span>
+</div>
+</div>
+<!-- Row 3: Normal -->
+<div class="grid grid-cols-[3rem_1fr_6rem_8rem] gap-2 px-4 py-3 border-b border-outline-variant data-row-hover cursor-pointer items-center strip-int-night bg-white">
+<div class="font-data-tabular text-data-tabular font-medium text-primary">019</div>
+<div>
+<div class="font-data-tabular text-data-tabular text-primary">MCU Sarah - Reaction</div>
+<div class="text-xs text-secondary mt-0.5">50mm • Static</div>
+</div>
+<div class="font-data-tabular text-xs text-secondary">2</div>
+<div class="text-right flex justify-end">
+<span class="border border-slate-300 text-slate-600 text-[10px] font-bold px-1.5 py-0.5 rounded tracking-wide uppercase">Pending</span>
+</div>
+</div>
+<!-- Row 4: Normal -->
+<div class="grid grid-cols-[3rem_1fr_6rem_8rem] gap-2 px-4 py-3 border-b border-outline-variant data-row-hover cursor-pointer items-center strip-ext-day bg-white">
+<div class="font-data-tabular text-data-tabular font-medium text-primary">021</div>
+<div>
+<div class="font-data-tabular text-data-tabular text-primary">Drone establishing</div>
+<div class="text-xs text-secondary mt-0.5">Aerial</div>
+</div>
+<div class="font-data-tabular text-xs text-secondary">N/A</div>
+<div class="text-right flex justify-end">
+<span class="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded tracking-wide uppercase shadow-sm">Wrapped</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Detail Panel (Right Side) -->
+<div class="flex-1 bg-surface-bright p-6 overflow-y-auto relative">
+<!-- Action Header -->
+<div class="flex justify-between items-start mb-6">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-slate-200 text-slate-700 text-xs font-bold px-2 py-0.5 rounded-sm">SC-018</span>
+<span class="text-sm text-secondary font-medium uppercase tracking-wider">INT. HOUSE - DAY</span>
+</div>
+<h2 class="font-display-lg text-display-lg text-primary">Reverse on Lucy</h2>
+</div>
+<!-- Quick Actions -->
+<div class="flex gap-2">
+<button class="h-8 px-3 rounded border border-outline-variant text-primary font-data-tabular text-sm hover:bg-surface-container transition-colors">
+                            Previous
+                        </button>
+<button class="h-8 px-3 rounded border border-outline-variant text-primary font-data-tabular text-sm hover:bg-surface-container transition-colors">
+                            Next
+                        </button>
+</div>
+</div>
+<!-- Gemini Advisory Card -->
+<div class="bg-purple-50/50 border border-purple-200 rounded-lg p-5 mb-6 relative overflow-hidden shadow-sm">
+<!-- Decorative subtle gradient bg -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-purple-200/20 to-transparent rounded-full -translate-y-1/2 translate-x-1/4 blur-2xl"></div>
+<div class="relative z-10">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-2 text-purple-800 font-title-sm text-title-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                                Gemini Advisory
+                            </div>
+<span class="bg-white/60 border border-purple-200 text-purple-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shadow-sm">Confidence: Medium</span>
+</div>
+<p class="font-body-md text-body-md text-purple-900 mb-4 bg-white/50 p-4 rounded border border-purple-100/50">
+                            "Eyeline may not match Sarah close-up from earlier setup."
+                        </p>
+<div class="flex items-center gap-2 text-xs text-purple-600/80 font-medium">
+<span class="material-symbols-outlined text-sm">info</span>
+                            Gemini can flag this; only a human can decide it.
+                        </div>
+</div>
+</div>
+<!-- Pickup Task Preview Form / Action Area -->
+<div class="bg-white border border-slate-200 rounded-lg shadow-sm mb-6">
+<div class="border-b border-slate-200 px-5 py-4 bg-slate-50 rounded-t-lg flex justify-between items-center">
+<h3 class="font-title-sm text-title-sm text-primary">Director Decision Needed</h3>
+<span class="border border-amber-500 bg-amber-50 text-amber-700 text-xs font-bold px-2 py-0.5 rounded tracking-wide uppercase">Review Active</span>
+</div>
+<div class="p-5">
+<!-- Form fields appearing contextually for Request Pickup -->
+<div class="recessed-well border border-slate-200 rounded p-4 mb-6 relative">
+<h4 class="font-data-tabular text-sm font-semibold text-primary mb-4 flex items-center gap-2 border-b border-slate-200 pb-2">
+<span class="material-symbols-outlined text-lg text-slate-500">add_task</span>
+                                Pickup Task Preview
+                            </h4>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-1">Scene</label>
+<div class="h-8 border border-slate-300 rounded bg-white px-3 flex items-center font-data-tabular text-primary text-sm shadow-sm">SC-018</div>
+</div>
+<div>
+<label class="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-1">Shot Type</label>
+<div class="h-8 border border-slate-300 rounded bg-white px-3 flex items-center font-data-tabular text-primary text-sm shadow-sm">Reverse</div>
+</div>
+<div class="col-span-2">
+<label class="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-1">Cast Required</label>
+<div class="h-8 border border-slate-300 rounded bg-white px-3 flex items-center font-data-tabular text-primary text-sm shadow-sm">LUCY (1), SARAH (2)</div>
+</div>
+<div>
+<label class="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-1">Location</label>
+<div class="h-8 border border-slate-300 rounded bg-white px-3 flex items-center font-data-tabular text-primary text-sm shadow-sm">HOUSE</div>
+</div>
+<div>
+<label class="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-1">Est. Duration</label>
+<input class="w-full h-8 border border-slate-300 rounded bg-white px-3 font-data-tabular text-primary text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" type="text" value="45 min"/>
+</div>
+<div>
+<label class="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-1">Priority</label>
+<select class="w-full h-8 border border-slate-300 rounded bg-white px-2 font-data-tabular text-primary text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none">
+<option>High</option>
+<option>Medium</option>
+<option>Low</option>
+</select>
+</div>
+<div>
+<label class="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-1">Must Complete By</label>
+<input class="w-full h-8 border border-slate-300 rounded bg-white px-3 font-data-tabular text-primary text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" type="date" value="2024-04-19"/>
+</div>
+</div>
+<!-- Cost Warning -->
+<div class="mt-4 bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r flex items-start gap-3">
+<span class="material-symbols-outlined text-amber-600 shrink-0">warning</span>
+<div>
+<p class="text-sm font-semibold text-amber-900">Cost Impact Warning</p>
+<p class="text-xs text-amber-700 mt-0.5">Adds one shoot day — UPM approval required.</p>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-wrap gap-3 mt-6 pt-4 border-t border-slate-200">
+<!-- Primary -->
+<button class="h-10 px-6 bg-slate-800 text-white rounded font-data-tabular text-sm font-medium hover:bg-slate-700 transition-colors shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">assignment_return</span>
+                                Request Pickup
+                            </button>
+<!-- Secondary -->
+<button class="h-10 px-5 bg-white border border-slate-300 text-slate-700 rounded font-data-tabular text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-green-600">check_circle</span>
+                                Accept Coverage
+                            </button>
+<button class="h-10 px-5 bg-white border border-slate-300 text-slate-700 rounded font-data-tabular text-sm font-medium hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">cancel</span>
+                                Reject Coverage
+                            </button>
+<div class="flex-grow"></div>
+<!-- Ghost/Tertiary -->
+<button class="h-10 px-4 text-slate-600 rounded font-data-tabular text-sm font-medium hover:bg-slate-100 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">person_add</span>
+                                Add Human Finding
+                            </button>
+</div>
+</div>
+</div>
+<!-- Contextual Reference Images (Optional filler for high-fidelity feel) -->
+<div class="mt-8">
+<h4 class="font-title-sm text-sm text-secondary mb-3">Reference Frames</h4>
+<div class="grid grid-cols-2 gap-4">
+<div class="rounded border border-slate-200 overflow-hidden shadow-sm">
+<img class="w-full h-32 object-cover" data-alt="A cinematic still frame from a movie showing a medium close up of a woman named Lucy looking over her left shoulder in a dimly lit, moody interior living room setup. The lighting is dramatic and naturalistic, consistent with a high-end dramatic television series. Shot on a 85mm lens, background blurred." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDit2YfmU3o1bBKHPijPPBSc_FUmWqh4g6fOEoX9RwL0Org6AEdMjxtcaKJz3ieRAA9cur4XskL_cbXd-eQcIlgGOsYOulAp11XzkmZXADCC22fkBUijMX3x9RPKf06iK7oIgy8F_lAN_PClnzobwU2CVADy27na6ByDi_X1Pwu6KC5KExViB54trqmW0Cf3XbQ8LW-RyfBA0Pu1YL0sc-fNhgxxdTTimkhoNuLPfDGmyGj34pd1SVURByrfuhcx86KNiRgns5eRj7T"/>
+<div class="bg-white p-2 text-xs font-data-tabular text-center border-t border-slate-200">SC-018 • Reverse</div>
+</div>
+<div class="rounded border border-slate-200 overflow-hidden shadow-sm opacity-60">
+<img class="w-full h-32 object-cover" data-alt="A cinematic still frame from a movie showing a medium close up of a woman named Sarah looking intensely forward in a slightly brighter interior living room setup. The eyeline appears slightly mismatched compared to standard continuity rules. Shot on a 50mm lens. The aesthetic matches high-end television production." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBA5nJiGulZCy5tXksd0_L01SqXZ_JHzaGqvOHiVOfsHULEyutuKXQx1QMoT9cZYxPUg2x4nbADJ3BeKxkL-xMfKlak44LnNV3Cqjzco5dquXFrljK125m5uG0cHa5YXgwZdTpXUW8lfX8yDb6XMkCy99TVGRcyiLiaAn44613s8y2QMgZzDARrFweK5jhUg15uWJQZODF0oF-yq7V07PT9DuwJLmlbHT_LxuGwrJeQyadllvSgOuDT6U9axHes4IxRYWTAO1DiVUBp"/>
+<div class="bg-white p-2 text-xs font-data-tabular text-center border-t border-slate-200">SC-019 • MCU Sarah (Ref)</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

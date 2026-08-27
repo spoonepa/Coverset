@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Call Sheet Preview</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-high": "#dce9ff",
+                    "tertiary-fixed-dim": "#b4c5ff",
+                    "surface-dim": "#cbdbf5",
+                    "inverse-surface": "#213145",
+                    "on-secondary-fixed": "#1a1c1b",
+                    "on-tertiary": "#ffffff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-tertiary-container": "#8da9ff",
+                    "outline": "#75777d",
+                    "inverse-primary": "#b9c7e0",
+                    "secondary-fixed-dim": "#c7c6c5",
+                    "tertiary": "#00246b",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-primary-fixed": "#0d1c2f",
+                    "error": "#ba1a1a",
+                    "tertiary-container": "#00389a",
+                    "on-error": "#ffffff",
+                    "surface-container-low": "#eff4ff",
+                    "on-secondary-fixed-variant": "#464746",
+                    "on-primary-container": "#9eadc5",
+                    "on-tertiary-fixed": "#00174b",
+                    "on-primary": "#ffffff",
+                    "surface-variant": "#d3e4fe",
+                    "on-background": "#0b1c30",
+                    "on-error-container": "#93000a",
+                    "primary-fixed": "#d5e3fd",
+                    "on-secondary": "#ffffff",
+                    "secondary-container": "#e0dfde",
+                    "outline-variant": "#c5c6cd",
+                    "secondary": "#5e5e5d",
+                    "on-surface": "#0b1c30",
+                    "surface-container": "#e5eeff",
+                    "secondary-fixed": "#e3e2e0",
+                    "tertiary-fixed": "#dbe1ff",
+                    "primary": "#1d2b3e",
+                    "on-primary-fixed-variant": "#3a485c",
+                    "surface-bright": "#f8f9ff",
+                    "primary-fixed-dim": "#b9c7e0",
+                    "on-surface-variant": "#44474c",
+                    "surface": "#f8f9ff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-fixed-variant": "#003ea8",
+                    "background": "#f8f9ff",
+                    "surface-tint": "#515f74",
+                    "error-container": "#ffdad6",
+                    "primary-container": "#334155",
+                    "on-secondary-container": "#626361"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "12px",
+                    "unit": "4px",
+                    "row-height-standard": "40px",
+                    "row-height-dense": "32px",
+                    "container-padding": "24px"
+            },
+            "fontFamily": {
+                    "label-caps": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "data-tabular": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "title-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "display-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "data-tabular": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "title-sm": ["16px", {"lineHeight": "24px", "fontWeight": "600"}]
+            }
+          },
+        }
+      }
+    </script>
+<style>
+        /* Base surface styling */
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        
+        /* Subtle paper texture for scheduling elements */
+        .texture-paper {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+        }
+
+        /* Material Symbols Base Class */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen overflow-x-hidden flex">
+<!-- SideNavBar (Shared Component) -->
+<nav class="bg-surface text-primary font-body-md text-body-md fixed left-0 top-0 h-full w-64 border-r border-outline-variant flex flex-col py-container-padding z-20">
+<div class="px-gutter mb-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">The Glasshouse</h1>
+<p class="font-body-sm text-body-sm text-secondary mt-1">v4 - Active</p>
+</div>
+<ul class="flex-1 flex flex-col gap-1 px-2">
+<!-- Board (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary hover:bg-surface-container transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Board</span>
+</a>
+</li>
+<!-- Scenes (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary hover:bg-surface-container transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="clapperboard">stream_apps</span>
+<span>Scenes</span>
+</a>
+</li>
+<!-- Grounding (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary hover:bg-surface-container transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="anchor">anchor</span>
+<span>Grounding</span>
+</a>
+</li>
+<!-- Replans (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary hover:bg-surface-container transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="rebase_edit">rebase_edit</span>
+<span>Replans</span>
+</a>
+</li>
+<!-- Coverage Review (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary hover:bg-surface-container transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="fact_check">fact_check</span>
+<span>Coverage Review</span>
+</a>
+</li>
+<!-- Call Sheets (Active) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-surface-container transition-colors text-on-primary-fixed-variant font-bold border-r-4 border-primary opacity-80 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="description" data-weight="fill" style="font-variation-settings: 'FILL' 1;">description</span>
+<span>Call Sheets</span>
+</a>
+</li>
+<!-- Audit Log (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary hover:bg-surface-container transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span>Audit Log</span>
+</a>
+</li>
+</ul>
+<div class="px-gutter mt-auto flex items-center gap-3 border-t border-outline-variant pt-4 mx-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-bold text-sm border border-outline">
+                AD
+            </div>
+<span class="font-body-sm text-body-sm text-secondary">Second AD Profile</span>
+</div>
+</nav>
+<!-- TopAppBar (Shared Component) -->
+<header class="bg-surface text-primary font-title-sm text-title-sm fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-outline-variant flex justify-between items-center px-gutter z-10">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-extrabold text-primary">Call Sheet Preview</span><span class="text-body-sm text-secondary ml-3 font-normal">Generated from Schedule v4 after Board Validation</span>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex items-center gap-4">
+<a class="text-secondary hover:text-primary transition-colors" href="#">Day 8 of 20</a>
+<a class="text-primary font-semibold flex items-center gap-1 scale-95 duration-200 bg-surface-container-high px-2 py-1 rounded" href="#">
+<span class="material-symbols-outlined text-[16px]" data-icon="verified">verified</span>
+                    Validated
+                </a>
+<a class="text-secondary hover:text-primary transition-colors" href="#">12 min ago</a>
+</nav>
+<div class="h-6 w-px bg-outline-variant"></div>
+<span class="text-secondary">Second AD</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 mt-16 w-[calc(100%-16rem)] min-h-[calc(100vh-4rem)] p-container-padding bg-surface-bright flex flex-col gap-6">
+<!-- Header Details & Actions Bento -->
+<section class="grid grid-cols-1 lg:grid-cols-4 gap-4 w-full">
+<!-- Title & Core Meta -->
+<div class="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-lg p-6 flex flex-col justify-center">
+<div class="flex items-center gap-3 mb-2">
+<span class="font-label-caps text-label-caps bg-primary text-on-primary px-2 py-1 rounded">LOCKED</span>
+<h2 class="font-headline-md text-headline-md text-primary">Monday, Oct 12</h2>
+</div>
+<div class="flex items-center gap-4 text-secondary font-body-sm text-body-sm mt-1">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="movie">movie</span> The Glasshouse</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="calendar_today">calendar_today</span> Day 8 of 20</span>
+</div>
+</div>
+<!-- Logistics Meta -->
+<div class="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-lg p-6 flex flex-col gap-3 justify-center">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2 text-primary font-data-tabular text-data-tabular">
+<span class="material-symbols-outlined text-tertiary-container" data-icon="routine">routine</span>
+<span>Sunny, High 74°F / Low 58°F</span>
+</div>
+<div class="flex items-center gap-3 text-secondary font-body-sm text-body-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]" data-icon="light_mode">light_mode</span> 7:04 AM</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]" data-icon="dark_mode">dark_mode</span> 6:22 PM</span>
+</div>
+</div>
+<div class="h-px w-full bg-surface-container-high"></div>
+<div class="flex items-start gap-2 text-primary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-error mt-0.5" data-icon="local_hospital">local_hospital</span>
+<span>Huntington Hospital, 100 W California Blvd, Pasadena, CA</span>
+</div>
+</div>
+</section>
+<!-- Core Schedule Grid -->
+<section class="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full">
+<!-- Column 1: General Times & Notes -->
+<div class="xl:col-span-1 flex flex-col gap-6">
+<!-- Section 1: General Times -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden">
+<div class="bg-surface-container-low border-b border-outline-variant px-4 py-2">
+<h3 class="font-title-sm text-title-sm text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="schedule">schedule</span> General Times
+                        </h3>
+</div>
+<div class="p-4 flex flex-col gap-4">
+<div class="flex justify-between items-center pb-3 border-b border-surface-container-high">
+<span class="font-body-md text-body-md text-secondary">Crew Call</span>
+<span class="font-display-lg text-display-lg text-primary">07:00</span>
+</div>
+<div class="flex justify-between items-center pb-3 border-b border-surface-container-high">
+<span class="font-body-md text-body-md text-secondary">Shooting Call</span>
+<span class="font-display-lg text-display-lg text-primary">08:00</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-secondary">Estimated Wrap</span>
+<span class="font-display-lg text-display-lg text-secondary">19:00</span>
+</div>
+</div>
+</div>
+<!-- Section 4 & 5: Notes & Safety (Combined for layout density) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex-1">
+<div class="bg-surface-container-low border-b border-outline-variant px-4 py-2">
+<h3 class="font-title-sm text-title-sm text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="gavel">gavel</span> Logistics &amp; Safety
+                        </h3>
+</div>
+<div class="p-4 flex flex-col gap-4 font-body-sm text-body-sm text-primary">
+<div class="bg-surface-container rounded p-3 border-l-4 border-tertiary-container">
+<p class="font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="pin_drop">pin_drop</span> Location Notes</p>
+<p class="text-secondary">St. Mark's Church. Permit #LA-9921 valid 06:00-22:00. No street parking on south side.</p>
+</div>
+<div class="bg-surface-container rounded p-3 border-l-4 border-primary">
+<p class="font-semibold mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="warning">warning</span> Turnaround &amp; Safety</p>
+<p class="text-secondary">12-hour turnaround for all crew. Stunt coordination for driveway scenes tomorrow.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Column 2 & 3: Scenes & Cast -->
+<div class="xl:col-span-2 flex flex-col gap-6">
+<!-- Section 2: Scenes for the Day -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden">
+<div class="bg-surface-container-low border-b border-outline-variant px-4 py-2 flex justify-between items-center">
+<h3 class="font-title-sm text-title-sm text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="movie_creation">movie_creation</span> Scenes
+                        </h3>
+<span class="font-label-caps text-label-caps text-secondary">1 Scene / 3.4 Pages</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-data-tabular text-data-tabular">
+<thead class="bg-surface border-b-2 border-secondary-container sticky top-0">
+<tr>
+<th class="px-4 py-2 font-medium text-secondary w-16">Sc</th>
+<th class="px-4 py-2 font-medium text-secondary">Set / Description</th>
+<th class="px-4 py-2 font-medium text-secondary w-24">D/N</th>
+<th class="px-4 py-2 font-medium text-secondary w-16">Pgs</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-high">
+<!-- Scene Row with Day/Int styling -->
+<tr class="hover:bg-surface-container-low transition-colors texture-paper border-l-4 border-tertiary-container">
+<td class="px-4 py-3 text-primary font-bold">012</td>
+<td class="px-4 py-3">
+<div class="font-bold text-primary">INT. CHURCH VESTRY</div>
+<div class="font-body-sm text-body-sm text-secondary truncate max-w-md">Elias confronts Sarah about the missing ledger.</div>
+</td>
+<td class="px-4 py-3 text-secondary">DAY</td>
+<td class="px-4 py-3 text-secondary">3.4</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Section 3: Cast Call Times -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex-1">
+<div class="bg-surface-container-low border-b border-outline-variant px-4 py-2">
+<h3 class="font-title-sm text-title-sm text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="groups">groups</span> Cast Call Times
+                        </h3>
+</div>
+<div class="overflow-x-auto p-2">
+<table class="w-full text-left font-data-tabular text-data-tabular border-collapse">
+<thead>
+<tr class="border-b border-outline-variant">
+<th class="px-3 py-2 font-medium text-secondary">Cast Member</th>
+<th class="px-3 py-2 font-medium text-secondary">Role</th>
+<th class="px-3 py-2 font-medium text-secondary text-right bg-surface-container-low rounded-tl">Pickup</th>
+<th class="px-3 py-2 font-medium text-secondary text-right bg-surface-container-low">M/U</th>
+<th class="px-3 py-2 font-medium text-primary text-right bg-surface-container-high rounded-tr font-bold">Set Call</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-high">
+<tr class="hover:bg-surface-container transition-colors">
+<td class="px-3 py-3 text-primary font-medium">Nina Park</td>
+<td class="px-3 py-3 text-secondary">Sarah (1)</td>
+<td class="px-3 py-3 text-secondary text-right bg-surface-container-lowest/50">06:15</td>
+<td class="px-3 py-3 text-secondary text-right bg-surface-container-lowest/50">06:45</td>
+<td class="px-3 py-3 text-primary font-bold text-right bg-surface-container-low/30">07:45</td>
+</tr>
+<tr class="hover:bg-surface-container transition-colors">
+<td class="px-3 py-3 text-primary font-medium">Mateo Reyes</td>
+<td class="px-3 py-3 text-secondary">Elias (2)</td>
+<td class="px-3 py-3 text-secondary text-right bg-surface-container-lowest/50">06:45</td>
+<td class="px-3 py-3 text-secondary text-right bg-surface-container-lowest/50">07:15</td>
+<td class="px-3 py-3 text-primary font-bold text-right bg-surface-container-low/30">08:00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer Actions & Distribution -->
+<section class="mt-auto bg-surface border-t border-outline-variant -mx-container-padding -mb-container-padding p-container-padding flex flex-col sm:flex-row justify-between items-center gap-4">
+<!-- Section 6: Recipients -->
+<div class="flex items-center gap-2 font-body-sm text-body-sm">
+<span class="text-secondary">Viewers (Read-only):</span>
+<div class="flex items-center gap-1 bg-surface-container px-2 py-1 rounded text-primary">
+<span class="material-symbols-outlined text-[14px]" data-icon="send">send</span>
+<span>Cast (3), Crew (42), UPM, Director</span>
+</div>
+</div>
+<!-- Buttons -->
+<div class="flex flex-wrap items-center gap-3">
+<button class="font-title-sm text-title-sm px-4 h-10 rounded border border-outline text-primary hover:bg-surface-container transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="content_copy">content_copy</span>
+                    Copy Call Times
+                </button>
+<button class="font-title-sm text-title-sm px-4 h-10 rounded border border-outline text-primary hover:bg-surface-container transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="picture_as_pdf">picture_as_pdf</span>
+                    Preview PDF
+                </button>
+<button class="font-title-sm text-title-sm px-4 h-10 rounded border border-outline text-primary hover:bg-surface-container transition-colors">
+                    Generate Call Sheet
+                </button>
+<button class="font-title-sm text-title-sm px-6 h-10 rounded bg-primary text-on-primary hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="forward_to_inbox">forward_to_inbox</span>
+                    Send to Cast &amp; Crew
+                </button>
+</div>
+</section>
+</main>
+</body></html>

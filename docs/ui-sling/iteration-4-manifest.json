@@ -1,0 +1,197 @@
+{
+  "generatedAt": "2026-08-26T23:18:59.771Z",
+  "projectId": "9988483262710983263",
+  "visualSource": "docs/ui",
+  "semanticSource": "docs/ui-sling/validation.md + SPEC.md",
+  "screens": [
+    {
+      "key": "01-stripboard-dashboard",
+      "title": "Stripboard dashboard",
+      "screenId": "8bf0bfe64bce4ea2b718052b983985d8",
+      "projectId": "9988483262710983263",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzBiZTY3MmI1NTU0OTQ5MzBhODE5NjcyNjk1MWY2M2JjEgsSBxCkwrS7kR0YAZIBIwoKcHJvamVjdF9pZBIVQhM5OTg4NDgzMjYyNzEwOTgzMjYz&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UkfH6ZutPrTfZSORlcS9cu5GxzjAoL6W0t_xZLMvRjRfL_IuIetOVMG1fjmcawgbrh-2ne0YvISXlHmNlwidALzh4wHa7ZZ7xTbudzfeZ9P6plN21CEi5ei4W6I20-yIJO_NhE0GNVsp5y95DujmM2kGFt1RrigGmaMGm5T3QotT9SDA5n4Rb2GygjfGRWlW7GwlET_1mjqUetHBf2PJPEXVWExxXyjQgzTBAP96m1WOlRQ3PUGApYzz4",
+      "promptPath": "docs/ui-sling/01-stripboard-dashboard.v4.prompt.md",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/01-stripboard-dashboard.v4.html",
+        "bytes": 25405
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/01-stripboard-dashboard.v4.png",
+        "bytes": 58262
+      },
+      "hiResDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/01-stripboard-dashboard.v4.hires.png",
+        "bytes": 354353
+      }
+    },
+    {
+      "key": "02-scene-breakdown-review",
+      "title": "Scene breakdown / review",
+      "screenId": "47cec33ef8f84c2399009c43f7045e29",
+      "projectId": "9988483262710983263",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzkxODY3NDUwMzI3MjRiNDY5ZmRiNmY0MjIxM2QxYWI5EgsSBxCkwrS7kR0YAZIBIwoKcHJvamVjdF9pZBIVQhM5OTg4NDgzMjYyNzEwOTgzMjYz&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VKuuSCO1pR_QxDkuPzQtuErE0SzoU53Px9jkRbQkvAEZ2j3Jdb1rXUGfAeyZPE4c4tj7X8_zo0KcLGZaaKkskwbr7_zTCZbh_ULpTyPOsEiPoPJpFLkrkzaxsTpN2tEDulViC4zuMGGz_phJHO-hEYLQ6E1We5CbPEhljYodIo60Cum8pjk34EZS9Oylz8bUvSdA16pEFFlT44wP8cQ6pf4bUEiCU6X-ILrGL4UsDoX59OKE4aqYvfCgQ",
+      "promptPath": "docs/ui-sling/02-scene-breakdown-review.v4.prompt.md",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/02-scene-breakdown-review.v4.html",
+        "bytes": 25417
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/02-scene-breakdown-review.v4.png",
+        "bytes": 56517
+      },
+      "hiResDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/02-scene-breakdown-review.v4.hires.png",
+        "bytes": 349237
+      }
+    },
+    {
+      "key": "03-replan-options",
+      "title": "Replan option comparison",
+      "screenId": "b3403f855c784be9808a5775112262a8",
+      "projectId": "9988483262710983263",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzYwMWFkMmM4ZDAyYTRjOGFiNjA2M2ZhMjMxNzQzZjU5EgsSBxCkwrS7kR0YAZIBIwoKcHJvamVjdF9pZBIVQhM5OTg4NDgzMjYyNzEwOTgzMjYz&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UXXEsM5p64N8SaC0HGw7VDqlOdcxBKz6App20P9cORAyDLgcBJJ1IyTsxkSbhIr3zGgKiw8SSUHnB8abnvWEjWYWRcu77iCZvXNeUhviijIYW1ZiZ11Bnu1omTV7VmJMF_z10HbRJipshrxvPcuHk1dR6GcRxN2ITgzBHHiphN9CvJAvnVUX3O4biekKaNadV5g2t5HcT_BFFHat1mPiDQIa4niUBvtiGLjV-kmfT0iWplDxoDFQjFpz8",
+      "promptPath": "docs/ui-sling/03-replan-options.v4.prompt.md",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/03-replan-options.v4.html",
+        "bytes": 22990
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/03-replan-options.v4.png",
+        "bytes": 63451
+      },
+      "hiResDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/03-replan-options.v4.hires.png",
+        "bytes": 393940
+      }
+    },
+    {
+      "key": "04-grounded-facts",
+      "title": "Grounded facts / source provenance",
+      "screenId": "4a9c79e056eb4b00b37a9ffc6c7f2ca9",
+      "projectId": "9988483262710983263",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzdhMDA1YTI0MDNkNjQ3Mjc5ZmQ3OWZhZmQ2MTg1YzE2EgsSBxCkwrS7kR0YAZIBIwoKcHJvamVjdF9pZBIVQhM5OTg4NDgzMjYyNzEwOTgzMjYz&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1U6P9XPzd1jM2u8Rm7SWtdRVxF4gB7LAtJ7rxjBlTbzTKQYxqqUSDCWZJ92f4DbMOcBW3SaNZ7H9ArpMazJF4wk1H4OieG-XkDpV1Hr0d7orsog8X2BWT3T8kBLKo--Nhhb3hnKcuOx9xI7xVhWBMeJVs7iFu4f13g9RI2fKjIJZtnhcGs373OKED8ZmHu4gejmo0oNMvzggH2fWiuDlX_o5BL5xKZ0lI3qc7cWK503M3euJscf7DV5fA4",
+      "promptPath": "docs/ui-sling/04-grounded-facts.v4.prompt.md",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/04-grounded-facts.v4.html",
+        "bytes": 21028
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/04-grounded-facts.v4.png",
+        "bytes": 69566
+      },
+      "hiResDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/04-grounded-facts.v4.hires.png",
+        "bytes": 433373
+      }
+    },
+    {
+      "key": "05-coverage-pickup",
+      "title": "Coverage review / pickup",
+      "screenId": "0da855fec61248c1aec32919b3f9361d",
+      "projectId": "9988483262710983263",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzQyYjc3NDZkZmJiODQ3YTE5ZTZhYzY5OTY5MDgyMTBhEgsSBxCkwrS7kR0YAZIBIwoKcHJvamVjdF9pZBIVQhM5OTg4NDgzMjYyNzEwOTgzMjYz&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1XA7M7xX3lg95JeZ2h5DqNTbuGJFJaJzn0No2CjXswurVi6NQ2qfWy_2I19ebPtYpURkjfoc_Uur6ANoUhYtUQ7Xcz9TOCbWAMV3wCfYy2O4UQ2Zvc5UP4lJmpYE_mlvKP033srLyi6-kod0NX933IZfuVqGhcq5u_p2g9QdqxP7VTGjZkYTcRlW3ntxc0ZIDboqPRA5rCavrnPar4xSlEhtMhbRjSXJtYhXrKq-fT7XYAPtiEkY4EZwFw",
+      "promptPath": "docs/ui-sling/05-coverage-pickup.v4.prompt.md",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/05-coverage-pickup.v4.html",
+        "bytes": 22323
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/05-coverage-pickup.v4.png",
+        "bytes": 59956
+      },
+      "hiResDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/05-coverage-pickup.v4.hires.png",
+        "bytes": 362317
+      }
+    },
+    {
+      "key": "06-call-sheet",
+      "title": "Call sheet preview",
+      "screenId": "f5ffe59d66d5406383bf6ca7bf6f8209",
+      "projectId": "9988483262710983263",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0MGJkODczOWNlYjQzOGZiYWIzMmRkYTBlMjQyZmExEgsSBxCkwrS7kR0YAZIBIwoKcHJvamVjdF9pZBIVQhM5OTg4NDgzMjYyNzEwOTgzMjYz&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UF9SNurUTUS4fOS-DXHW8pu7zAMwDbTatSRAtGguZY-4GU3qrkd11B9vNIhp-VuewDzPmWVDDWy85XpM86jF_rwgRpj9xRBs_ScBE3u788tN8n_WKaLwD-7GoPFJSd15viu7dYYedMR4uWqaM6lEncSe-HjcSXa-HJfMvJa1oVgoHw79BdR3Geonl7vBpeFzLnFhhNNs2r4fLVlagNy7z3W29aRXLwXEPGEFgGT3brpqPOHUbdQweb2w",
+      "promptPath": "docs/ui-sling/06-call-sheet.v4.prompt.md",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/06-call-sheet.v4.html",
+        "bytes": 17579
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/06-call-sheet.v4.png",
+        "bytes": 40465
+      },
+      "hiResDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/06-call-sheet.v4.hires.png",
+        "bytes": 256453
+      }
+    },
+    {
+      "key": "07-audit-log",
+      "title": "Audit log",
+      "screenId": "9eab0e68af324f8baaf58591b288866c",
+      "projectId": "9988483262710983263",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2QyOGZiMDUxZTVmOTQ5MWM5OTg4ZjdhMDIxYmI4MDcwEgsSBxCkwrS7kR0YAZIBIwoKcHJvamVjdF9pZBIVQhM5OTg4NDgzMjYyNzEwOTgzMjYz&filename=&opi=96797242",
+      "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VKqFYv2Jl5I3mFM_wc5LCO-Oz4DtPxD8LXfTxtWs5_R9RmuPlWRrR9L4tW_OChISIgWjl6aUsIbeRf6CBr3mI4axYltX8I9Wl3OH99Rp4DaEL9-g7KAZ3Z9YMTch8lGLznlSJs7s01CUj5oGB3InMC3HL6zTPG63MulHAybKL9E7oue8LX0Hec1LPxhaqaE5JU3aOgEiAQghO15AYk50MHyCbFK1AJwuwYG-VKj3ADznKzdE3CRZzZHyE",
+      "promptPath": "docs/ui-sling/07-audit-log.v4.prompt.md",
+      "htmlDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/07-audit-log.v4.html",
+        "bytes": 20933
+      },
+      "imageDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/07-audit-log.v4.png",
+        "bytes": 63516
+      },
+      "hiResDownload": {
+        "ok": true,
+        "status": 200,
+        "path": "docs/ui-sling/07-audit-log.v4.hires.png",
+        "bytes": 425732
+      }
+    }
+  ]
+}

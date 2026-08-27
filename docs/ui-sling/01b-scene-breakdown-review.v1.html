@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coverset - Scene Breakdown / Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container": "#e5eeff",
+                        "inverse-surface": "#213145",
+                        "surface": "#f8f9ff",
+                        "outline-variant": "#c5c6cd",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#8da9ff",
+                        "on-tertiary-fixed-variant": "#003ea8",
+                        "tertiary-container": "#00389a",
+                        "outline": "#75777d",
+                        "on-error-container": "#93000a",
+                        "on-surface-variant": "#44474c",
+                        "on-secondary-fixed": "#1a1c1b",
+                        "surface-container-low": "#eff4ff",
+                        "secondary-container": "#e0dfde",
+                        "inverse-primary": "#b9c7e0",
+                        "surface-container-high": "#dce9ff",
+                        "primary": "#1d2b3e",
+                        "surface-container-highest": "#d3e4fe",
+                        "secondary": "#5e5e5d",
+                        "tertiary": "#00246b",
+                        "primary-fixed": "#d5e3fd",
+                        "on-error": "#ffffff",
+                        "on-primary-container": "#9eadc5",
+                        "on-secondary-container": "#626361",
+                        "surface-variant": "#d3e4fe",
+                        "primary-container": "#334155",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#f8f9ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "background": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "secondary-fixed-dim": "#c7c6c5",
+                        "surface-tint": "#515f74",
+                        "on-primary-fixed": "#0d1c2f",
+                        "surface-dim": "#cbdbf5",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed-dim": "#b4c5ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#3a485c",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#e3e2e0",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed": "#00174b",
+                        "on-secondary-fixed-variant": "#464746",
+                        "primary-fixed-dim": "#b9c7e0",
+                        "tertiary-fixed": "#dbe1ff",
+                        "on-background": "#0b1c30"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    spacing: {
+                        "container-padding": "24px",
+                        "row-height-standard": "40px",
+                        "gutter": "12px",
+                        "row-height-dense": "32px",
+                        "unit": "4px"
+                    },
+                    fontFamily: {
+                        "title-sm": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "data-tabular": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"]
+                    },
+                    fontSize: {
+                        "title-sm": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "data-tabular": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Specific overrides for style guide requirements */
+        .ai-advisory-border { border-color: #e9d5ff; }
+        .ai-advisory-bg { background-color: #faf5ff; }
+        .ai-advisory-text { color: #9333ea; }
+        
+        .status-badge-active { background-color: #1d2b3e; color: #ffffff; }
+        .status-badge-warning { background-color: #fef3c7; border-color: #f59e0b; color: #b45309; border-width: 1px; }
+        
+        .strip-ext-day { border-left-color: #fcd34d; }
+        .strip-int-night { border-left-color: #3b82f6; }
+        .strip-ext-dusk { border-left-color: #f97316; }
+        .strip-int-day { border-left-color: #fde047; }
+        
+        /* Subtle paper texture for strips */
+        .paper-texture {
+            position: relative;
+        }
+        .paper-texture::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            opacity: 0.02;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+        
+        /* Recessed well area for inactive tracks / backgrounds */
+        .recessed-well {
+            background-color: #f1f5f9;
+            box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface h-screen overflow-hidden flex font-body-md text-body-md">
+<!-- SideNavBar (from JSON) -->
+<nav class="bg-surface dark:bg-inverse-surface fixed left-0 top-0 h-full w-64 border-r border-outline-variant dark:border-outline flex flex-col h-full py-container-padding z-30">
+<div class="px-6 mb-8 flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[20px]">movie</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">The Glasshouse</h1>
+<p class="font-label-caps text-label-caps text-secondary uppercase">v4 - Active</p>
+</div>
+</div>
+<ul class="flex-1 flex flex-col gap-1 px-4">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-title-sm text-title-sm">Board</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-primary-fixed-variant font-bold border-r-4 border-primary dark:border-primary-fixed bg-surface-container-low opacity-80 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">stream_apps</span>
+<span class="font-title-sm text-title-sm">Scenes</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">anchor</span>
+<span class="font-title-sm text-title-sm">Grounding</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">rebase_edit</span>
+<span class="font-title-sm text-title-sm">Replans</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">fact_check</span>
+<span class="font-title-sm text-title-sm">Coverage Review</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-title-sm text-title-sm">Call Sheets</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-title-sm text-title-sm">Audit Log</span>
+</a>
+</li>
+</ul>
+<div class="px-6 mt-auto">
+<div class="flex items-center gap-3">
+<img alt="First AD Profile" class="w-10 h-10 rounded-full border border-outline-variant object-cover" data-alt="A professional headshot of a film crew member wearing a headset on set, natural lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDD9kTqtFy97MxQOclygfSO9fGARl9SDulgD7aBHn1U2kVL95Mxde1QqfknNOber7txOIVRF7daKPQcBW6SkyNuXizLS-paWuYo7jF3Q9axlrMaIG6m1lRKAG2cDG8w0OXB38_UzVvbJofahbRubQwgUkHBrzQzzCHlA0Iz33t1TJ25W7dj7GNhNs437wfAgLsA0sW0wIyt8Cus-k200GHHmOVeSlV435cuAmI4x3wfEqz9bM9r99i-t3skRfAPL7DQ0IBaS95VbyoF"/>
+<div>
+<p class="font-title-sm text-title-sm text-on-surface">Sarah J.</p>
+<p class="font-body-sm text-body-sm text-secondary">First AD</p>
+</div>
+</div>
+</div>
+</nav>
+<!-- TopAppBar (from JSON) -->
+<header class="bg-surface dark:bg-background border-b border-outline-variant dark:border-outline fixed top-0 right-0 w-[calc(100%-16rem)] h-16 flex justify-between items-center px-gutter ml-64 z-20">
+<div class="flex items-center gap-4">
+<h2 class="font-headline-md text-headline-md font-extrabold text-primary dark:text-primary-fixed">Scene Breakdown / Review</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 text-secondary dark:text-secondary-fixed-dim">
+<span class="font-body-sm text-body-sm flex items-center gap-1 hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer"><span class="material-symbols-outlined text-[16px]">calendar_today</span> Day 8 of 20</span>
+<span class="font-body-sm text-body-sm flex items-center gap-1 hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer"><span class="material-symbols-outlined text-[16px]">check_circle</span> Validated</span>
+<span class="font-body-sm text-body-sm flex items-center gap-1 hover:text-primary dark:hover:text-primary-fixed transition-colors cursor-pointer"><span class="material-symbols-outlined text-[16px]">sync</span> 12 min ago</span>
+</div>
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full h-8 pl-9 pr-3 bg-surface-container-lowest border border-outline-variant rounded font-body-sm text-body-sm text-on-surface focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 transition-all outline-none" placeholder="Search scenes..." type="text"/>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 mt-16 flex h-[calc(100vh-4rem)] overflow-hidden bg-surface-container-low recessed-well">
+<!-- Left Pane: Data Grid -->
+<div class="flex-1 overflow-y-auto bg-surface-container-lowest border-r border-outline-variant flex flex-col relative">
+<!-- Sticky Header -->
+<div class="sticky top-0 bg-surface-container-lowest z-10 border-b-2 border-outline-variant grid grid-cols-[80px_1fr_60px_2fr_1.5fr_1fr_120px] gap-4 px-4 py-3 font-label-caps text-label-caps text-secondary uppercase tracking-wider items-center shadow-sm">
+<div>Scene ID</div>
+<div>Slugline</div>
+<div class="text-center">8ths</div>
+<div>Cast</div>
+<div>Location</div>
+<div>Flags</div>
+<div class="text-right">Status</div>
+</div>
+<!-- Rows -->
+<div class="flex flex-col">
+<!-- Row 1: SC-003 -->
+<div class="grid grid-cols-[80px_1fr_60px_2fr_1.5fr_1fr_120px] gap-4 px-4 py-3 items-center border-b border-outline-variant hover:bg-surface-container-low transition-colors bg-surface-container-lowest paper-texture border-l-[5px] strip-int-night">
+<div class="font-data-tabular text-data-tabular text-on-surface-variant">SC-003</div>
+<div class="font-title-sm text-title-sm text-on-surface truncate">INT. GLASSHOUSE KITCHEN — NIGHT</div>
+<div class="font-data-tabular text-data-tabular text-on-surface-variant text-center">4/8</div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">Elias, Martha</div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">Glasshouse Main</div>
+<div class="flex gap-1 flex-wrap"></div>
+<div class="flex justify-end">
+<span class="status-badge-active font-label-caps text-label-caps px-2 py-1 rounded">ACTIVE</span>
+</div>
+</div>
+<!-- Row 2: SC-007 -->
+<div class="grid grid-cols-[80px_1fr_60px_2fr_1.5fr_1fr_120px] gap-4 px-4 py-3 items-center border-b border-outline-variant hover:bg-surface-container-low transition-colors bg-surface-container-lowest paper-texture border-l-[5px] strip-ext-day">
+<div class="font-data-tabular text-data-tabular text-on-surface-variant">SC-007</div>
+<div class="font-title-sm text-title-sm text-on-surface truncate">EXT. CHURCH COURTYARD — DAY</div>
+<div class="font-data-tabular text-data-tabular text-on-surface-variant text-center">1 2/8</div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">Sarah, Extras (20)</div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">St. Jude's Exterior</div>
+<div class="flex gap-1 flex-wrap">
+<span class="bg-surface-container-high text-on-surface-variant font-label-caps text-label-caps px-1.5 py-0.5 rounded border border-outline-variant">EXTRAS</span>
+</div>
+<div class="flex justify-end">
+<span class="status-badge-active font-label-caps text-label-caps px-2 py-1 rounded">ACTIVE</span>
+</div>
+</div>
+<!-- Row 3: SC-012 -->
+<div class="grid grid-cols-[80px_1fr_60px_2fr_1.5fr_1fr_120px] gap-4 px-4 py-3 items-center border-b border-outline-variant hover:bg-surface-container-low transition-colors bg-surface-container-lowest paper-texture border-l-[5px] strip-int-day">
+<div class="font-data-tabular text-data-tabular text-on-surface-variant">SC-012</div>
+<div class="font-title-sm text-title-sm text-on-surface truncate">INT. CHURCH VESTRY — DAY</div>
+<div class="font-data-tabular text-data-tabular text-on-surface-variant text-center">6/8</div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">Father Thomas, Elias</div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">St. Jude's Interior</div>
+<div class="flex gap-1 flex-wrap"></div>
+<div class="flex justify-end">
+<span class="status-badge-active font-label-caps text-label-caps px-2 py-1 rounded">ACTIVE</span>
+</div>
+</div>
+<!-- Row 4: SC-014 (Candidate) -->
+<div class="grid grid-cols-[80px_1fr_60px_2fr_1.5fr_1fr_120px] gap-4 px-4 py-3 items-center border-b border-outline-variant hover:bg-surface-container-low transition-colors bg-surface-container-lowest paper-texture border-l-[5px] strip-ext-dusk">
+<div class="font-data-tabular text-data-tabular text-on-surface-variant">SC-014</div>
+<div class="font-title-sm text-title-sm text-on-surface truncate flex items-center gap-2">
+                        EXT. GLASSHOUSE DRIVEWAY — DUSK
+                        <span class="material-symbols-outlined ai-advisory-text text-[16px]" style="font-variation-settings: 'FILL' 1;">temp_preferences_custom</span>
+</div>
+<div class="font-data-tabular text-data-tabular text-on-surface-variant text-center">2/8</div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">Elias (Stunt Dbl)</div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">Glasshouse Ext</div>
+<div class="flex gap-1 flex-wrap">
+<span class="bg-error-container text-on-error-container font-label-caps text-label-caps px-1.5 py-0.5 rounded border border-[#fca5a5]">STUNT</span>
+</div>
+<div class="flex justify-end">
+<div class="flex flex-col items-end gap-1">
+<span class="ai-advisory-bg ai-advisory-text ai-advisory-border border font-label-caps text-label-caps px-2 py-1 rounded flex items-center gap-1">
+                                CANDIDATE (82%)
+                            </span>
+<span class="text-[10px] uppercase font-bold text-secondary">Needs Review</span>
+</div>
+</div>
+</div>
+<!-- Row 5: SC-018 -->
+<div class="grid grid-cols-[80px_1fr_60px_2fr_1.5fr_1fr_120px] gap-4 px-4 py-3 items-center border-b border-outline-variant hover:bg-surface-container-low transition-colors bg-surface-container-lowest paper-texture border-l-[5px] strip-int-night">
+<div class="font-data-tabular text-data-tabular text-on-surface-variant">SC-018</div>
+<div class="font-title-sm text-title-sm text-on-surface truncate">INT. GLASSHOUSE HALLWAY — NIGHT</div>
+<div class="font-data-tabular text-data-tabular text-on-surface-variant text-center">1/8</div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">Sarah</div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">Glasshouse Main</div>
+<div class="flex gap-1 flex-wrap">
+<span class="bg-surface-container-high text-on-surface-variant font-label-caps text-label-caps px-1.5 py-0.5 rounded border border-outline-variant">VFX</span>
+</div>
+<div class="flex justify-end">
+<span class="status-badge-active font-label-caps text-label-caps px-2 py-1 rounded">ACTIVE</span>
+</div>
+</div>
+<!-- Row 6: SC-021 (Selected, Candidate with Warning) -->
+<div class="grid grid-cols-[80px_1fr_60px_2fr_1.5fr_1fr_120px] gap-4 px-4 py-3 items-center border-b border-[#0ea5e9] bg-[#f0f9ff] transition-colors paper-texture border-l-[5px] strip-ext-day relative">
+<!-- Selection Indicator -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-[#0ea5e9]"></div>
+<div class="font-data-tabular text-data-tabular text-on-surface-variant pl-1">SC-021</div>
+<div class="font-title-sm text-title-sm text-on-surface truncate flex items-center gap-2">
+                        EXT. CHURCH STEPS — DAY
+                        <span class="material-symbols-outlined ai-advisory-text text-[16px]" style="font-variation-settings: 'FILL' 1;">temp_preferences_custom</span>
+</div>
+<div class="font-data-tabular text-data-tabular text-on-surface-variant text-center">3/8</div>
+<div class="font-body-md text-body-md text-error flex items-center gap-1 truncate font-medium">
+<span class="material-symbols-outlined text-[16px] text-error">warning</span> Unresolved Cast
+                    </div>
+<div class="font-body-md text-body-md text-on-surface-variant truncate">Church Steps</div>
+<div class="flex gap-1 flex-wrap"></div>
+<div class="flex justify-end">
+<div class="flex flex-col items-end gap-1">
+<span class="ai-advisory-bg ai-advisory-text ai-advisory-border border font-label-caps text-label-caps px-2 py-1 rounded flex items-center gap-1">
+                                CANDIDATE (65%)
+                            </span>
+<span class="text-[10px] uppercase font-bold text-error">Needs Decision</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Pane: Inspector Panel -->
+<div class="w-96 bg-surface-bright border-l border-outline-variant flex flex-col h-full shadow-[-4px_0_15px_rgba(0,0,0,0.03)] z-10 relative">
+<!-- Inspector Header -->
+<div class="px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest sticky top-0 z-10">
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">Scene Details</h3>
+<button class="text-secondary hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Inspector Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-6 flex flex-col gap-6 bg-surface-bright">
+<!-- AI Advisory Banner -->
+<div class="ai-advisory-bg ai-advisory-border border rounded-xl p-4 flex flex-col gap-3 relative overflow-hidden shadow-sm">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined ai-advisory-text" style="font-variation-settings: 'FILL' 1;">temp_preferences_custom</span>
+<span class="font-title-sm text-title-sm ai-advisory-text font-bold">Gemini Advisory</span>
+</div>
+<span class="bg-surface-container text-primary font-label-caps text-label-caps px-2 py-1 rounded-md font-bold border border-outline-variant">65% CONFIDENCE</span>
+</div>
+<div class="bg-white/60 p-3 rounded-lg border border-white">
+<p class="font-body-sm text-body-sm text-on-surface-variant italic mb-2">
+                            "Ambiguous cast reference: 'The crowd' may include Lucy based on previous scene continuity."
+                        </p>
+<p class="font-label-caps text-label-caps text-secondary flex items-center gap-1 mt-2 border-t border-outline-variant/30 pt-2">
+<span class="material-symbols-outlined text-[14px]">picture_as_pdf</span>
+                            Extracted from script.pdf, page 42
+                        </p>
+</div>
+</div>
+<!-- Field: Slugline -->
+<div>
+<label class="block font-label-caps text-label-caps text-secondary uppercase mb-1">Slugline</label>
+<div class="font-title-sm text-title-sm text-on-surface bg-surface-container-lowest border border-outline-variant rounded p-2 flex items-center">
+<div class="w-1.5 h-full bg-[#fcd34d] mr-2 self-stretch rounded-full"></div>
+                        SC-021: EXT. CHURCH STEPS — DAY
+                    </div>
+</div>
+<!-- Field: Location -->
+<div>
+<label class="block font-label-caps text-label-caps text-secondary uppercase mb-1">Location / Set</label>
+<div class="font-body-md text-body-md text-on-surface bg-surface-container-lowest border border-outline-variant rounded p-2 flex justify-between items-center">
+<span>Church Steps</span>
+<button class="text-primary hover:bg-surface-container p-1 rounded transition-colors" title="Edit Location">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+</div>
+<button class="mt-2 w-full bg-white border border-outline-variant text-primary font-title-sm text-title-sm py-1.5 rounded-md hover:bg-surface-container transition-colors flex items-center justify-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">location_searching</span> Resolve Location
+                    </button>
+</div>
+<!-- Field: Cast (Warning State) -->
+<div class="status-badge-warning rounded-lg p-3 relative">
+<div class="flex justify-between items-start mb-2">
+<label class="block font-label-caps text-label-caps text-[#92400e] uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">error</span> Cast Members
+                        </label>
+<span class="bg-[#92400e] text-white font-label-caps text-label-caps px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider">Blocks Solving</span>
+</div>
+<div class="bg-white/80 border border-[#fcd34d] rounded p-2 mb-2">
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container-high text-on-surface text-body-sm px-2 py-1 rounded flex items-center gap-1 border border-outline-variant">Sarah</span>
+<span class="bg-surface-container-high text-on-surface text-body-sm px-2 py-1 rounded flex items-center gap-1 border border-outline-variant">Elias</span>
+<span class="bg-[#fee2e2] text-error text-body-sm px-2 py-1 rounded border border-[#fca5a5] flex items-center gap-1 font-medium border-dashed">
+                                ? Unresolved (Lucy)
+                            </span>
+</div>
+</div>
+<button class="w-full bg-white border border-[#d97706] text-[#b45309] font-title-sm text-title-sm py-1.5 rounded-md hover:bg-[#fffbeb] transition-colors flex items-center justify-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">person_search</span> Resolve Cast Discrepancy
+                    </button>
+</div>
+<!-- Field: Page 8ths & Flags -->
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block font-label-caps text-label-caps text-secondary uppercase mb-1">Page 8ths</label>
+<div class="font-data-tabular text-data-tabular text-on-surface bg-surface-container-lowest border border-outline-variant rounded p-2 text-center">
+                            3/8
+                        </div>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-secondary uppercase mb-1">Flags</label>
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-2 h-[38px] flex items-center justify-center text-secondary text-body-sm italic">
+                            No Flags
+                        </div>
+</div>
+</div>
+</div>
+<!-- Inspector Actions (Sticky Footer) -->
+<div class="p-6 border-t border-outline-variant bg-surface-container-lowest sticky bottom-0 z-10 flex flex-col gap-3 shadow-[0_-4px_15px_rgba(0,0,0,0.03)]">
+<div class="bg-[#fef2f2] border border-[#fecaca] p-3 rounded-lg mb-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-error text-[18px] mt-0.5">info</span>
+<p class="text-body-sm font-body-sm text-error leading-tight">Human validation required before this scene can be scheduled by the solver.</p>
+</div>
+<button class="bg-primary text-on-primary w-full py-2.5 rounded-lg font-title-sm text-title-sm shadow-sm hover:bg-primary-fixed-variant transition-colors flex justify-center items-center gap-2 opacity-50 cursor-not-allowed" disabled="" title="Resolve warnings first">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    Accept Scene Record
+                </button>
+<div class="grid grid-cols-2 gap-2 mt-1">
+<button class="border border-outline-variant text-on-surface-variant font-title-sm text-title-sm py-2 rounded-lg hover:bg-surface-container transition-colors flex justify-center items-center">
+                        Reject Candidate
+                    </button>
+<button class="border border-outline-variant text-on-surface-variant font-title-sm text-title-sm py-2 rounded-lg hover:bg-surface-container transition-colors flex justify-center items-center">
+                        Send to Review
+                    </button>
+</div>
+<button class="text-secondary font-title-sm text-title-sm py-2 hover:bg-surface-container rounded-lg w-full text-center mt-1 flex justify-center items-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[18px]">build</span>
+                    Convert to Work Item
+                </button>
+</div>
+</div>
+</main>
+</body></html>

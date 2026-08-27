@@ -3,9 +3,17 @@
 Seven screens generated through the Stitch **MCP server**, project
 `13355501855075038394`, from `../../STITCH_PROMPT.md`.
 
-A second, independent set exists in `docs/ui-sling/`, generated through
-`@google/stitch-sdk` across three iteration passes. Neither supersedes the other —
-`docs/ui-sling/validation.md` has its own reference table and review notes.
+A second set exists in `docs/ui-sling/`, generated through `@google/stitch-sdk`.
+**`docs/ui-sling` is the implementation-reference baseline** and its screens carry the
+darker, denser style these ones established.
+
+Read that as a statement about which directory is maintained, not about which one was
+more correct. The v4 restyle dropped four provenance elements these screens had —
+date-coverage proof and the refusal case, excerpt fallback, grounding conflict, and the
+constraint snapshot hash — along with the call/wrap windows `OUT-003` requires. They
+have since been restored there; see `docs/ui-sling/validation.md` for what changed and
+`scripts/check_ui_reference.py` for what is now enforced. Where the two disagree on
+product semantics, check against `SPEC.md` rather than assuming either is right.
 
 ## Screens
 

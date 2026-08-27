@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Audit Log - The Glasshouse</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-primary-fixed-variant": "#3a485c",
+                      "on-primary": "#ffffff",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-tertiary": "#ffffff",
+                      "secondary-container": "#e0dfde",
+                      "surface-tint": "#515f74",
+                      "on-tertiary-fixed-variant": "#003ea8",
+                      "secondary": "#5e5e5d",
+                      "on-error": "#ffffff",
+                      "surface-container-high": "#dce9ff",
+                      "on-error-container": "#93000a",
+                      "on-tertiary-fixed": "#00174b",
+                      "on-primary-container": "#9eadc5",
+                      "surface-variant": "#d3e4fe",
+                      "surface-dim": "#cbdbf5",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-container": "#8da9ff",
+                      "tertiary": "#00246b",
+                      "inverse-surface": "#213145",
+                      "surface-container-low": "#eff4ff",
+                      "inverse-primary": "#b9c7e0",
+                      "outline": "#75777d",
+                      "background": "#f8f9ff",
+                      "tertiary-container": "#00389a",
+                      "surface-container": "#e5eeff",
+                      "primary-fixed": "#d5e3fd",
+                      "surface-bright": "#f8f9ff",
+                      "on-surface": "#0b1c30",
+                      "primary": "#1d2b3e",
+                      "tertiary-fixed": "#dbe1ff",
+                      "secondary-fixed": "#e3e2e0",
+                      "outline-variant": "#c5c6cd",
+                      "secondary-fixed-dim": "#c7c6c5",
+                      "primary-fixed-dim": "#b9c7e0",
+                      "error-container": "#ffdad6",
+                      "on-secondary-fixed": "#1a1c1b",
+                      "on-secondary-fixed-variant": "#464746",
+                      "tertiary-fixed-dim": "#b4c5ff",
+                      "surface": "#f8f9ff",
+                      "on-surface-variant": "#44474c",
+                      "on-secondary": "#ffffff",
+                      "on-secondary-container": "#626361",
+                      "error": "#ba1a1a",
+                      "primary-container": "#334155",
+                      "on-background": "#0b1c30",
+                      "on-primary-fixed": "#0d1c2f"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "row-height-dense": "32px",
+                      "container-padding": "24px",
+                      "unit": "4px",
+                      "row-height-standard": "40px",
+                      "gutter": "12px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "title-sm": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "data-tabular": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "label-caps": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "title-sm": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "30px",
+                              {
+                                      "lineHeight": "38px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "data-tabular": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .paper-texture {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+        }
+        .tabular-nums {
+            font-feature-settings: "tnum";
+            font-variant-numeric: tabular-nums;
+        }
+        
+        /* Thin scrollbar for dense data table */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #c5c6cd; /* outline-variant */
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md overflow-hidden selection:bg-primary-fixed selection:text-on-primary-fixed h-screen w-screen flex">
+<!-- SideNavBar -->
+<nav class="bg-surface dark:bg-inverse-surface border-r border-outline-variant dark:border-outline fixed left-0 top-0 h-full w-64 flex flex-col h-full py-container-padding z-20 shrink-0">
+<!-- Header / Brand -->
+<div class="px-container-padding mb-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed tracking-tight">The Glasshouse</h1>
+<p class="text-secondary dark:text-secondary-fixed-dim text-sm mt-1">v4 - Active</p>
+</div>
+<!-- Navigation Links -->
+<ul class="flex-1 space-y-1 px-3 overflow-y-auto custom-scrollbar">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors" data-icon="dashboard">dashboard</span>
+<span class="font-medium group-hover:text-primary transition-colors">Board</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors" data-icon="clapperboard">stream_apps</span>
+<span class="font-medium group-hover:text-primary transition-colors">Scenes</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors" data-icon="anchor">anchor</span>
+<span class="font-medium group-hover:text-primary transition-colors">Grounding</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors" data-icon="rebase_edit">rebase_edit</span>
+<span class="font-medium group-hover:text-primary transition-colors">Replans</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors" data-icon="fact_check">fact_check</span>
+<span class="font-medium group-hover:text-primary transition-colors">Coverage Review</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors" data-icon="description">description</span>
+<span class="font-medium group-hover:text-primary transition-colors">Call Sheets</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container text-on-primary-fixed-variant font-bold border-r-4 border-primary dark:border-primary-fixed active:opacity-80 duration-150" href="#">
+<span class="material-symbols-outlined text-primary" data-icon="history" style="font-variation-settings: 'FILL' 1;">history</span>
+<span class="font-semibold text-primary">Audit Log</span>
+</a>
+</li>
+</ul>
+<!-- Footer / User Profile -->
+<div class="mt-auto px-container-padding pt-4 border-t border-outline-variant dark:border-outline">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-bold text-sm shrink-0 border border-outline-variant">
+                    1AD
+                </div>
+<div class="flex flex-col truncate">
+<span class="text-sm font-semibold text-primary truncate">First AD Profile</span>
+<span class="text-xs text-secondary truncate">Production</span>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 ml-64 flex flex-col h-screen relative bg-surface-container-lowest">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-background border-b border-outline-variant dark:border-outline fixed top-0 right-0 w-[calc(100%-16rem)] h-row-height-standard flex justify-between items-center px-gutter z-10">
+<!-- Left: Breadcrumbs / Context -->
+<div class="flex items-center gap-2">
+<span class="text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-primary-fixed transition-colors font-title-sm text-title-sm cursor-pointer active:scale-95 duration-200">Day 8 of 20</span>
+<span class="text-outline-variant material-symbols-outlined text-sm">chevron_right</span>
+<span class="text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-primary-fixed transition-colors font-title-sm text-title-sm cursor-pointer active:scale-95 duration-200">Validated</span>
+<span class="text-outline-variant material-symbols-outlined text-sm">chevron_right</span>
+<span class="text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-primary-fixed transition-colors font-title-sm text-title-sm cursor-pointer active:scale-95 duration-200">12 min ago</span>
+</div>
+<!-- Right: Search & Actions -->
+<div class="flex items-center gap-4">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-secondary text-sm group-focus-within:text-tertiary transition-colors">search</span>
+<input class="h-8 pl-8 pr-3 bg-surface-container-lowest border border-outline-variant rounded-md text-sm focus:outline-none focus:border-tertiary focus:ring-1 focus:ring-tertiary w-48 transition-all placeholder:text-secondary" placeholder="Search logs..." type="text"/>
+</div>
+<div class="h-4 w-px bg-outline-variant"></div>
+<button class="flex items-center gap-2 text-sm font-semibold text-primary hover:bg-surface-container px-2 py-1 rounded transition-colors">
+<span class="material-symbols-outlined text-sm">person</span>
+                    First AD
+                </button>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 mt-row-height-standard overflow-hidden flex flex-col p-container-padding bg-surface-container-lowest paper-texture relative z-0">
+<!-- Page Header & Filter Bar -->
+<div class="mb-6 flex items-end justify-between shrink-0">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-1">System Audit Log</h2>
+<p class="text-secondary font-body-sm text-body-sm">Immutable ledger of all system decisions, AI inferences, and human approvals.</p>
+</div>
+<div class="flex gap-2">
+<button class="h-row-height-standard px-3 flex items-center gap-2 border border-outline-variant bg-surface rounded-md text-sm font-medium hover:bg-surface-container transition-colors text-on-surface">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+                        Actor
+                        <span class="material-symbols-outlined text-[16px] text-secondary">arrow_drop_down</span>
+</button>
+<button class="h-row-height-standard px-3 flex items-center gap-2 border border-outline-variant bg-surface rounded-md text-sm font-medium hover:bg-surface-container transition-colors text-on-surface">
+<span class="material-symbols-outlined text-sm">category</span>
+                        Event Type
+                        <span class="material-symbols-outlined text-[16px] text-secondary">arrow_drop_down</span>
+</button>
+<button class="h-row-height-standard px-3 flex items-center gap-2 border border-outline-variant bg-surface rounded-md text-sm font-medium hover:bg-surface-container transition-colors text-on-surface">
+<span class="material-symbols-outlined text-sm">download</span>
+                        Export CSV
+                    </button>
+</div>
+</div>
+<!-- Data Grid Container -->
+<div class="flex-1 bg-surface border border-outline-variant rounded-lg overflow-hidden flex flex-col shadow-sm">
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 bg-surface-container-low border-b-2 border-outline-variant text-label-caps font-label-caps text-secondary uppercase tracking-wider shrink-0">
+<div class="col-span-2">Timestamp</div>
+<div class="col-span-2">Actor / System</div>
+<div class="col-span-4">Event Description</div>
+<div class="col-span-2">Artifact ID</div>
+<div class="col-span-2 text-right">Status</div>
+</div>
+<!-- Table Body -->
+<div class="flex-1 overflow-y-auto custom-scrollbar bg-surface divide-y divide-surface-container-highest">
+<!-- Row 1 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-surface-container-lowest transition-colors group">
+<div class="col-span-2 font-data-tabular text-data-tabular tabular-nums text-on-surface-variant">
+                            10:42:05 AM
+                        </div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-tertiary">search</span>
+<span class="font-medium text-sm text-on-surface">Parallel Search</span>
+</div>
+<div class="col-span-4 text-sm text-on-surface truncate pr-4">
+                            Search called for weather, Apr 18
+                        </div>
+<div class="col-span-2">
+<span class="inline-flex px-2 py-0.5 rounded bg-surface-container border border-outline-variant text-xs font-mono text-primary cursor-pointer hover:bg-inverse-primary transition-colors">SCH-092</span>
+</div>
+<div class="col-span-2 flex justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-[10px] font-bold text-emerald-800 uppercase tracking-wide">
+                                SUCCESS
+                            </span>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-surface-container-lowest transition-colors group">
+<div class="col-span-2 font-data-tabular text-data-tabular tabular-nums text-on-surface-variant">
+                            10:43:12 AM
+                        </div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-tertiary">article</span>
+<span class="font-medium text-sm text-on-surface">Parallel Extract</span>
+</div>
+<div class="col-span-4 text-sm text-on-surface truncate pr-4">
+                            Retrieved full content from weather.gov
+                        </div>
+<div class="col-span-2">
+<span class="inline-flex px-2 py-0.5 rounded bg-surface-container border border-outline-variant text-xs font-mono text-primary cursor-pointer hover:bg-inverse-primary transition-colors">EXT-441</span>
+</div>
+<div class="col-span-2 flex justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-[10px] font-bold text-blue-800 uppercase tracking-wide">
+                                GROUNDED
+                            </span>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-surface-container-lowest transition-colors group bg-purple-50/30 border-l-2 border-l-indigo-400">
+<div class="col-span-2 font-data-tabular text-data-tabular tabular-nums text-on-surface-variant">
+                            10:43:45 AM
+                        </div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-indigo-600">auto_awesome</span>
+<span class="font-medium text-sm text-indigo-900">Gemini Constraint Agent</span>
+</div>
+<div class="col-span-4 text-sm text-on-surface truncate pr-4 border border-purple-200/50 bg-purple-50/50 px-2 py-1 rounded inline-block w-fit max-w-full">
+                            Typed candidate value for Precip_Prob: 85%
+                        </div>
+<div class="col-span-2">
+<span class="inline-flex px-2 py-0.5 rounded bg-surface-container border border-outline-variant text-xs font-mono text-primary cursor-pointer hover:bg-inverse-primary transition-colors">CAND-085</span>
+</div>
+<div class="col-span-2 flex justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-100 border border-indigo-400 text-[10px] font-bold text-indigo-900 uppercase tracking-wide shadow-sm">
+                                CANDIDATE
+                            </span>
+</div>
+</div>
+<!-- Row 4 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-surface-container-lowest transition-colors group">
+<div class="col-span-2 font-data-tabular text-data-tabular tabular-nums text-on-surface-variant">
+                            10:44:00 AM
+                        </div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-amber-600">rule</span>
+<span class="font-medium text-sm text-on-surface">Policy Engine</span>
+</div>
+<div class="col-span-4 text-sm text-on-surface truncate pr-4">
+                            Constraint CON-WEA-014 activated (Rain risk)
+                        </div>
+<div class="col-span-2">
+<span class="inline-flex px-2 py-0.5 rounded bg-surface-container border border-outline-variant text-xs font-mono text-primary cursor-pointer hover:bg-inverse-primary transition-colors">CON-014</span>
+</div>
+<div class="col-span-2 flex justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 border border-amber-400 text-[10px] font-bold text-amber-900 uppercase tracking-wide">
+                                ACTIVE
+                            </span>
+</div>
+</div>
+<!-- Row 5 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-surface-container-lowest transition-colors group">
+<div class="col-span-2 font-data-tabular text-data-tabular tabular-nums text-on-surface-variant">
+                            10:45:30 AM
+                        </div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-blue-600">memory</span>
+<span class="font-medium text-sm text-on-surface">CP-SAT Solver</span>
+</div>
+<div class="col-span-4 text-sm text-on-surface truncate pr-4">
+                            Board v5 generated; 42 constraints satisfied
+                        </div>
+<div class="col-span-2">
+<span class="inline-flex px-2 py-0.5 rounded bg-surface-container border border-outline-variant text-xs font-mono text-primary cursor-pointer hover:bg-inverse-primary transition-colors">SOL-V5</span>
+</div>
+<div class="col-span-2 flex justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 border border-blue-300 text-[10px] font-bold text-blue-800 uppercase tracking-wide">
+                                GENERATED
+                            </span>
+</div>
+</div>
+<!-- Row 6 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-surface-container-lowest transition-colors group">
+<div class="col-span-2 font-data-tabular text-data-tabular tabular-nums text-on-surface-variant">
+                            10:45:35 AM
+                        </div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-emerald-600">verified_user</span>
+<span class="font-medium text-sm text-on-surface">Independent Validator</span>
+</div>
+<div class="col-span-4 text-sm text-on-surface truncate pr-4">
+                            Board v5 independently validated
+                        </div>
+<div class="col-span-2">
+<span class="inline-flex px-2 py-0.5 rounded bg-surface-container border border-outline-variant text-xs font-mono text-primary cursor-pointer hover:bg-inverse-primary transition-colors">VAL-V5</span>
+</div>
+<div class="col-span-2 flex justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-400 text-[10px] font-bold text-emerald-800 uppercase tracking-wide">
+                                VALIDATED
+                            </span>
+</div>
+</div>
+<!-- Row 7 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-surface-container-lowest transition-colors group">
+<div class="col-span-2 font-data-tabular text-data-tabular tabular-nums text-on-surface-variant">
+                            11:02:15 AM
+                        </div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-slate-700">person</span>
+<span class="font-medium text-sm text-on-surface">First AD</span>
+</div>
+<div class="col-span-4 text-sm text-on-surface truncate pr-4 font-medium">
+                            Selected Option B: Swap Day 14/15
+                        </div>
+<div class="col-span-2">
+<span class="inline-flex px-2 py-0.5 rounded bg-surface-container border border-outline-variant text-xs font-mono text-primary cursor-pointer hover:bg-inverse-primary transition-colors">DEC-882</span>
+</div>
+<div class="col-span-2 flex justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-600 border border-emerald-700 text-[10px] font-bold text-white uppercase tracking-wide shadow-sm">
+                                DECIDED
+                            </span>
+</div>
+</div>
+<!-- Row 8 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-surface-container-lowest transition-colors group">
+<div class="col-span-2 font-data-tabular text-data-tabular tabular-nums text-on-surface-variant">
+                            11:15:20 AM
+                        </div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-slate-700">person</span>
+<span class="font-medium text-sm text-on-surface">Director</span>
+</div>
+<div class="col-span-4 text-sm text-on-surface truncate pr-4 font-medium">
+                            Requested pickup for SC-018 reverse
+                        </div>
+<div class="col-span-2">
+<span class="inline-flex px-2 py-0.5 rounded bg-surface-container border border-outline-variant text-xs font-mono text-primary cursor-pointer hover:bg-inverse-primary transition-colors">PCK-018</span>
+</div>
+<div class="col-span-2 flex justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-100 border border-indigo-300 text-[10px] font-bold text-indigo-900 uppercase tracking-wide">
+                                AUTHORIZED
+                            </span>
+</div>
+</div>
+<!-- Row 9 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-surface-container-lowest transition-colors group">
+<div class="col-span-2 font-data-tabular text-data-tabular tabular-nums text-on-surface-variant">
+                            11:45:00 AM
+                        </div>
+<div class="col-span-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-slate-700">person</span>
+<span class="font-medium text-sm text-on-surface">UPM / Line Producer</span>
+</div>
+<div class="col-span-4 text-sm text-on-surface truncate pr-4 font-medium">
+                            Approved added shoot day cost ($1,200)
+                        </div>
+<div class="col-span-2">
+<span class="inline-flex px-2 py-0.5 rounded bg-surface-container border border-outline-variant text-xs font-mono text-primary cursor-pointer hover:bg-inverse-primary transition-colors">APP-991</span>
+</div>
+<div class="col-span-2 flex justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-600 border border-emerald-700 text-[10px] font-bold text-white uppercase tracking-wide shadow-sm">
+                                APPROVED
+                            </span>
+</div>
+</div>
+</div>
+<!-- Table Footer / Pagination Placeholder -->
+<div class="py-2 px-4 bg-surface-container-low border-t border-outline-variant flex justify-between items-center text-sm text-secondary shrink-0">
+<span>Showing 9 of 1,024 events</span>
+<div class="flex items-center gap-2">
+<button class="p-1 hover:bg-surface-container rounded transition-colors text-outline-variant hover:text-primary"><span class="material-symbols-outlined text-sm">chevron_left</span></button>
+<span class="font-data-tabular text-data-tabular tabular-nums">1 / 114</span>
+<button class="p-1 hover:bg-surface-container rounded transition-colors text-primary"><span class="material-symbols-outlined text-sm">chevron_right</span></button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

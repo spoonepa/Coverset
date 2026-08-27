@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>09-constraint-entry - The Glasshouse</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary": "#e2c0a4",
+                    "primary-container": "#8292a3",
+                    "primary-fixed": "#d4e4f6",
+                    "on-surface": "#e5e2e1",
+                    "surface-container-lowest": "#0e0e0e",
+                    "surface-container-low": "#1c1b1b",
+                    "primary": "#b8c8da",
+                    "on-error-container": "#ffdad6",
+                    "surface-dim": "#131313",
+                    "outline-variant": "#43474c",
+                    "on-secondary-fixed-variant": "#434655",
+                    "on-tertiary-fixed-variant": "#59422d",
+                    "secondary": "#c3c5d8",
+                    "on-tertiary-fixed": "#291806",
+                    "on-secondary": "#2d303e",
+                    "tertiary-container": "#a98b71",
+                    "surface-variant": "#353534",
+                    "on-secondary-container": "#b2b4c6",
+                    "outline": "#8e9196",
+                    "on-background": "#e5e2e1",
+                    "error": "#ffb4ab",
+                    "tertiary-fixed": "#ffdcbf",
+                    "error-container": "#93000a",
+                    "on-secondary-fixed": "#181b28",
+                    "surface-tint": "#b8c8da",
+                    "inverse-primary": "#50606f",
+                    "on-primary-fixed": "#0d1d2a",
+                    "primary-fixed-dim": "#b8c8da",
+                    "secondary-container": "#434655",
+                    "surface": "#131313",
+                    "on-primary-fixed-variant": "#394857",
+                    "on-error": "#690005",
+                    "on-primary-container": "#1c2b39",
+                    "inverse-on-surface": "#313030",
+                    "tertiary-fixed-dim": "#e2c0a4",
+                    "surface-container-high": "#2a2a2a",
+                    "background": "#131313",
+                    "surface-container": "#201f1f",
+                    "surface-bright": "#393939",
+                    "on-surface-variant": "#c4c7cc",
+                    "on-primary": "#223240",
+                    "surface-container-highest": "#353534",
+                    "secondary-fixed": "#e0e1f4",
+                    "on-tertiary-container": "#392612",
+                    "secondary-fixed-dim": "#c3c5d8",
+                    "on-tertiary": "#412c18",
+                    "inverse-surface": "#e5e2e1"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack_compact": "2px",
+                    "rail_width": "64px",
+                    "card_padding": "12px",
+                    "gutter": "8px",
+                    "panel_gap": "4px"
+            },
+            "fontFamily": {
+                    "label-caps": [
+                            "Hanken Grotesk"
+                    ],
+                    "body-md": [
+                            "Hanken Grotesk"
+                    ],
+                    "headline-lg": [
+                            "Hanken Grotesk"
+                    ],
+                    "data-mono": [
+                            "JetBrains Mono"
+                    ],
+                    "headline-md": [
+                            "Hanken Grotesk"
+                    ],
+                    "body-sm": [
+                            "Hanken Grotesk"
+                    ],
+                    "data-mono-sm": [
+                            "JetBrains Mono"
+                    ]
+            },
+            "fontSize": {
+                    "label-caps": [
+                            "10px",
+                            {
+                                    "lineHeight": "12px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "data-mono": [
+                            "13px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-md": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "data-mono-sm": [
+                            "11px",
+                            {
+                                    "lineHeight": "14px",
+                                    "fontWeight": "500"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-surface h-screen flex overflow-hidden selection:bg-primary selection:text-on-primary">
+<nav class="fixed left-0 top-0 h-full w-rail_width bg-surface-container-low border-r border-outline-variant flex flex-col items-center py-4 gap-panel_gap z-50">
+<div class="mb-6 flex flex-col items-center gap-2">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden">
+<span class="font-headline-md text-headline-md font-bold text-primary">GH</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 w-full px-2">
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Dashboard"><span class="material-symbols-outlined">dashboard</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Breakdown"><span class="material-symbols-outlined">list_alt</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-primary bg-secondary-container rounded-lg transition-colors active:scale-95 duration-100 group" title="Constraints"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">rule_settings</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Replan"><span class="material-symbols-outlined">rebase_edit</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Sources"><span class="material-symbols-outlined">source</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Coverage"><span class="material-symbols-outlined">video_library</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Lock Day"><span class="material-symbols-outlined">lock_clock</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Approvals"><span class="material-symbols-outlined">payments</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Call Sheets"><span class="material-symbols-outlined">description</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Audit"><span class="material-symbols-outlined">history</span></button>
+</div>
+<div class="mt-auto flex flex-col items-center gap-2 w-full px-2"><div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center font-data-mono-sm text-data-mono-sm text-on-surface-variant">AD</div></div>
+</nav>
+<div class="flex-1 flex flex-col ml-rail_width overflow-hidden">
+<header class="h-14 shrink-0 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-4 gap-6">
+<div class="flex items-center gap-4 min-w-0">
+<span class="font-headline-md text-headline-md font-bold whitespace-nowrap">The Glasshouse</span>
+<span class="h-6 w-px bg-outline-variant"></span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant whitespace-nowrap">Schedule v4 (Active) &middot; Day 8 of 20</span>
+<span class="h-6 w-px bg-outline-variant"></span>
+<span class="font-data-mono-sm text-data-mono-sm text-primary whitespace-nowrap">First AD &middot; M. Okafor</span>
+</div>
+<div class="flex items-center gap-3 shrink-0">
+<button class="px-4 py-2 bg-surface-container border border-outline-variant text-on-surface hover:bg-surface-container-high rounded transition-colors font-data-mono-sm text-data-mono-sm">Constraint Ledger</button>
+<button class="px-4 py-2 bg-surface-container border border-outline-variant text-on-surface hover:bg-surface-container-high rounded transition-colors font-data-mono-sm text-data-mono-sm">Validate Board</button>
+<button class="px-4 py-2 bg-primary text-on-primary font-bold rounded transition-colors font-data-mono-sm text-data-mono-sm">Re-solve</button>
+<div class="flex gap-2 border-l border-outline-variant pl-3 ml-1 text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+<span class="material-symbols-outlined">settings</span>
+</div>
+</div>
+</header><div class="flex-1 flex overflow-hidden">
+<div class="w-96 shrink-0 border-r border-outline-variant bg-surface-container-lowest flex flex-col overflow-y-auto">
+<div class="p-4 border-b border-outline-variant bg-surface-dim">
+<h2 class="font-headline-md text-headline-md text-on-surface">Say it plainly</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Gemini turns this into candidate typed constraints. It cannot activate one, and nothing here reaches the solver until a human says so.</p>
+</div>
+<div class="p-4 flex flex-col gap-3">
+<div class="bg-surface-container border border-outline-variant rounded p-3">
+<div class="flex items-center gap-2 mb-2 font-label-caps text-label-caps text-on-surface-variant uppercase">
+<span class="material-symbols-outlined text-[14px]">mic</span> First AD &middot; 11 Oct 09:12 ET
+</div>
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">&ldquo;Sarah is only available the first two weeks. The church is Tuesdays only. We can&rsquo;t shoot at the harbour after the permit expires. And obviously we can&rsquo;t shoot the docks in the rain.&rdquo;</p>
+</div>
+<textarea class="w-full h-24 bg-background border border-outline-variant rounded p-2 font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:border-primary outline-none" placeholder="Add another constraint in plain English&hellip;"></textarea>
+<button class="w-full py-2 bg-primary text-on-primary rounded font-data-mono-sm text-data-mono-sm font-bold">Propose typed constraints</button>
+</div>
+<div class="mt-2 p-4 border-t border-outline-variant">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary text-[16px]">auto_awesome</span>
+<span class="font-label-caps text-label-caps text-primary uppercase">Gemini Advisory</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Gemini interprets. It proposes candidates and resolves names against the roster and location book. It does not decide, activate, schedule, or ground &mdash; and it never writes a value the solver reads directly.</p>
+</div>
+<div class="mt-auto p-4 border-t border-outline-variant bg-surface-dim">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Name resolution</div>
+<div class="flex flex-col gap-1 font-data-mono-sm text-data-mono-sm">
+<div class="text-[#4ade80]">&#10003; Sarah &rarr; CAST-02 &middot; A. Reyes</div>
+<div class="text-[#4ade80]">&#10003; the church &rarr; LOC-CHURCH</div>
+<div class="text-[#4ade80]">&#10003; the harbour / the docks &rarr; LOC-TERMINAL4</div>
+<div class="text-error mt-1">&times; Sara &mdash; no such cast id</div>
+<div class="text-outline text-[10px] leading-tight">Refused, not corrected to SARAH. A silent fix schedules the wrong person and nothing downstream notices.</div>
+</div>
+</div>
+</div>
+
+<main class="flex-1 overflow-y-auto p-4 flex flex-col gap-gutter">
+<div class="flex items-center justify-between">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Candidate constraints &mdash; 4</h1>
+<div class="flex gap-3 font-data-mono-sm text-data-mono-sm">
+<span class="text-[#4ade80]">2 typed</span>
+<span class="text-[#60a5fa]">1 grounded</span>
+<span class="text-[#f59e0b]">1 blocked</span>
+<span class="text-on-surface-variant">0 active</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant -mt-2">A candidate is inert. It has no effect on any board until a human activates it, and activation changes the constraint snapshot every board is solved and validated against.</p>
+<div class="bg-surface-container border border-outline-variant rounded p-card_padding">
+<div class="flex items-start justify-between gap-4 mb-2">
+<div class="flex items-center gap-3">
+<span class="font-data-mono text-data-mono text-on-surface">CAND-01</span>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-sm border" style="border-color:#4ade8080;background:#4ade801a;color:#4ade80">TYPED &middot; AWAITING ACTIVATION</span>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">cast availability</span>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant italic mb-2">&ldquo;Sarah is only available the first two weeks&rdquo;</div>
+<div class="font-data-mono text-data-mono text-primary bg-surface-dim border border-outline-variant rounded px-2 py-1 mb-2 inline-block">cast_availability(CAST-02, 2023-10-09 .. 2023-10-20)</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant mb-1">HUMAN RULE &middot; spoken instruction, First AD &middot; 11 Oct 09:12 ET &middot; confidence 96%</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">&ldquo;Sarah&rdquo; resolved to <span class="font-data-mono text-on-surface">CAST-02 &middot; A. Reyes</span> against the roster. An unresolved or near-miss name is refused rather than guessed &mdash; a one-letter typo schedules nobody while the real performer is never called.</div>
+
+<div class="flex gap-2 mt-3 pt-2 border-t border-outline-variant"><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-primary text-on-primary font-bold">Activate</button><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-surface-container-high border border-outline-variant text-on-surface">Edit typed form</button><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-surface-container-high border border-outline-variant text-on-surface">Discard</button></div>
+</div>
+<div class="bg-surface-container border border-outline-variant rounded p-card_padding">
+<div class="flex items-start justify-between gap-4 mb-2">
+<div class="flex items-center gap-3">
+<span class="font-data-mono text-data-mono text-on-surface">CAND-02</span>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-sm border" style="border-color:#4ade8080;background:#4ade801a;color:#4ade80">TYPED &middot; AWAITING ACTIVATION</span>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">location window</span>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant italic mb-2">&ldquo;The church is Tuesdays only&rdquo;</div>
+<div class="font-data-mono text-data-mono text-primary bg-surface-dim border border-outline-variant rounded px-2 py-1 mb-2 inline-block">location_window(LOC-CHURCH, weekday=TUE)</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant mb-1">HUMAN RULE &middot; spoken instruction, First AD &middot; 11 Oct 09:12 ET &middot; confidence 91%</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Date-independent, so no target date is required of it.</div>
+<div class="mt-2 bg-error/5 border border-error/40 rounded p-2 flex items-start gap-2"><span class="material-symbols-outlined text-error text-[14px] mt-0.5">block</span><span class="font-body-sm text-body-sm text-on-surface">Activating this invalidates the active board: scenes 103 and 104 are currently scheduled at this location on <span class="font-data-mono">Fri 13 Oct</span>. A re-solve is required, and the resulting board is a new version.</span></div>
+<div class="flex gap-2 mt-3 pt-2 border-t border-outline-variant"><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-primary text-on-primary font-bold">Activate &amp; re-solve</button><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-surface-container-high border border-outline-variant text-on-surface">Edit typed form</button><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-surface-container-high border border-outline-variant text-on-surface">Discard</button></div>
+</div>
+<div class="bg-surface-container border border-outline-variant rounded p-card_padding">
+<div class="flex items-start justify-between gap-4 mb-2">
+<div class="flex items-center gap-3">
+<span class="font-data-mono text-data-mono text-on-surface">CAND-03</span>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-sm border" style="border-color:#60a5fa80;background:#60a5fa1a;color:#60a5fa">GROUNDED &middot; AWAITING ACTIVATION</span>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">location permit</span>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant italic mb-2">&ldquo;We can&rsquo;t shoot at the harbour after the permit expires&rdquo;</div>
+<div class="font-data-mono text-data-mono text-primary bg-surface-dim border border-outline-variant rounded px-2 py-1 mb-2 inline-block">location_window(LOC-TERMINAL4, 2023-10-14 .. 2023-10-28, 06:00-22:00)</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant mb-1">SOURCE URL &middot; savannahga.gov/filmoffice &middot; permit #2023-SAV-0882 &middot; full content &middot; validator PASS</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">The instruction named no dates, so the window was grounded rather than assumed. Standing rule, exempt from date coverage. The evidence, not the sentence, is what binds.</div>
+
+<div class="flex gap-2 mt-3 pt-2 border-t border-outline-variant"><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-primary text-on-primary font-bold">Activate</button><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-surface-container-high border border-outline-variant text-on-surface">View evidence</button><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-surface-container-high border border-outline-variant text-on-surface">Discard</button></div>
+</div>
+<div class="bg-surface-container border border-outline-variant rounded p-card_padding">
+<div class="flex items-start justify-between gap-4 mb-2">
+<div class="flex items-center gap-3">
+<span class="font-data-mono text-data-mono text-on-surface">CAND-04</span>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-sm border" style="border-color:#f59e0b80;background:#f59e0b1a;color:#f59e0b">CANNOT BE TYPED YET</span>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">weather policy</span>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant italic mb-2">&ldquo;And obviously we can&rsquo;t shoot the docks in the rain&rdquo;</div>
+<div class="font-data-mono text-data-mono text-primary bg-surface-dim border border-outline-variant rounded px-2 py-1 mb-2 inline-block">weather_policy(LOC-TERMINAL4, precipitation, ???)</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant mb-1">NO PROVENANCE &middot; not bound &middot; not offered to the solver</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Weather can be a hard feasibility bound or a cost in the objective, and the two produce different boards. Coverset will not choose which. A human must classify it, and the threshold is a production decision.</div>
+<div class="mt-2 bg-error/5 border border-error/40 rounded p-2 flex items-start gap-2"><span class="material-symbols-outlined text-error text-[14px] mt-0.5">block</span><span class="font-body-sm text-body-sm text-on-surface">Blocked: needs a policy classification (<span class="font-data-mono">feasibility</span> or <span class="font-data-mono">objective cost</span>) and a threshold before a typed constraint exists.</span></div>
+<div class="flex gap-2 mt-3 pt-2 border-t border-outline-variant"><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-primary text-on-primary font-bold">Classify&hellip;</button><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-surface-container-high border border-outline-variant text-on-surface opacity-40 cursor-not-allowed" disabled>Activate</button><button class="px-3 py-1.5 rounded font-data-mono-sm text-data-mono-sm bg-surface-container-high border border-outline-variant text-on-surface">Discard</button></div>
+</div>
+</main>
+
+<aside class="w-80 bg-surface border-l border-outline-variant flex flex-col shrink-0 overflow-y-auto">
+<div class="p-4 border-b border-outline-variant bg-surface-dim">
+<h2 class="font-headline-md text-headline-md text-on-surface">Activation</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">What changes the moment you activate.</p>
+</div>
+<div class="p-4 flex flex-col gap-4">
+<div>
+<div><span class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Acting as</span><span class="font-data-mono text-data-mono text-on-surface">First AD &middot; M. Okafor</span></div>
+</div>
+<div class="bg-surface-container border border-outline-variant rounded p-3 flex flex-col gap-2">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase">Constraint snapshot</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">now <span class="text-on-surface">8f3c9a1e4d02</span></div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">after <span class="text-[#e2c0a4]">recomputed on activation</span></div>
+<p class="text-[10px] font-data-mono text-outline leading-tight">Boards are only comparable under one snapshot and one weight set. Activating makes the current board a previous version rather than a wrong one.</p>
+</div>
+<div class="bg-surface-container border border-outline-variant rounded p-3">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Consequence</div>
+<div class="flex flex-col gap-1 font-body-sm text-body-sm text-on-surface-variant">
+<div>Board v4 &rarr; superseded</div>
+<div>2 scenes displaced (103, 104)</div>
+<div>Re-solve required before any call sheet issues</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-dashed border-outline-variant rounded p-3">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Not offered here</div>
+<p class="font-body-sm text-body-sm text-outline">There is no &ldquo;activate all&rdquo;. Each constraint is a separate production commitment with a separate consequence, and batching them hides which one broke the board.</p>
+</div>
+</div>
+<div class="mt-auto p-4 border-t border-outline-variant bg-surface-dim">
+<button class="w-full py-2 bg-surface-container border border-outline-variant rounded font-data-mono-sm text-data-mono-sm text-on-surface">View constraint ledger</button>
+</div>
+</aside>
+</div>
+</div>
+</body>
+</html>

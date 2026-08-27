@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Glasshouse - Scene Breakdown & Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@500&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#e0e1f4",
+                        "on-secondary-container": "#b2b4c6",
+                        "tertiary-fixed-dim": "#e2c0a4",
+                        "surface-container-lowest": "#0e0e0e",
+                        "outline": "#8e9196",
+                        "on-secondary-fixed": "#181b28",
+                        "outline-variant": "#43474c",
+                        "error": "#ffb4ab",
+                        "on-tertiary-fixed": "#291806",
+                        "on-tertiary": "#412c18",
+                        "primary": "#b8c8da",
+                        "on-error": "#690005",
+                        "inverse-primary": "#50606f",
+                        "surface-container-highest": "#353534",
+                        "surface-tint": "#b8c8da",
+                        "primary-container": "#8292a3",
+                        "background": "#131313",
+                        "secondary": "#c3c5d8",
+                        "on-secondary": "#2d303e",
+                        "error-container": "#93000a",
+                        "surface-bright": "#393939",
+                        "surface": "#131313",
+                        "tertiary": "#e2c0a4",
+                        "surface-variant": "#353534",
+                        "inverse-on-surface": "#313030",
+                        "secondary-fixed-dim": "#c3c5d8",
+                        "on-surface-variant": "#c4c7cc",
+                        "surface-container": "#201f1f",
+                        "on-primary-container": "#1c2b39",
+                        "on-primary-fixed": "#0d1d2a",
+                        "surface-container-high": "#2a2a2a",
+                        "on-primary-fixed-variant": "#394857",
+                        "tertiary-container": "#a98b71",
+                        "on-tertiary-container": "#392612",
+                        "inverse-surface": "#e5e2e1",
+                        "on-surface": "#e5e2e1",
+                        "on-background": "#e5e2e1",
+                        "primary-fixed-dim": "#b8c8da",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed": "#d4e4f6",
+                        "on-secondary-fixed-variant": "#434655",
+                        "on-primary": "#223240",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-dim": "#131313",
+                        "secondary-container": "#434655",
+                        "tertiary-fixed": "#ffdcbf",
+                        "on-tertiary-fixed-variant": "#59422d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "panel_gap": "4px",
+                        "gutter": "8px",
+                        "stack_compact": "2px",
+                        "rail_width": "64px",
+                        "card_padding": "12px"
+                    },
+                    "fontFamily": {
+                        "data-mono-sm": ["JetBrains Mono"],
+                        "body-md": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "data-mono": ["JetBrains Mono"],
+                        "body-sm": ["Hanken Grotesk"],
+                        "label-caps": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "data-mono-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "data-mono": ["13px", { "lineHeight": "16px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-caps": ["10px", { "lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Custom scrollbar for data dense views */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #131313;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #43474c;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8e9196;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md h-screen w-screen overflow-hidden flex selection:bg-primary selection:text-on-primary">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-low dark:bg-surface-container-low fixed left-0 top-0 h-full w-rail_width border-r border-outline-variant flex flex-col items-center py-4 gap-panel_gap z-50">
+<div class="mb-6 flex flex-col items-center gap-2">
+<div class="w-10 h-10 rounded-full bg-surface-bright flex items-center justify-center border border-outline-variant overflow-hidden">
+<span class="font-headline-md text-headline-md font-bold text-primary">GH</span>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<div class="flex flex-col gap-2 w-full px-2">
+<button class="w-full flex flex-col items-center justify-center p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-100 group" title="Dashboard">
+<span class="material-symbols-outlined text-[24px] mb-1 group-hover:text-primary transition-colors" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps truncate w-full text-center">Dashboard</span>
+</button>
+<button class="w-full flex flex-col items-center justify-center p-2 rounded-lg text-primary bg-secondary-container active:scale-95 duration-100 group" title="Breakdown">
+<span class="material-symbols-outlined text-[24px] mb-1 text-primary" data-icon="list_alt" data-weight="fill">list_alt</span>
+<span class="font-label-caps text-label-caps truncate w-full text-center">Breakdown</span>
+</button>
+<button class="w-full flex flex-col items-center justify-center p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-100 group" title="Replan">
+<span class="material-symbols-outlined text-[24px] mb-1 group-hover:text-primary transition-colors" data-icon="rebase_edit">rebase_edit</span>
+<span class="font-label-caps text-label-caps truncate w-full text-center">Replan</span>
+</button>
+<button class="w-full flex flex-col items-center justify-center p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-100 group" title="Sources">
+<span class="material-symbols-outlined text-[24px] mb-1 group-hover:text-primary transition-colors" data-icon="source">source</span>
+<span class="font-label-caps text-label-caps truncate w-full text-center">Sources</span>
+</button>
+<button class="w-full flex flex-col items-center justify-center p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-100 group" title="Coverage">
+<span class="material-symbols-outlined text-[24px] mb-1 group-hover:text-primary transition-colors" data-icon="video_library">video_library</span>
+<span class="font-label-caps text-label-caps truncate w-full text-center">Coverage</span>
+</button>
+<button class="w-full flex flex-col items-center justify-center p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-100 group" title="Call Sheets">
+<span class="material-symbols-outlined text-[24px] mb-1 group-hover:text-primary transition-colors" data-icon="description">description</span>
+<span class="font-label-caps text-label-caps truncate w-full text-center">Call Sheets</span>
+</button>
+<button class="w-full flex flex-col items-center justify-center p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-100 group" title="Audit">
+<span class="material-symbols-outlined text-[24px] mb-1 group-hover:text-primary transition-colors" data-icon="history">history</span>
+<span class="font-label-caps text-label-caps truncate w-full text-center">Audit</span>
+</button>
+</div>
+<div class="mt-auto mb-4 px-2 w-full">
+<button class="w-full flex flex-col items-center justify-center p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">person</span>
+</div>
+</button>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col ml-rail_width w-[calc(100vw-64px)] bg-surface relative">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface docked full-width top-0 h-16 border-b border-outline-variant flex justify-between items-center w-full px-6 z-40 shrink-0">
+<div class="flex items-center gap-6">
+<div class="font-headline-md text-headline-md font-black text-on-surface">The Glasshouse</div>
+<nav class="flex gap-6 h-full items-center pt-1">
+<a class="h-16 flex items-center text-primary font-bold border-b-2 border-primary cursor-pointer active:opacity-80" href="#">Breakdown</a>
+<a class="h-16 flex items-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80" href="#">Schedule v4 (Active)</a>
+<a class="h-16 flex items-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80" href="#">Day 8 of 20</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden items-center px-3 h-8 bg-surface-container-low border border-outline-variant rounded text-on-surface-variant font-data-mono-sm">
+<span class="material-symbols-outlined text-[16px] mr-2">search</span>
+<span>Search records...</span>
+</div>
+<div class="flex gap-2">
+<button class="px-4 h-8 bg-surface-container-high border border-outline-variant rounded font-label-caps text-label-caps text-on-surface hover:bg-surface-bright transition-colors cursor-pointer active:opacity-80">Validate Board</button>
+<button class="px-4 h-8 bg-primary text-on-primary rounded font-label-caps text-label-caps hover:bg-primary-fixed-dim transition-colors cursor-pointer active:opacity-80">Generate Board</button>
+</div>
+<div class="flex gap-2 border-l border-outline-variant pl-4 ml-2">
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80 rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80 rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Workspace Area -->
+<main class="flex-1 flex overflow-hidden">
+<!-- Central Data Grid -->
+<section class="flex-1 flex flex-col min-w-0 bg-background border-r border-outline-variant overflow-hidden">
+<!-- Command Bar / Filters -->
+<div class="h-12 bg-surface-container-low border-b border-outline-variant flex items-center px-4 justify-between shrink-0">
+<div class="flex items-center gap-3">
+<span class="font-headline-md text-headline-md text-on-surface">Candidate Scenes</span>
+<div class="px-2 py-0.5 bg-surface-container-highest rounded text-on-surface-variant font-data-mono-sm text-data-mono-sm">183 Total</div>
+<div class="px-2 py-0.5 bg-surface-container-highest rounded text-on-surface-variant font-data-mono-sm text-data-mono-sm">24 Needs Review</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="h-7 px-3 bg-surface border border-outline-variant rounded text-on-surface font-label-caps text-label-caps flex items-center gap-1 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[14px]">filter_list</span> Filter
+                        </button>
+<button class="h-7 px-3 bg-surface border border-outline-variant rounded text-on-surface font-label-caps text-label-caps flex items-center gap-1 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[14px]">sort</span> Sort
+                        </button>
+</div>
+</div>
+<!-- Table Header -->
+<div class="grid grid-cols-[80px_1fr_120px_120px_100px_80px] gap-4 px-4 py-2 border-b border-outline-variant bg-surface-container-highest font-label-caps text-label-caps text-on-surface-variant shrink-0 sticky top-0">
+<div>Scene</div>
+<div>Description</div>
+<div>Status</div>
+<div>Warning</div>
+<div class="text-right">Confidence</div>
+<div class="text-right">Pages</div>
+</div>
+<!-- Table Body (Scrollable) -->
+<div class="flex-1 overflow-y-auto">
+<!-- Row 1: Candidate (Active Selection) -->
+<div class="grid grid-cols-[80px_1fr_120px_120px_100px_80px] gap-4 px-4 py-3 border-b border-outline-variant bg-surface-container-high cursor-pointer hover:bg-surface-bright transition-colors items-center">
+<div class="font-data-mono text-data-mono text-primary">105</div>
+<div class="font-body-sm text-body-sm text-on-surface truncate">INT. CHURCH OFFICE - DAY</div>
+<div>
+<span class="inline-flex items-center px-2 py-0.5 bg-primary-container/20 border border-primary-container text-primary text-[10px] font-bold uppercase rounded-sm">CANDIDATE</span>
+</div>
+<div>
+<div class="flex items-center gap-1 text-error text-[10px] font-bold">
+<span class="material-symbols-outlined text-[14px]">warning</span> Unresolved Cast
+                            </div>
+</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant text-right">94%</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant text-right">1 2/8</div>
+</div>
+<!-- Row 2: Needs Review -->
+<div class="grid grid-cols-[80px_1fr_120px_120px_100px_80px] gap-4 px-4 py-3 border-b border-outline-variant bg-surface-container-low cursor-pointer hover:bg-surface-container-high transition-colors items-center">
+<div class="font-data-mono text-data-mono text-on-surface">106</div>
+<div class="font-body-sm text-body-sm text-on-surface truncate">EXT. RIVER WALK - NIGHT</div>
+<div>
+<span class="inline-flex items-center px-2 py-0.5 bg-[#4F3B20] text-[#FFB340] border border-[#7A5B2E] text-[10px] font-bold uppercase rounded-sm">NEEDS REVIEW</span>
+</div>
+<div>
+<div class="flex items-center gap-1 text-[#FFB340] text-[10px] font-bold truncate" title="Location Grounding Required">
+<span class="material-symbols-outlined text-[14px]">location_off</span> Grounding Req
+                            </div>
+</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant text-right">72%</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant text-right">1 2/8</div>
+</div>
+<!-- Row 3: Active -->
+<div class="grid grid-cols-[80px_1fr_120px_120px_100px_80px] gap-4 px-4 py-3 border-b border-outline-variant bg-surface-container-low cursor-pointer hover:bg-surface-container-high transition-colors items-center opacity-80">
+<div class="font-data-mono text-data-mono text-on-surface">14</div>
+<div class="font-body-sm text-body-sm text-on-surface truncate">INT. HOTEL HALLWAY - DAY</div>
+<div>
+<span class="inline-flex items-center px-2 py-0.5 bg-[#1B3B2B] text-[#4ADE80] border border-[#2D5A42] text-[10px] font-bold uppercase rounded-sm">ACTIVE</span>
+</div>
+<div>
+<span class="text-on-surface-variant text-[10px]">-</span>
+</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant text-right">99%</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant text-right">0 6/8</div>
+</div>
+<!-- Additional dummy rows for visual density -->
+<div class="grid grid-cols-[80px_1fr_120px_120px_100px_80px] gap-4 px-4 py-3 border-b border-outline-variant bg-surface-container-low cursor-pointer hover:bg-surface-container-high transition-colors items-center opacity-80">
+<div class="font-data-mono text-data-mono text-on-surface">15</div>
+<div class="font-body-sm text-body-sm text-on-surface truncate">INT. HOTEL ROOM - DAY</div>
+<div>
+<span class="inline-flex items-center px-2 py-0.5 bg-[#1B3B2B] text-[#4ADE80] border border-[#2D5A42] text-[10px] font-bold uppercase rounded-sm">ACTIVE</span>
+</div>
+<div>
+<span class="text-on-surface-variant text-[10px]">-</span>
+</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant text-right">98%</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant text-right">3 1/8</div>
+</div>
+<div class="grid grid-cols-[80px_1fr_120px_120px_100px_80px] gap-4 px-4 py-3 border-b border-outline-variant bg-surface-container-low cursor-pointer hover:bg-surface-container-high transition-colors items-center">
+<div class="font-data-mono text-data-mono text-on-surface">41</div>
+<div class="font-body-sm text-body-sm text-on-surface truncate">EXT. CITY STREET - DAY</div>
+<div>
+<span class="inline-flex items-center px-2 py-0.5 bg-error-container/30 text-error border border-error-container text-[10px] font-bold uppercase rounded-sm">REJECTED</span>
+</div>
+<div>
+<span class="text-on-surface-variant text-[10px]">-</span>
+</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant text-right">45%</div>
+<div class="font-data-mono text-data-mono text-on-surface-variant text-right">0 4/8</div>
+</div>
+</div>
+</section>
+<!-- Inspector Panel -->
+<aside class="w-[320px] bg-surface-container-low flex flex-col shrink-0 border-l border-outline-variant h-full overflow-hidden">
+<!-- Inspector Header -->
+<div class="p-4 border-b border-outline-variant shrink-0 bg-surface-container-highest">
+<div class="flex justify-between items-start mb-2">
+<h2 class="font-headline-md text-headline-md text-on-surface">SceneRecord Inspector</h2>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<div class="flex items-center gap-2 font-data-mono-sm text-data-mono-sm text-primary">
+<span>105</span>
+<span class="text-outline-variant">|</span>
+<span class="text-on-surface-variant">Script v2.pdf &gt; pg 71</span>
+<span class="text-outline-variant">|</span>
+<span class="text-[#FFB340]">candidate</span>
+</div>
+</div>
+<!-- Inspector Content (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-6">
+<!-- AI Advisory -->
+<div class="bg-primary-container/10 border border-primary-container/30 rounded p-3 flex gap-3">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">auto_awesome</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+<span class="text-primary font-semibold block mb-1">Gemini Advisory</span>
+                            Gemini produces candidate records only. Human validation required before solver scheduling. Unresolved fields block solving.
+                        </p>
+</div>
+<!-- Extracted Data Form -->
+<div class="flex flex-col gap-4">
+<h3 class="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-1">Extracted Metadata</h3>
+<!-- Field Group -->
+<div class="flex flex-col gap-1">
+<label class="font-data-mono-sm text-data-mono-sm text-on-surface-variant flex justify-between">
+                                Slugline
+                                <span class="text-primary">confidence 94%</span>
+</label>
+<input class="w-full h-[28px] bg-background border border-outline-variant rounded px-2 font-body-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" type="text" value="INT. CHURCH OFFICE - DAY"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">Flags</label>
+<div class="flex gap-1">
+<span class="px-1.5 py-0.5 bg-surface-container-highest border border-outline-variant rounded text-outline font-data-mono-sm">stunts: no</span>
+<span class="px-1.5 py-0.5 bg-surface-container-highest border border-outline-variant rounded text-outline font-data-mono-sm">minors: no</span>
+<span class="px-1.5 py-0.5 bg-surface-container-highest border border-outline-variant rounded text-outline font-data-mono-sm">vfx: no</span>
+</div>
+</div>
+<!-- Field Group: Issue -->
+<div class="flex flex-col gap-1">
+<label class="font-data-mono-sm text-data-mono-sm text-error flex justify-between">
+                                Extracted Cast
+                                <span class="text-error flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">warning</span> Discrepancy</span>
+</label>
+<div class="p-2 bg-background border border-error/50 rounded min-h-[60px]">
+<div class="flex flex-wrap gap-1">
+<span class="px-1.5 py-0.5 bg-surface-container-highest border border-outline-variant rounded text-on-surface font-data-mono-sm">ID: 1</span>
+<span class="px-1.5 py-0.5 bg-surface-container-highest border border-outline-variant rounded text-on-surface font-data-mono-sm">ID: 3</span>
+<span class="px-1.5 py-0.5 bg-error/20 border border-error/50 rounded text-error font-data-mono-sm line-through">ID: 5?</span>
+</div>
+</div>
+</div>
+<!-- Field Group -->
+<div class="grid grid-cols-2 gap-3">
+<div class="flex flex-col gap-1">
+<label class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">Time of Day</label>
+<select class="w-full h-[28px] bg-background border border-outline-variant rounded px-2 font-body-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+<option>DAY</option>
+<option>NIGHT</option>
+<option>DAWN</option>
+<option>DUSK</option>
+<option>UNKNOWN</option>
+</select>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">Page Count</label>
+<input class="w-full h-[28px] bg-background border border-outline-variant rounded px-2 font-data-mono text-data-mono text-on-surface text-right focus:border-primary focus:ring-1 focus:ring-primary outline-none" type="text" value="1 2/8"/>
+</div>
+</div>
+</div>
+<!-- Provenance -->
+<div class="flex flex-col gap-2 pt-4 border-t border-outline-variant">
+<h3 class="font-label-caps text-label-caps text-outline uppercase tracking-wider mb-1">Provenance</h3>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-outline text-[16px] mt-0.5">description</span>
+<div class="font-body-sm text-body-sm text-on-surface-variant">
+<span class="text-on-surface block mb-1">Source: Script v2.pdf</span>
+<div class="bg-background border border-outline-variant p-2 rounded text-outline italic text-[11px] leading-tight">
+                                     "...Sarah pushes into the church office. Elias is already there, the ledger open on the desk..."
+                                 </div>
+</div>
+</div>
+<div class="flex items-start gap-2 mt-2">
+<span class="material-symbols-outlined text-outline text-[16px] mt-0.5">public</span>
+<div class="font-body-sm text-body-sm text-on-surface-variant">
+<span class="text-on-surface block">Location candidate grounded via Parallel Search</span>
+<span class="text-outline text-[11px]">First African Baptist Church, Savannah, GA &middot; unconfirmed</span>
+<span class="text-outline text-[11px] block mt-1">The scene text itself is not grounded &mdash; it comes from the script.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Inspector Actions -->
+<div class="p-4 border-t border-outline-variant bg-surface-container-highest shrink-0 flex flex-col gap-2">
+<button class="w-full h-8 bg-surface border border-outline-variant text-on-surface-variant rounded font-label-caps text-label-caps opacity-50 cursor-not-allowed flex items-center justify-center gap-2" disabled title="Resolve cast/location discrepancies before accepting this scene record">
+<span class="material-symbols-outlined text-[16px]">lock</span> Accept Scene Record
+                    </button>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-[11px] leading-tight">Disabled until cast/location discrepancies are resolved. A human override would require an audit entry.</p>
+<div class="grid grid-cols-2 gap-2">
+<button class="h-8 bg-surface border border-outline-variant rounded text-on-surface font-label-caps text-label-caps hover:bg-surface-container-high transition-colors cursor-pointer active:scale-[0.98]">Resolve Cast</button>
+<button class="h-8 bg-surface border border-outline-variant rounded text-on-surface font-label-caps text-label-caps hover:bg-surface-container-high transition-colors cursor-pointer active:scale-[0.98]">Resolve Location</button>
+</div>
+<button class="h-8 bg-surface border border-primary/40 text-primary rounded font-label-caps text-label-caps hover:bg-primary/10 transition-colors cursor-pointer active:scale-[0.98]">Convert to Work Item</button>
+<div class="flex justify-between mt-2 pt-2 border-t border-outline-variant">
+<button class="text-error font-label-caps text-label-caps hover:underline">Reject Candidate</button>
+<button class="text-on-surface-variant font-label-caps text-label-caps hover:text-on-surface transition-colors">Send to Review</button>
+</div>
+</div>
+</aside>
+</main>
+</div>
+</body></html>

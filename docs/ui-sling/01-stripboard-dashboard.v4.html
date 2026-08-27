@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>01-stripboard-dashboard - The Glasshouse</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary": "#e2c0a4",
+                    "primary-container": "#8292a3",
+                    "primary-fixed": "#d4e4f6",
+                    "on-surface": "#e5e2e1",
+                    "surface-container-lowest": "#0e0e0e",
+                    "surface-container-low": "#1c1b1b",
+                    "primary": "#b8c8da",
+                    "on-error-container": "#ffdad6",
+                    "surface-dim": "#131313",
+                    "outline-variant": "#43474c",
+                    "on-secondary-fixed-variant": "#434655",
+                    "on-tertiary-fixed-variant": "#59422d",
+                    "secondary": "#c3c5d8",
+                    "on-tertiary-fixed": "#291806",
+                    "on-secondary": "#2d303e",
+                    "tertiary-container": "#a98b71",
+                    "surface-variant": "#353534",
+                    "on-secondary-container": "#b2b4c6",
+                    "outline": "#8e9196",
+                    "on-background": "#e5e2e1",
+                    "error": "#ffb4ab",
+                    "tertiary-fixed": "#ffdcbf",
+                    "error-container": "#93000a",
+                    "on-secondary-fixed": "#181b28",
+                    "surface-tint": "#b8c8da",
+                    "inverse-primary": "#50606f",
+                    "on-primary-fixed": "#0d1d2a",
+                    "primary-fixed-dim": "#b8c8da",
+                    "secondary-container": "#434655",
+                    "surface": "#131313",
+                    "on-primary-fixed-variant": "#394857",
+                    "on-error": "#690005",
+                    "on-primary-container": "#1c2b39",
+                    "inverse-on-surface": "#313030",
+                    "tertiary-fixed-dim": "#e2c0a4",
+                    "surface-container-high": "#2a2a2a",
+                    "background": "#131313",
+                    "surface-container": "#201f1f",
+                    "surface-bright": "#393939",
+                    "on-surface-variant": "#c4c7cc",
+                    "on-primary": "#223240",
+                    "surface-container-highest": "#353534",
+                    "secondary-fixed": "#e0e1f4",
+                    "on-tertiary-container": "#392612",
+                    "secondary-fixed-dim": "#c3c5d8",
+                    "on-tertiary": "#412c18",
+                    "inverse-surface": "#e5e2e1"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack_compact": "2px",
+                    "rail_width": "64px",
+                    "card_padding": "12px",
+                    "gutter": "8px",
+                    "panel_gap": "4px"
+            },
+            "fontFamily": {
+                    "label-caps": [
+                            "Hanken Grotesk"
+                    ],
+                    "body-md": [
+                            "Hanken Grotesk"
+                    ],
+                    "headline-lg": [
+                            "Hanken Grotesk"
+                    ],
+                    "data-mono": [
+                            "JetBrains Mono"
+                    ],
+                    "headline-md": [
+                            "Hanken Grotesk"
+                    ],
+                    "body-sm": [
+                            "Hanken Grotesk"
+                    ],
+                    "data-mono-sm": [
+                            "JetBrains Mono"
+                    ]
+            },
+            "fontSize": {
+                    "label-caps": [
+                            "10px",
+                            {
+                                    "lineHeight": "12px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "data-mono": [
+                            "13px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-md": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "data-mono-sm": [
+                            "11px",
+                            {
+                                    "lineHeight": "14px",
+                                    "fontWeight": "500"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-surface h-screen flex overflow-hidden selection:bg-primary selection:text-on-primary">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-rail_width bg-surface-container-low dark:bg-surface-container-low border-r border-outline-variant flex flex-col items-center py-4 gap-panel_gap z-50">
+<!-- Brand / Avatar Logo Placeholder -->
+<div class="mb-6 flex flex-col items-center gap-2">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden">
+<span class="font-headline-md text-headline-md font-bold text-primary">GH</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 w-full px-2">
+<!-- Active Tab -->
+<button class="w-full h-12 flex flex-col items-center justify-center text-primary bg-secondary-container rounded-lg transition-colors active:scale-95 duration-100 group" title="Dashboard">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-caps text-label-caps mt-1 group-hover:block hidden absolute left-14 bg-surface-container-highest px-2 py-1 rounded-sm border border-outline-variant whitespace-nowrap z-50">Dashboard</span>
+</button>
+<!-- Inactive Tabs -->
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg active:scale-95 duration-100 group" title="Breakdown">
+<span class="material-symbols-outlined">list_alt</span>
+</button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg active:scale-95 duration-100 group" title="Replan">
+<span class="material-symbols-outlined">rebase_edit</span>
+</button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg active:scale-95 duration-100 group" title="Sources">
+<span class="material-symbols-outlined">source</span>
+</button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg active:scale-95 duration-100 group" title="Coverage">
+<span class="material-symbols-outlined">video_library</span>
+</button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg active:scale-95 duration-100 group" title="Call Sheets">
+<span class="material-symbols-outlined">description</span>
+</button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg active:scale-95 duration-100 group" title="Audit">
+<span class="material-symbols-outlined">history</span>
+</button>
+</div>
+<div class="mt-auto flex flex-col items-center gap-2 w-full px-2">
+<img class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="A small, circular avatar portrait of a professional film assistant director. Dramatic studio lighting with cool blue rim light. Dark background. High contrast. Serious expression." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDO5O7ChNzKw-aCtANFCi8n1CfE9u_Rs7cE7y0VyTaIR3aUjWwjBxkw_DDHLeMihgzqJLe2zDr_lsJVuV6GvwLtFd84lte719w96S_-yo1NOOe0lEjUwn0ivbJZt-CR88rFI_Uh8bWiO4SyFvM1xt0GNjv1hqfeYLJtAfQzjbFUEM7yeic8wT19oQQJ2sRnT-HvMKqI2jO7peCV5TsAHyOG-fgonBzcjQHwjFyHaZwXRqvTVG5MUs36c4isHmmGWmRPIsDOvLnzq8Y"/>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col ml-rail_width h-full overflow-hidden">
+<!-- TopNavBar -->
+<header class="w-full h-16 bg-surface dark:bg-surface border-b border-outline-variant flex justify-between items-center px-6 shrink-0 z-40 relative">
+<div class="flex items-center gap-6">
+<h1 class="font-headline-md text-headline-md font-black text-on-surface">The Glasshouse</h1>
+<nav class="flex h-full">
+<a class="h-16 px-4 flex items-center text-primary font-bold border-b-2 border-primary cursor-pointer active:opacity-80 transition-colors" href="#">
+<span class="font-data-mono text-data-mono">Schedule v4 (Active) · CP-SAT Solver</span>
+</a>
+<a class="h-16 px-4 flex items-center text-on-surface-variant hover:text-primary cursor-pointer active:opacity-80 transition-colors" href="#">
+<span class="font-data-mono text-data-mono">Day 8 of 20</span>
+</a>
+</nav>
+<!-- Command Rail Metrics -->
+<div class="flex items-center gap-6 ml-4 px-4 border-l border-outline-variant h-8">
+<div class="flex flex-col justify-center">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">6 Company Moves</span>
+<span class="font-data-mono text-data-mono text-on-surface">1.9 mi avg &middot; schedule</span>
+</div>
+<div class="flex flex-col justify-center">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">$14k Holding Cost</span>
+<span class="font-data-mono text-data-mono text-on-surface">Est. Weekly</span>
+</div>
+<div class="flex flex-col justify-center">
+<span class="font-label-caps text-label-caps text-error uppercase">2 Weather Risks</span>
+<span class="font-data-mono text-data-mono text-error">Day 14 (20 Oct), Day 17</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="px-4 py-2 bg-surface-container border border-outline-variant rounded hover:bg-surface-container-high transition-colors font-data-mono-sm text-data-mono-sm text-on-surface">
+                    Compare Options
+                </button>
+<button class="px-4 py-2 bg-surface-container border border-outline-variant rounded hover:bg-surface-container-high transition-colors font-data-mono-sm text-data-mono-sm text-on-surface">
+                    View Sources
+                </button>
+<button class="px-4 py-2 bg-surface-container border border-outline-variant rounded hover:bg-surface-container-high transition-colors font-data-mono-sm text-data-mono-sm text-on-surface">
+                    Validate Board
+                </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded hover:bg-primary-fixed-dim transition-colors font-data-mono-sm text-data-mono-sm font-bold">
+                    Generate Board
+                </button>
+<div class="flex gap-2 border-l border-outline-variant pl-4 ml-2">
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<main class="flex-1 flex overflow-hidden bg-background">
+<!-- Central Workspace: Stripboard -->
+<div class="flex-1 flex flex-col overflow-y-auto p-4 gap-gutter custom-scrollbar relative">
+<!-- Day 7: LOCKED -->
+<div class="flex flex-col border border-outline-variant rounded-DEFAULT bg-surface-container-lowest overflow-hidden opacity-70">
+<!-- Day Header -->
+<div class="bg-surface-container-low border-b border-outline-variant px-4 py-2 flex justify-between items-center sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold">DAY 7</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">TUE 10 OCT 2023</span>
+<span class="bg-[#f0e6d2] text-[#5c4d32] text-[10px] font-bold px-1.5 py-0.5 rounded-sm">DAY SHOOT</span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">call 07:00 &rarr; wrap 14:15 (7.3h)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="bg-surface-variant text-on-surface font-label-caps text-label-caps px-2 py-1 rounded-sm border border-outline-variant">LOCKED</span>
+<span class="font-data-mono text-data-mono text-on-surface-variant text-xs">PAGES: 3 7/8</span>
+<span class="font-data-mono text-data-mono text-on-surface-variant text-xs">0 MOVES</span>
+</div>
+</div>
+<!-- Strips -->
+<div class="flex flex-col">
+<!-- Strip 1 -->
+<div class="group flex items-center px-card_padding py-2 border-b border-outline-variant bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="w-12 font-data-mono text-data-mono text-on-surface">14</div>
+<div class="w-16 flex justify-center"><span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-1 py-0.5 rounded-sm">INT</span></div>
+<div class="w-16 flex justify-center mr-2"><span class="bg-[#f0e6d2] text-[#5c4d32] text-[10px] font-bold px-1 py-0.5 rounded-sm">DAY</span></div>
+<div class="flex-1 font-body-sm text-body-sm truncate pr-4">HOTEL HALLWAY &mdash; CORRIDOR PURSUIT</div>
+<div class="w-64 font-body-sm text-body-sm text-on-surface-variant truncate">THE MARRIOTT</div>
+<div class="w-32 flex justify-end gap-1 px-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="A. Reyes &mdash; Sarah">2</div>
+</div>
+<div class="w-28 font-data-mono-sm text-data-mono-sm text-right text-on-surface-variant pr-3">08:00&ndash;09:20</div>
+<div class="w-16 font-data-mono text-data-mono text-right pr-2">1:20</div>
+</div>
+<!-- Strip 2 -->
+<div class="group flex items-center px-card_padding py-2 border-b border-outline-variant bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="w-12 font-data-mono text-data-mono text-on-surface">15</div>
+<div class="w-16 flex justify-center"><span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-1 py-0.5 rounded-sm">INT</span></div>
+<div class="w-16 flex justify-center mr-2"><span class="bg-[#f0e6d2] text-[#5c4d32] text-[10px] font-bold px-1 py-0.5 rounded-sm">DAY</span></div>
+<div class="flex-1 font-body-sm text-body-sm truncate pr-4">HOTEL ROOM &mdash; THE LEDGER</div>
+<div class="w-64 font-body-sm text-body-sm text-on-surface-variant truncate">THE MARRIOTT</div>
+<div class="w-32 flex justify-end gap-1 px-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="A. Reyes &mdash; Sarah">2</div>
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="D. Okonjo &mdash; Elias">3</div>
+</div>
+<div class="w-28 font-data-mono-sm text-data-mono-sm text-right text-on-surface-variant pr-3">09:35&ndash;13:00</div>
+<div class="w-16 font-data-mono text-data-mono text-right pr-2">3:25</div>
+</div>
+<div class="bg-surface-container-lowest border-t border-outline-variant py-1 px-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">lock</span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">ACTUALS RECORDED BY SCRIPT SUPERVISOR &middot; DAY IMMUTABLE</span>
+</div>
+</div>
+</div>
+<!-- Day 8: ACTIVE -->
+<div class="flex flex-col border border-primary-container rounded-DEFAULT bg-surface-container overflow-hidden ring-1 ring-primary-container relative">
+<!-- Active Indicator Line -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<!-- Day Header -->
+<div class="bg-surface border-b border-outline-variant px-4 py-3 flex justify-between items-center sticky top-0 z-10 pl-5">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-primary">DAY 8</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">WED 11 OCT 2023</span>
+<span class="bg-[#1e293b] text-[#94a3b8] text-[10px] font-bold px-1.5 py-0.5 rounded-sm border border-[#334155]">NIGHT SHOOT</span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface">call 17:00 &rarr; wrap 04:10<span class="text-on-surface-variant">+1</span> (11.2h)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="bg-primary-container text-on-primary-container font-label-caps text-label-caps px-2 py-1 rounded-sm">ACTIVE</span>
+<span class="font-data-mono text-data-mono text-on-surface text-xs">PAGES: 4 6/8</span>
+<span class="font-data-mono text-data-mono text-on-surface text-xs">1 MOVE</span>
+</div>
+</div>
+<!-- Day-type rule: a shoot day is a day shoot or a night shoot, never both (SOL-006) -->
+<div class="bg-surface-container-lowest border-b border-outline-variant py-1 px-5 flex items-center gap-3">
+<span class="material-symbols-outlined text-sm text-[#94a3b8]">dark_mode</span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">ALL WORK IS NIGHT WORK &middot; NO DAYLIGHT BOUND APPLIES &middot; SPLIT DAYS OUT OF SCOPE</span>
+</div>
+<!-- Strips -->
+<div class="flex flex-col pl-1">
+<!-- Strip 1 -->
+<div class="group flex items-center px-card_padding py-3 border-b border-outline-variant bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="w-12 font-data-mono text-data-mono font-bold text-on-surface">42</div>
+<div class="w-16 flex justify-center">
+<span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-1 py-0.5 rounded-sm">EXT</span>
+</div>
+<div class="w-16 flex justify-center mr-2">
+<span class="bg-[#1e293b] text-[#94a3b8] text-[10px] font-bold px-1 py-0.5 rounded-sm border border-[#334155]">NIGHT</span>
+</div>
+<div class="flex-1 flex flex-col gap-1 justify-center">
+<div class="font-body-md text-body-md truncate font-medium">ALLEYWAY CHASE SEQUENCE</div>
+<div class="flex gap-2">
+<span class="text-[10px] font-medium text-[#4ade80] border border-[#4ade80]/30 bg-[#4ade80]/10 px-1.5 py-0.5 rounded-sm">Cast OK</span>
+<span class="text-[10px] font-medium text-[#60a5fa] border border-[#60a5fa]/30 bg-[#60a5fa]/10 px-1.5 py-0.5 rounded-sm">Permit OK</span>
+<span class="text-[10px] font-medium text-[#4ade80] border border-[#4ade80]/30 bg-[#4ade80]/10 px-1.5 py-0.5 rounded-sm">Turnaround OK</span>
+</div>
+</div>
+<div class="w-64 font-body-sm text-body-sm text-on-surface-variant truncate">RIVER STREET ALLEY</div>
+<div class="w-32 flex justify-end gap-1 px-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="E. Vance &mdash; Marcus">1</div>
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="L. Hartley &mdash; Lucy">5</div>
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="R. Bell &mdash; Det. Shaw">12</div>
+</div>
+<div class="w-28 font-data-mono-sm text-data-mono-sm text-right text-on-surface-variant pr-3">19:15&ndash;22:45</div>
+<div class="w-16 font-data-mono text-data-mono text-right text-on-surface-variant pr-2">3:30</div>
+</div>
+<!-- Company Move Banner -->
+<div class="bg-surface-variant border-y border-outline-variant py-1 px-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">local_shipping</span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">COMPANY MOVE 1 OF 1 &middot; RIVER STREET ALLEY &rarr; ABANDONED WAREHOUSE &middot; 2.4 MI (EST. 45 MINS)</span>
+</div>
+<!-- Strip 2 -->
+<div class="group flex items-center px-card_padding py-3 border-b border-outline-variant bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="w-12 font-data-mono text-data-mono font-bold text-on-surface">43</div>
+<div class="w-16 flex justify-center">
+<span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-1 py-0.5 rounded-sm">INT</span>
+</div>
+<div class="w-16 flex justify-center mr-2">
+<span class="bg-[#1e293b] text-[#94a3b8] text-[10px] font-bold px-1 py-0.5 rounded-sm border border-[#334155]">NIGHT</span>
+</div>
+<div class="flex-1 flex flex-col gap-1 justify-center">
+<div class="font-body-md text-body-md truncate font-medium">BASEMENT CONFRONTATION</div>
+<div class="flex gap-2">
+<span class="text-[10px] font-medium text-[#4ade80] border border-[#4ade80]/30 bg-[#4ade80]/10 px-1.5 py-0.5 rounded-sm">Cast OK</span>
+</div>
+</div>
+<div class="w-64 font-body-sm text-body-sm text-on-surface-variant truncate">ABANDONED WAREHOUSE</div>
+<div class="w-32 flex justify-end gap-1 px-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="E. Vance &mdash; Marcus">1</div>
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="R. Bell &mdash; Det. Shaw">12</div>
+</div>
+<div class="w-28 font-data-mono-sm text-data-mono-sm text-right text-on-surface-variant pr-3">23:30&ndash;01:45</div>
+<div class="w-16 font-data-mono text-data-mono text-right text-on-surface-variant pr-2">2:15</div>
+</div>
+<!-- Strip 3 -->
+<div class="group flex items-center px-card_padding py-3 border-b border-outline-variant bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="w-12 font-data-mono text-data-mono font-bold text-on-surface">44</div>
+<div class="w-16 flex justify-center">
+<span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-1 py-0.5 rounded-sm">INT</span>
+</div>
+<div class="w-16 flex justify-center mr-2">
+<span class="bg-[#1e293b] text-[#94a3b8] text-[10px] font-bold px-1 py-0.5 rounded-sm border border-[#334155]">NIGHT</span>
+</div>
+<div class="flex-1 flex flex-col gap-1 justify-center">
+<div class="font-body-md text-body-md truncate font-medium">WAREHOUSE OFFICE &mdash; WIRE TAP</div>
+<div class="flex gap-2">
+<span class="text-[10px] font-medium text-[#4ade80] border border-[#4ade80]/30 bg-[#4ade80]/10 px-1.5 py-0.5 rounded-sm">Cast OK</span>
+<span class="text-[10px] font-medium text-on-surface-variant border border-outline-variant bg-surface-variant px-1.5 py-0.5 rounded-sm">No move &mdash; same location</span>
+</div>
+</div>
+<div class="w-64 font-body-sm text-body-sm text-on-surface-variant truncate">ABANDONED WAREHOUSE</div>
+<div class="w-32 flex justify-end gap-1 px-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="E. Vance &mdash; Marcus">1</div>
+</div>
+<div class="w-28 font-data-mono-sm text-data-mono-sm text-right text-on-surface-variant pr-3">01:45&ndash;03:40</div>
+<div class="w-16 font-data-mono text-data-mono text-right text-on-surface-variant pr-2">1:55</div>
+</div>
+</div>
+</div>
+<!-- Dark day: the calendar skips it, the day index does not advance -->
+<div class="flex items-center gap-3 border border-dashed border-outline-variant rounded-DEFAULT bg-surface-container-lowest px-4 py-2">
+<span class="material-symbols-outlined text-sm text-outline">bedtime_off</span>
+<span class="font-data-mono-sm text-data-mono-sm text-outline">THU 12 OCT 2023 &mdash; DARK &middot; TURNAROUND AFTER NIGHTS &middot; NOT A SHOOT DAY</span>
+</div>
+<!-- Day 9: PLANNED -->
+<div class="flex flex-col border border-outline-variant rounded-DEFAULT bg-surface-container-low overflow-hidden">
+<div class="bg-surface-container-low border-b border-outline-variant px-4 py-2 flex justify-between items-center sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-on-surface-variant">DAY 9</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">FRI 13 OCT 2023</span>
+<span class="bg-[#f0e6d2] text-[#5c4d32] text-[10px] font-bold px-1.5 py-0.5 rounded-sm">DAY SHOOT</span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">call 07:00 &rarr; wrap 19:00 (12.0h)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-on-surface-variant font-label-caps text-label-caps border border-outline-variant px-2 py-1 rounded-sm">PLANNED</span>
+<span class="font-data-mono text-data-mono text-on-surface-variant text-xs">PAGES: 4 6/8</span>
+<span class="font-data-mono text-data-mono text-on-surface-variant text-xs">1 MOVE</span>
+</div>
+</div>
+<!-- Daylight bounds the prefix of the day, not its total -->
+<div class="bg-surface-container-lowest border-b border-outline-variant py-1 px-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-sm text-[#f59e0b]">wb_twilight</span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">SUN-BOUND WORK LEADS THE DAY &middot; LAST EXT/DAY STRIP WRAPS 16:30 &middot; SUNSET 18:54 (COMPUTED)</span>
+</div>
+<div class="flex flex-col">
+<!-- Strip 1 -->
+<div class="group flex items-center px-card_padding py-3 border-b border-outline-variant bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="w-12 font-data-mono text-data-mono font-bold text-on-surface">102A</div>
+<div class="w-16 flex justify-center"><span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-1 py-0.5 rounded-sm">EXT</span></div>
+<div class="w-16 flex justify-center mr-2"><span class="bg-[#f0e6d2] text-[#5c4d32] text-[10px] font-bold px-1 py-0.5 rounded-sm">DAY</span></div>
+<div class="flex-1 flex flex-col gap-1 justify-center">
+<div class="font-body-md text-body-md truncate font-medium">HARBOR DOCKS &mdash; ESTABLISHING</div>
+<div class="flex gap-2">
+<span class="text-[10px] font-medium text-[#4ade80] border border-[#4ade80]/30 bg-[#4ade80]/10 px-1.5 py-0.5 rounded-sm">Cast OK</span>
+<span class="text-[10px] font-medium text-[#60a5fa] border border-[#60a5fa]/30 bg-[#60a5fa]/10 px-1.5 py-0.5 rounded-sm">Permit OK</span>
+<span class="text-[10px] font-medium text-[#fbbf24] border border-[#fbbf24]/30 bg-[#fbbf24]/10 px-1.5 py-0.5 rounded-sm">Daylight OK</span>
+</div>
+</div>
+<div class="w-64 font-body-sm text-body-sm text-on-surface-variant truncate">SAVANNAH TERMINAL 4</div>
+<div class="w-32 flex justify-end gap-1 px-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="E. Vance &mdash; Marcus">1</div>
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="D. Okonjo &mdash; Elias">3</div>
+</div>
+<div class="w-28 font-data-mono-sm text-data-mono-sm text-right text-on-surface-variant pr-3">08:00&ndash;10:00</div>
+<div class="w-16 font-data-mono text-data-mono text-right text-on-surface-variant pr-2">2:00</div>
+</div>
+<!-- Strip 2 -->
+<div class="group flex items-center px-card_padding py-3 border-b border-outline-variant bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="w-12 font-data-mono text-data-mono font-bold text-on-surface">102B</div>
+<div class="w-16 flex justify-center"><span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-1 py-0.5 rounded-sm">EXT</span></div>
+<div class="w-16 flex justify-center mr-2"><span class="bg-[#f0e6d2] text-[#5c4d32] text-[10px] font-bold px-1 py-0.5 rounded-sm">DAY</span></div>
+<div class="flex-1 flex flex-col gap-1 justify-center">
+<div class="font-body-md text-body-md truncate font-medium">CONTAINER YARD CONFRONTATION</div>
+<div class="flex gap-2">
+<span class="text-[10px] font-medium text-[#4ade80] border border-[#4ade80]/30 bg-[#4ade80]/10 px-1.5 py-0.5 rounded-sm">Cast OK</span>
+<span class="text-[10px] font-medium text-[#60a5fa] border border-[#60a5fa]/30 bg-[#60a5fa]/10 px-1.5 py-0.5 rounded-sm">Permit OK</span>
+<span class="text-[10px] font-medium text-[#fbbf24] border border-[#fbbf24]/30 bg-[#fbbf24]/10 px-1.5 py-0.5 rounded-sm">Daylight OK</span>
+</div>
+</div>
+<div class="w-64 font-body-sm text-body-sm text-on-surface-variant truncate">SAVANNAH TERMINAL 4</div>
+<div class="w-32 flex justify-end gap-1 px-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="E. Vance &mdash; Marcus">1</div>
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="D. Okonjo &mdash; Elias">3</div>
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="R. Bell &mdash; Det. Shaw">12</div>
+</div>
+<div class="w-28 font-data-mono-sm text-data-mono-sm text-right text-on-surface-variant pr-3">10:15&ndash;13:00</div>
+<div class="w-16 font-data-mono text-data-mono text-right text-on-surface-variant pr-2">2:45</div>
+</div>
+<!-- Meal + Company Move Banner -->
+<div class="bg-surface-variant border-y border-outline-variant py-1 px-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">local_shipping</span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">LUNCH 13:00&ndash;14:00 &middot; COMPANY MOVE 1 OF 1 &middot; SAVANNAH TERMINAL 4 &rarr; FIRST AFRICAN BAPTIST CHURCH &middot; 3.1 MI (EST. 35 MINS)</span>
+</div>
+<!-- Strip 3 -->
+<div class="group flex items-center px-card_padding py-3 border-b border-outline-variant bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="w-12 font-data-mono text-data-mono font-bold text-on-surface">104</div>
+<div class="w-16 flex justify-center"><span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-1 py-0.5 rounded-sm">EXT</span></div>
+<div class="w-16 flex justify-center mr-2"><span class="bg-[#f0e6d2] text-[#5c4d32] text-[10px] font-bold px-1 py-0.5 rounded-sm">DAY</span></div>
+<div class="flex-1 flex flex-col gap-1 justify-center">
+<div class="font-body-md text-body-md truncate font-medium">CHURCH STEPS &mdash; ARRIVAL</div>
+<div class="flex gap-2">
+<span class="text-[10px] font-medium text-[#4ade80] border border-[#4ade80]/30 bg-[#4ade80]/10 px-1.5 py-0.5 rounded-sm">Cast OK</span>
+<span class="text-[10px] font-medium text-[#60a5fa] border border-[#60a5fa]/30 bg-[#60a5fa]/10 px-1.5 py-0.5 rounded-sm">Permit OK</span>
+<span class="text-[10px] font-medium text-[#fbbf24] border border-[#fbbf24]/30 bg-[#fbbf24]/10 px-1.5 py-0.5 rounded-sm">Daylight OK</span>
+</div>
+</div>
+<div class="w-64 font-body-sm text-body-sm text-on-surface-variant truncate">FIRST AFRICAN BAPTIST CHURCH</div>
+<div class="w-32 flex justify-end gap-1 px-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="E. Vance &mdash; Marcus">1</div>
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="A. Reyes &mdash; Sarah">2</div>
+</div>
+<div class="w-28 font-data-mono-sm text-data-mono-sm text-right text-on-surface-variant pr-3">15:00&ndash;16:30</div>
+<div class="w-16 font-data-mono text-data-mono text-right text-on-surface-variant pr-2">1:30</div>
+</div>
+<!-- Strip 4 -->
+<div class="group flex items-center px-card_padding py-3 border-b border-outline-variant bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="w-12 font-data-mono text-data-mono font-bold text-on-surface">103</div>
+<div class="w-16 flex justify-center"><span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-1 py-0.5 rounded-sm">INT</span></div>
+<div class="w-16 flex justify-center mr-2"><span class="bg-[#f0e6d2] text-[#5c4d32] text-[10px] font-bold px-1 py-0.5 rounded-sm">DAY</span></div>
+<div class="flex-1 flex flex-col gap-1 justify-center">
+<div class="font-body-md text-body-md truncate font-medium">CHURCH VESTRY &mdash; LEDGER DISCOVERY</div>
+<div class="flex gap-2">
+<span class="text-[10px] font-medium text-[#4ade80] border border-[#4ade80]/30 bg-[#4ade80]/10 px-1.5 py-0.5 rounded-sm">Cast OK</span>
+<span class="text-[10px] font-medium text-on-surface-variant border border-outline-variant bg-surface-variant px-1.5 py-0.5 rounded-sm">Interior &mdash; may run past sunset</span>
+</div>
+</div>
+<div class="w-64 font-body-sm text-body-sm text-on-surface-variant truncate">FIRST AFRICAN BAPTIST CHURCH</div>
+<div class="w-32 flex justify-end gap-1 px-2">
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="A. Reyes &mdash; Sarah">2</div>
+<div class="w-6 h-6 rounded-full bg-surface-bright flex items-center justify-center font-data-mono-sm text-data-mono-sm border border-outline-variant" title="D. Okonjo &mdash; Elias">3</div>
+</div>
+<div class="w-28 font-data-mono-sm text-data-mono-sm text-right text-on-surface-variant pr-3">16:45&ndash;18:15</div>
+<div class="w-16 font-data-mono text-data-mono text-right text-on-surface-variant pr-2">1:30</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Inspector Panel -->
+<aside class="w-80 bg-surface border-l border-outline-variant flex flex-col shrink-0 h-full overflow-y-auto">
+<!-- Inspector Header -->
+<div class="p-4 border-b border-outline-variant bg-surface-dim">
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant mb-1">PROVENANCE &gt; SCHEDULE V4 &gt; DAY 14</div>
+<h2 class="font-headline-lg text-headline-lg font-semibold text-on-surface mb-1">Day 14 &mdash; Savannah Terminal 4</h2>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant mb-3">FRI 20 OCT 2023 &middot; EXT/DAY</div>
+<div class="flex items-center gap-2 bg-[#064e3b]/20 border border-[#059669]/50 rounded px-3 py-2">
+<span class="material-symbols-outlined text-[#10b981] text-sm">check_circle</span>
+<span class="font-data-mono text-data-mono text-[#10b981] font-bold">INDEPENDENT VALIDATOR: PASS</span>
+</div>
+<div class="mt-2 flex flex-col gap-0.5">
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface-variant">CONSTRAINT SNAPSHOT <span class="text-on-surface">8f3c9a1e4d02</span></div>
+<div class="text-[10px] font-data-mono text-outline">Board and report solved and checked against the same snapshot. The validator shares no code path with the solver.</div>
+</div>
+</div>
+<!-- Constraint Status List -->
+<div class="p-4 flex flex-col gap-4">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant uppercase border-b border-outline-variant pb-1">Constraint Status List</h3>
+<!-- Weather Risk -->
+<div class="bg-surface-container border border-[#d97706]/30 rounded-lg p-3 flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#f59e0b] text-sm">warning</span>
+<span class="font-data-mono text-data-mono font-bold text-[#f59e0b]">WEATHER RISK</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface">Rain probability 85% for Fri 20 Oct, up from 20%.</p>
+<p class="text-[10px] font-data-mono text-on-surface-variant">Grounded by Parallel &middot; weather.gov &middot; source states 20 Oct</p>
+<button class="self-start mt-1 text-xs font-data-mono text-primary hover:underline">View Weather Models</button>
+</div>
+<!-- Permit Status -->
+<div class="bg-surface-container border border-[#059669]/30 rounded-lg p-3 flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#10b981] text-sm">task_alt</span>
+<span class="font-data-mono text-data-mono font-bold text-[#10b981]">PERMIT OK</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface">Permit #2023-SAV-0882 &mdash; Savannah Film Office.</p>
+<p class="text-[10px] font-data-mono text-on-surface-variant">Grounded by Parallel &middot; full content &middot; standing rule, no target date required</p>
+</div>
+<!-- Daylight Status -->
+<div class="bg-surface-container border border-[#059669]/30 rounded-lg p-3 flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#10b981] text-sm">wb_sunny</span>
+<span class="font-data-mono text-data-mono font-bold text-[#10b981]">DAYLIGHT OK</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface">Computed &middot; NOAA solar position algorithm.</p>
+<div class="text-[10px] font-data-mono text-on-surface-variant mt-1">Sunrise 07:31 &middot; Sunset 18:46 &middot; Civil dusk 19:11</div>
+<div class="text-[10px] font-data-mono text-outline">Not retrieved. No source URL exists or is needed.</div>
+</div>
+</div>
+<!-- Action Area Bottom -->
+<div class="mt-auto p-4 border-t border-outline-variant bg-surface-dim">
+<button class="w-full py-2 bg-surface-container border border-outline-variant rounded hover:bg-surface-container-high transition-colors font-data-mono-sm text-data-mono-sm text-on-surface flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">download</span>
+                        Load Demo Production
+                    </button>
+</div>
+</aside>
+</main>
+</div>
+<!-- Custom Scrollbar Style for density -->
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #131313;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #434655;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #8e9196;
+        }
+    </style>
+</body></html>

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Call Sheet Preview - The Glasshouse</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#e2c0a4",
+                        "surface-variant": "#353534",
+                        "on-tertiary-fixed-variant": "#59422d",
+                        "on-secondary": "#2d303e",
+                        "secondary-container": "#434655",
+                        "on-primary-fixed": "#0d1d2a",
+                        "inverse-primary": "#50606f",
+                        "error": "#ffb4ab",
+                        "background": "#131313",
+                        "outline": "#8e9196",
+                        "on-tertiary-fixed": "#291806",
+                        "secondary-fixed-dim": "#c3c5d8",
+                        "surface-container-highest": "#353534",
+                        "on-primary-fixed-variant": "#394857",
+                        "tertiary-container": "#a98b71",
+                        "inverse-on-surface": "#313030",
+                        "surface-tint": "#b8c8da",
+                        "surface-container-high": "#2a2a2a",
+                        "primary-container": "#8292a3",
+                        "on-tertiary-container": "#392612",
+                        "on-tertiary": "#412c18",
+                        "on-primary": "#223240",
+                        "primary-fixed-dim": "#b8c8da",
+                        "on-error-container": "#ffdad6",
+                        "error-container": "#93000a",
+                        "surface-bright": "#393939",
+                        "on-error": "#690005",
+                        "on-background": "#e5e2e1",
+                        "inverse-surface": "#e5e2e1",
+                        "tertiary-fixed-dim": "#e2c0a4",
+                        "surface-container": "#201f1f",
+                        "surface": "#131313",
+                        "secondary": "#c3c5d8",
+                        "primary": "#b8c8da",
+                        "on-surface": "#e5e2e1",
+                        "on-secondary-fixed": "#181b28",
+                        "on-primary-container": "#1c2b39",
+                        "secondary-fixed": "#e0e1f4",
+                        "tertiary-fixed": "#ffdcbf",
+                        "on-surface-variant": "#c4c7cc",
+                        "surface-dim": "#131313",
+                        "surface-container-low": "#1c1b1b",
+                        "on-secondary-fixed-variant": "#434655",
+                        "on-secondary-container": "#b2b4c6",
+                        "primary-fixed": "#d4e4f6",
+                        "outline-variant": "#43474c",
+                        "surface-container-lowest": "#0e0e0e",
+                        "status-green": "#4ade80",
+                        "status-amber": "#facc15",
+                        "status-red": "#ef4444",
+                        "status-indigo": "#818cf8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "card_padding": "12px",
+                        "gutter": "8px",
+                        "stack_compact": "2px",
+                        "rail_width": "64px",
+                        "panel_gap": "4px"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "data-mono": ["JetBrains Mono"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "data-mono-sm": ["JetBrains Mono"],
+                        "body-sm": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "label-caps": ["10px", { "lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "data-mono": ["13px", { "lineHeight": "16px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "data-mono-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style type="text/tailwindcss">
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+        .grid-panel { @apply bg-surface-container-low border border-outline-variant p-card_padding rounded; }
+        .table-row-hover:hover { @apply bg-surface-container-high transition-colors; }
+        
+        /* Custom Scrollbar for Inspector */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: theme('colors.outline-variant'); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: theme('colors.primary'); }
+    </style>
+</head>
+<body class="antialiased min-h-screen overflow-hidden flex flex-col font-body-md">
+<!-- TopNavBar -->
+<nav class="fixed top-0 right-0 left-rail_width h-16 bg-surface border-b border-outline-variant flex justify-between items-center px-gutter w-[calc(100%-theme('spacing.rail_width'))] z-50">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg tracking-tighter text-on-surface">The Glasshouse</span>
+<div class="h-4 w-px bg-outline-variant"></div>
+<div class="flex gap-4 font-data-mono text-data-mono">
+<span class="text-on-surface-variant cursor-pointer hover:text-primary transition-colors">Schedule v4</span>
+<span class="text-on-surface-variant cursor-pointer hover:text-primary transition-colors">Day 9 of 20</span>
+<span class="text-primary cursor-pointer hover:text-primary transition-colors">Second AD</span>
+</div>
+</div>
+<div class="flex items-center gap-4 text-primary">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">settings</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">account_circle</span>
+</div>
+</nav>
+<div class="flex flex-1 pt-16">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-rail_width bg-surface-container border-r border-outline-variant flex flex-col items-center py-4 z-50">
+<!-- Brand Logo Space (Optional Avatar) -->
+<div class="mb-8 w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-headline-md text-primary font-bold overflow-hidden" title="Production Manager Profile">
+<img alt="Avatar" class="object-cover w-full h-full opacity-80" data-alt="A macro photograph of an industrial film lens reflecting a bright studio light, dark metallic tones, hyper-detailed, technical realism." src="https://lh3.googleusercontent.com/aida-public/AB6AXuArKAXCM6_1LhsDyV92uhsBnxwNf0CQ7q0pgY9rvAhANLCUIh0xDi1wpNPtkpl0EMv81XfDNKFrJ0IUZzztq17zU7VD0YQHCYy5uCQ_wXH-XKpFx8g1ut7Q9iGeFGsJ95l8rJjn9ku2kOefrYEHKUKL6PwDFa9PE-wreTr5-lxqbRbMZ1fVF5wF3tkv1i5Jjuda4VZaPSsl1VOIqp2n26vfwsU0nPC0qUY_a7dWNHwdx5P_bvqvLg4HtWpsgrrhaSJ1okgeErj5F54"/>
+</div>
+<div class="flex flex-col gap-6 w-full">
+<!-- Dashboard -->
+<div class="flex flex-col items-center group cursor-pointer w-full py-2 hover:bg-surface-variant hover:text-on-surface transition-colors duration-200">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-on-surface">dashboard</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant mt-1 hidden lg:block group-hover:text-on-surface">DASH</span>
+</div>
+<!-- Breakdown -->
+<div class="flex flex-col items-center group cursor-pointer w-full py-2 hover:bg-surface-variant hover:text-on-surface transition-colors duration-200">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-on-surface">analytics</span>
+</div>
+<!-- Replan -->
+<div class="flex flex-col items-center group cursor-pointer w-full py-2 hover:bg-surface-variant hover:text-on-surface transition-colors duration-200">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-on-surface">sync_alt</span>
+</div>
+<!-- Sources -->
+<div class="flex flex-col items-center group cursor-pointer w-full py-2 hover:bg-surface-variant hover:text-on-surface transition-colors duration-200">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-on-surface">source</span>
+</div>
+<!-- Coverage -->
+<div class="flex flex-col items-center group cursor-pointer w-full py-2 hover:bg-surface-variant hover:text-on-surface transition-colors duration-200">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-on-surface">video_library</span>
+</div>
+<!-- Call Sheets (ACTIVE) -->
+<div class="flex flex-col items-center w-full py-2 text-primary bg-surface-container-high border-r-2 border-primary transition-colors duration-200">
+<span class="material-symbols-outlined text-primary">description</span>
+<span class="font-label-caps text-label-caps text-primary mt-1">CALLS</span>
+</div>
+<!-- Audit -->
+<div class="flex flex-col items-center group cursor-pointer w-full py-2 hover:bg-surface-variant hover:text-on-surface transition-colors duration-200">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-on-surface">rule</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-rail_width p-gutter flex gap-panel_gap overflow-hidden h-[calc(100vh-64px)]">
+<!-- Left Workspace (Operational Board) -->
+<div class="flex-1 flex flex-col gap-panel_gap overflow-y-auto pr-2 pb-4">
+<!-- Command Bar Header -->
+<div class="grid-panel flex justify-between items-end sticky top-0 z-10 bg-surface shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Call Sheet Preview &mdash; Day 9: Savannah Terminal 4 / First African Baptist Church</h1>
+<div class="flex gap-4 mt-2 text-on-surface-variant font-body-sm">
+<span class="flex flex-col"><span class="font-label-caps text-label-caps">PRODUCTION</span>The Glasshouse</span>
+<span class="flex flex-col"><span class="font-label-caps text-label-caps">DATE</span>Friday, 13 Oct 2023</span>
+<span class="flex flex-col"><span class="font-label-caps text-label-caps">DAY</span>9 of 20</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="px-3 py-1 rounded border border-status-green bg-status-green/10 text-status-green font-label-caps text-label-caps flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                            VALIDATED
+                        </div>
+</div>
+</div>
+<!-- Scene Schedule Table -->
+<div class="grid-panel">
+<div class="flex justify-between items-center mb-4 border-b border-outline-variant pb-2">
+<h2 class="font-headline-md text-headline-md text-on-surface">Scene Schedule</h2>
+<span class="font-data-mono-sm text-on-surface-variant">4 Scenes • 4 6/8 Pages • 1 company move</span>
+</div>
+<table class="w-full text-left font-body-sm">
+<thead class="text-on-surface-variant border-b border-outline-variant">
+<tr>
+<th class="font-label-caps text-label-caps pb-2 font-normal">SCENE #</th>
+<th class="font-label-caps text-label-caps pb-2 font-normal">DESCRIPTION</th>
+<th class="font-label-caps text-label-caps pb-2 font-normal">CAST ID</th>
+<th class="font-label-caps text-label-caps pb-2 font-normal">D/N</th>
+<th class="font-label-caps text-label-caps pb-2 font-normal">PAGES</th>
+<th class="font-label-caps text-label-caps pb-2 font-normal">LOCATION</th>
+<th class="font-label-caps text-label-caps pb-2 font-normal text-right">TIME</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr class="table-row-hover">
+<td class="py-3 font-data-mono text-data-mono">102A</td>
+<td class="py-3 pr-4">EXT. HARBOR DOCKS &mdash; Establishing</td>
+<td class="py-3 font-data-mono text-data-mono">1, 3</td>
+<td class="py-3">DAY</td>
+<td class="py-3">1 2/8</td>
+<td class="py-3 text-on-surface-variant">Savannah Terminal 4</td>
+<td class="py-3 font-data-mono text-data-mono text-right">08:00</td>
+</tr>
+<tr class="table-row-hover">
+<td class="py-3 font-data-mono text-data-mono">102B</td>
+<td class="py-3 pr-4">EXT. CONTAINER YARD &mdash; Confrontation</td>
+<td class="py-3 font-data-mono text-data-mono">1, 3, 12</td>
+<td class="py-3">DAY</td>
+<td class="py-3">2</td>
+<td class="py-3 text-on-surface-variant">Savannah Terminal 4</td>
+<td class="py-3 font-data-mono text-data-mono text-right">10:15</td>
+</tr>
+<tr class="bg-surface-container-high">
+<td class="py-2 text-center text-on-surface-variant font-label-caps text-label-caps" colspan="7">LUNCH 13:00 (1hr) &middot; COMPANY MOVE 14:00 &mdash; SAVANNAH TERMINAL 4 &rarr; FIRST AFRICAN BAPTIST CHURCH (3.1 MI)</td>
+</tr>
+<tr class="table-row-hover">
+<td class="py-3 font-data-mono text-data-mono">104</td>
+<td class="py-3 pr-4">EXT. CHURCH STEPS &mdash; Arrival</td>
+<td class="py-3 font-data-mono text-data-mono">1, 2</td>
+<td class="py-3">DAY</td>
+<td class="py-3">7/8</td>
+<td class="py-3 text-on-surface-variant">First African Baptist Church</td>
+<td class="py-3 font-data-mono text-data-mono text-right">15:00</td>
+</tr>
+<tr class="table-row-hover">
+<td class="py-3 font-data-mono text-data-mono">103</td>
+<td class="py-3 pr-4">INT. CHURCH VESTRY &mdash; Ledger discovery</td>
+<td class="py-3 font-data-mono text-data-mono">2, 3</td>
+<td class="py-3">DAY</td>
+<td class="py-3">5/8</td>
+<td class="py-3 text-on-surface-variant">First African Baptist Church</td>
+<td class="py-3 font-data-mono text-data-mono text-right">16:45</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- General Times -->
+<div class="grid-panel">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-4 border-b border-outline-variant pb-2">General Times</h2>
+<div class="grid grid-cols-3 gap-3 font-data-mono text-data-mono">
+<div class="bg-surface-container-low p-3 rounded border border-outline-variant"><span class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Crew Call</span>07:00</div>
+<div class="bg-surface-container-low p-3 rounded border border-outline-variant"><span class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Shooting Call</span>08:00</div>
+<div class="bg-surface-container-low p-3 rounded border border-outline-variant"><span class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Estimated Wrap</span>19:00</div>
+</div>
+</div>
+<!-- Turnaround & Permit Notes (OUT-004) -->
+<div class="grid grid-cols-2 gap-panel_gap">
+<div class="grid-panel">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-4 border-b border-outline-variant pb-2">Turnaround Notes</h2>
+<div class="space-y-3 font-body-sm text-body-sm">
+<div class="flex justify-between border-b border-outline-variant pb-2">
+<span class="text-on-surface-variant">Previous shoot day</span>
+<span class="font-data-mono text-data-mono text-on-surface">Day 8 &middot; Wed 11 Oct &middot; night</span>
+</div>
+<div class="flex justify-between border-b border-outline-variant pb-2">
+<span class="text-on-surface-variant">Previous wrap</span>
+<span class="font-data-mono text-data-mono text-on-surface">04:10, Thu 12 Oct</span>
+</div>
+<div class="flex justify-between border-b border-outline-variant pb-2">
+<span class="text-on-surface-variant">Turnaround to this call</span>
+<span class="font-data-mono text-data-mono text-[#4ade80]">50h 50m &middot; minimum 10h</span>
+</div>
+<p class="text-on-surface-variant text-[11px] leading-tight">Thu 12 Oct was held dark after nights. Turnaround is measured wrap to call, not scene time &mdash; a performer waiting through a company move is still at work.</p>
+</div>
+</div>
+<div class="grid-panel">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-4 border-b border-outline-variant pb-2">Permit Notes</h2>
+<div class="space-y-3 font-body-sm text-body-sm">
+<div class="border-b border-outline-variant pb-2">
+<div class="font-data-mono text-data-mono text-on-surface">Savannah Terminal 4</div>
+<div class="text-on-surface-variant text-[11px]">Permit #2023-SAV-0882 &middot; 14&ndash;28 Oct, 06:00&ndash;22:00 &middot; savannahga.gov/filmoffice</div>
+</div>
+<div class="border-b border-outline-variant pb-2">
+<div class="font-data-mono text-data-mono text-on-surface">First African Baptist Church</div>
+<div class="text-on-surface-variant text-[11px]">Permit #2023-SAV-0915 &middot; weekdays 08:00&ndash;19:00 &middot; no amplified sound in the sanctuary</div>
+</div>
+<div class="bg-[#2a2214] border-l-2 border-[#b8782e] p-2 rounded-r-sm">
+<div class="text-[#b8782e] font-label-caps text-label-caps uppercase mb-1">Open</div>
+<p class="text-on-surface text-[11px] leading-tight">River Street move curfew unresolved &mdash; two authoritative sources disagree. Not binding on this day; no move is scheduled after 14:00.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Cast & Crew Split -->
+<div class="grid grid-cols-2 gap-panel_gap">
+<!-- Cast Call Times -->
+<div class="grid-panel">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-4 border-b border-outline-variant pb-2">Cast Call Times</h2>
+<table class="w-full text-left font-body-sm">
+<thead class="text-on-surface-variant border-b border-outline-variant">
+<tr>
+<th class="font-label-caps text-label-caps pb-2 font-normal">PERFORMER</th>
+<th class="font-label-caps text-label-caps pb-2 font-normal">STATUS</th>
+<th class="font-label-caps text-label-caps pb-2 font-normal text-right">CALL</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr class="table-row-hover">
+<td class="py-2"><div class="font-medium text-on-surface">E. Vance</div><div class="text-[10px] text-on-surface-variant">1. Marcus</div></td>
+<td class="py-2"><span class="px-2 py-0.5 bg-surface-variant rounded text-[10px]">WORK</span></td>
+<td class="py-2 font-data-mono text-data-mono text-right">07:00</td>
+</tr>
+<tr class="table-row-hover">
+<td class="py-2"><div class="font-medium text-on-surface">D. Okonjo</div><div class="text-[10px] text-on-surface-variant">3. Elias</div></td>
+<td class="py-2"><span class="px-2 py-0.5 bg-surface-variant rounded text-[10px]">WORK</span></td>
+<td class="py-2 font-data-mono text-data-mono text-right">07:00</td>
+</tr>
+<tr class="table-row-hover">
+<td class="py-2"><div class="font-medium text-on-surface">R. Bell</div><div class="text-[10px] text-on-surface-variant">12. Det. Shaw</div></td>
+<td class="py-2"><span class="px-2 py-0.5 bg-surface-variant rounded text-[10px]">WORK</span></td>
+<td class="py-2 font-data-mono text-data-mono text-right">09:30</td>
+</tr>
+<tr class="table-row-hover">
+<td class="py-2"><div class="font-medium text-on-surface">A. Reyes</div><div class="text-[10px] text-on-surface-variant">2. Sarah</div></td>
+<td class="py-2"><span class="px-2 py-0.5 bg-surface-variant rounded text-[10px]">WORK</span></td>
+<td class="py-2 font-data-mono text-data-mono text-right">13:30</td>
+</tr>
+<tr class="table-row-hover">
+<td class="py-2"><div class="font-medium text-on-surface">L. Hartley</div><div class="text-[10px] text-on-surface-variant">5. Lucy</div></td>
+<td class="py-2"><span class="px-2 py-0.5 bg-[#2a2214] text-[#b8782e] border border-[#b8782e]/50 rounded text-[10px]">HOLD</span></td>
+<td class="py-2 font-data-mono text-data-mono text-right">&mdash;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Environmental Facts -->
+<div class="grid-panel">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-4 border-b border-outline-variant pb-2">Environmental Facts</h2>
+<div class="space-y-4">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant">NOAA SOLAR ALGORITHM</span>
+<span class="font-data-mono text-data-mono">Sunrise 07:26 &middot; Sunset 18:54 &middot; Civil dusk 19:19</span>
+<span class="text-[10px] font-data-mono text-on-surface-variant">Computed for 13 Oct 2023. Not retrieved.</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant flex justify-between">WEATHER <span class="text-status-green">GROUNDED BY PARALLEL</span></span>
+<span class="font-data-mono text-data-mono text-on-surface">Mostly cloudy, 72°F, rain 15%</span>
+<span class="text-[10px] font-data-mono text-on-surface-variant">weather.gov &middot; source states 13 Oct &middot; full content</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Inspector Panel -->
+<aside class="w-[320px] flex-shrink-0 grid-panel flex flex-col h-full bg-surface-container overflow-y-auto">
+<div class="border-b border-outline-variant pb-3 mb-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">Inspector</h3>
+<div class="font-data-mono-sm text-on-surface-variant mt-1">CS-v1.4.2 &gt; Schedule v4 &gt; Day 9</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-2 mb-6 border-b border-outline-variant pb-4">
+<button class="w-full bg-primary text-on-primary py-2 rounded font-headline-md text-sm hover:bg-primary/90 transition-colors">
+                        Generate Call Sheet
+                    </button>
+<div class="flex gap-2">
+<button class="flex-1 bg-surface-container-high border border-outline-variant text-on-surface py-1.5 rounded font-body-sm hover:bg-surface-variant transition-colors">
+                            Preview PDF
+                        </button>
+<button class="flex-1 bg-surface-container-high border border-outline-variant text-on-surface py-1.5 rounded font-body-sm hover:bg-surface-variant transition-colors">
+                            Send to Cast & Crew
+                        </button>
+</div>
+</div>
+<!-- Recipients List -->
+<div class="flex-1">
+<div class="flex justify-between items-center mb-3">
+<h4 class="font-label-caps text-label-caps text-on-surface-variant">RECIPIENTS</h4>
+<span class="text-[10px] text-on-surface-variant bg-surface-variant px-1.5 py-0.5 rounded">Viewers (Read-only)</span>
+</div>
+<ul class="space-y-3 font-body-sm">
+<li class="flex items-center gap-2 text-on-surface">
+<div class="w-6 h-6 rounded-full bg-tertiary-container flex items-center justify-center text-on-tertiary-container font-label-caps">M</div>
+<div>
+<div>M. Director</div>
+<div class="text-[10px] text-on-surface-variant font-data-mono-sm">Director</div>
+</div>
+</li>
+</ul>
+</div>
+</aside>
+</main>
+</div>
+</body></html>

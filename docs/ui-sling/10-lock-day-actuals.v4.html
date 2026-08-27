@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>10-lock-day-actuals - The Glasshouse</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary": "#e2c0a4",
+                    "primary-container": "#8292a3",
+                    "primary-fixed": "#d4e4f6",
+                    "on-surface": "#e5e2e1",
+                    "surface-container-lowest": "#0e0e0e",
+                    "surface-container-low": "#1c1b1b",
+                    "primary": "#b8c8da",
+                    "on-error-container": "#ffdad6",
+                    "surface-dim": "#131313",
+                    "outline-variant": "#43474c",
+                    "on-secondary-fixed-variant": "#434655",
+                    "on-tertiary-fixed-variant": "#59422d",
+                    "secondary": "#c3c5d8",
+                    "on-tertiary-fixed": "#291806",
+                    "on-secondary": "#2d303e",
+                    "tertiary-container": "#a98b71",
+                    "surface-variant": "#353534",
+                    "on-secondary-container": "#b2b4c6",
+                    "outline": "#8e9196",
+                    "on-background": "#e5e2e1",
+                    "error": "#ffb4ab",
+                    "tertiary-fixed": "#ffdcbf",
+                    "error-container": "#93000a",
+                    "on-secondary-fixed": "#181b28",
+                    "surface-tint": "#b8c8da",
+                    "inverse-primary": "#50606f",
+                    "on-primary-fixed": "#0d1d2a",
+                    "primary-fixed-dim": "#b8c8da",
+                    "secondary-container": "#434655",
+                    "surface": "#131313",
+                    "on-primary-fixed-variant": "#394857",
+                    "on-error": "#690005",
+                    "on-primary-container": "#1c2b39",
+                    "inverse-on-surface": "#313030",
+                    "tertiary-fixed-dim": "#e2c0a4",
+                    "surface-container-high": "#2a2a2a",
+                    "background": "#131313",
+                    "surface-container": "#201f1f",
+                    "surface-bright": "#393939",
+                    "on-surface-variant": "#c4c7cc",
+                    "on-primary": "#223240",
+                    "surface-container-highest": "#353534",
+                    "secondary-fixed": "#e0e1f4",
+                    "on-tertiary-container": "#392612",
+                    "secondary-fixed-dim": "#c3c5d8",
+                    "on-tertiary": "#412c18",
+                    "inverse-surface": "#e5e2e1"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack_compact": "2px",
+                    "rail_width": "64px",
+                    "card_padding": "12px",
+                    "gutter": "8px",
+                    "panel_gap": "4px"
+            },
+            "fontFamily": {
+                    "label-caps": [
+                            "Hanken Grotesk"
+                    ],
+                    "body-md": [
+                            "Hanken Grotesk"
+                    ],
+                    "headline-lg": [
+                            "Hanken Grotesk"
+                    ],
+                    "data-mono": [
+                            "JetBrains Mono"
+                    ],
+                    "headline-md": [
+                            "Hanken Grotesk"
+                    ],
+                    "body-sm": [
+                            "Hanken Grotesk"
+                    ],
+                    "data-mono-sm": [
+                            "JetBrains Mono"
+                    ]
+            },
+            "fontSize": {
+                    "label-caps": [
+                            "10px",
+                            {
+                                    "lineHeight": "12px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "data-mono": [
+                            "13px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-md": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "data-mono-sm": [
+                            "11px",
+                            {
+                                    "lineHeight": "14px",
+                                    "fontWeight": "500"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-surface h-screen flex overflow-hidden selection:bg-primary selection:text-on-primary">
+<nav class="fixed left-0 top-0 h-full w-rail_width bg-surface-container-low border-r border-outline-variant flex flex-col items-center py-4 gap-panel_gap z-50">
+<div class="mb-6 flex flex-col items-center gap-2">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden">
+<span class="font-headline-md text-headline-md font-bold text-primary">GH</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 w-full px-2">
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Dashboard"><span class="material-symbols-outlined">dashboard</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Breakdown"><span class="material-symbols-outlined">list_alt</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Constraints"><span class="material-symbols-outlined">rule_settings</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Replan"><span class="material-symbols-outlined">rebase_edit</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Sources"><span class="material-symbols-outlined">source</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Coverage"><span class="material-symbols-outlined">video_library</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-primary bg-secondary-container rounded-lg transition-colors active:scale-95 duration-100 group" title="Lock Day"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">lock_clock</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Approvals"><span class="material-symbols-outlined">payments</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Call Sheets"><span class="material-symbols-outlined">description</span></button>
+<button class="w-full h-12 flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors active:scale-95 duration-100 group" title="Audit"><span class="material-symbols-outlined">history</span></button>
+</div>
+<div class="mt-auto flex flex-col items-center gap-2 w-full px-2"><div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center font-data-mono-sm text-data-mono-sm text-on-surface-variant">AD</div></div>
+</nav>
+<div class="flex-1 flex flex-col ml-rail_width overflow-hidden">
+<header class="h-14 shrink-0 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between px-4 gap-6">
+<div class="flex items-center gap-4 min-w-0">
+<span class="font-headline-md text-headline-md font-bold whitespace-nowrap">The Glasshouse</span>
+<span class="h-6 w-px bg-outline-variant"></span>
+<span class="font-data-mono-sm text-data-mono-sm text-on-surface-variant whitespace-nowrap">Schedule v4 (Active) &middot; Day 8 of 20</span>
+<span class="h-6 w-px bg-outline-variant"></span>
+<span class="font-data-mono-sm text-data-mono-sm text-primary whitespace-nowrap">Script Supervisor &middot; T. Alvarez</span>
+</div>
+<div class="flex items-center gap-3 shrink-0">
+<button class="px-4 py-2 bg-surface-container border border-outline-variant text-on-surface hover:bg-surface-container-high rounded transition-colors font-data-mono-sm text-data-mono-sm">Day 7 (locked)</button>
+<button class="px-4 py-2 bg-surface-container border border-outline-variant text-on-surface hover:bg-surface-container-high rounded transition-colors font-data-mono-sm text-data-mono-sm">Save draft</button>
+<button class="px-4 py-2 bg-primary text-on-primary font-bold rounded transition-colors font-data-mono-sm text-data-mono-sm">Lock Day 8</button>
+<div class="flex gap-2 border-l border-outline-variant pl-3 ml-1 text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+<span class="material-symbols-outlined">settings</span>
+</div>
+</div>
+</header><div class="flex-1 flex overflow-hidden">
+<main class="flex-1 overflow-y-auto p-4 flex flex-col gap-gutter">
+
+<div class="bg-surface-container-lowest border border-primary-container rounded p-card_padding flex items-start justify-between gap-6">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Day 8 &mdash; record what was actually shot</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1 max-w-3xl">Wed 11 Oct 2023 &middot; night shoot &middot; called 17:00, wrapped 04:10+1. Locking makes this day immutable: no replan may reorder it, and every later board treats it as history.</p>
+</div>
+<div class="text-right shrink-0 font-data-mono-sm text-data-mono-sm">
+<div class="text-[#f59e0b] font-bold">IN PROGRESS &mdash; NOT LOCKED</div>
+<div class="text-on-surface-variant mt-1">3 strips &middot; 2 complete, 1 part-shot</div>
+<div class="text-on-surface-variant">snapshot 8f3c9a1e4d02</div>
+</div>
+</div>
+
+<div class="border border-outline-variant rounded overflow-hidden">
+<div class="grid grid-cols-[60px_1fr_190px_130px_130px_90px_110px_140px] gap-3 px-3 py-2 bg-surface-container-high border-b border-outline-variant font-label-caps text-label-caps text-on-surface-variant uppercase">
+<div>Scene</div><div>Slugline</div><div>Location</div><div>Planned</div><div>Actual</div>
+<div class="text-right">Setups</div><div class="text-right">Pages</div><div class="text-right">Outcome</div>
+</div>
+<div class="grid grid-cols-[60px_1fr_190px_130px_130px_90px_110px_140px] gap-3 items-center px-3 py-3 border-b border-outline-variant bg-surface-container">
+<div class="font-data-mono text-data-mono text-on-surface">42</div>
+<div class="font-body-sm text-body-sm text-on-surface truncate">EXT. ALLEYWAY - NIGHT</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant truncate">River Street Alley</div>
+<div class="font-data-mono-sm text-data-mono-sm text-outline">19:15&ndash;22:45</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface">19:22&ndash;22:51</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface text-right">4 / 5</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface text-right">1 2/8</div>
+<div class="flex items-center gap-1 justify-end" style="color:#4ade80">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="font-data-mono-sm text-data-mono-sm font-bold">COMPLETED</span>
+</div>
+</div>
+<div class="grid grid-cols-[60px_1fr_190px_130px_130px_90px_110px_140px] gap-3 items-center px-3 py-3 border-b border-outline-variant bg-surface-container">
+<div class="font-data-mono text-data-mono text-on-surface">43</div>
+<div class="font-body-sm text-body-sm text-on-surface truncate">INT. BASEMENT - NIGHT</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant truncate">Abandoned Warehouse</div>
+<div class="font-data-mono-sm text-data-mono-sm text-outline">23:30&ndash;01:45</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface">23:34&ndash;01:48</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface text-right">3 / 3</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface text-right">2 4/8</div>
+<div class="flex items-center gap-1 justify-end" style="color:#4ade80">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="font-data-mono-sm text-data-mono-sm font-bold">COMPLETED</span>
+</div>
+</div>
+<div class="grid grid-cols-[60px_1fr_190px_130px_130px_90px_110px_140px] gap-3 items-center px-3 py-3 border-b border-outline-variant bg-surface-container">
+<div class="font-data-mono text-data-mono text-on-surface">44</div>
+<div class="font-body-sm text-body-sm text-on-surface truncate">INT. WAREHOUSE OFFICE - NIGHT</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant truncate">Abandoned Warehouse</div>
+<div class="font-data-mono-sm text-data-mono-sm text-outline">01:45&ndash;03:40</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface">01:48&ndash;03:40</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface text-right">2 / 3</div>
+<div class="font-data-mono-sm text-data-mono-sm text-on-surface text-right">0 4/8</div>
+<div class="flex items-center gap-1 justify-end" style="color:#f59e0b">
+<span class="material-symbols-outlined text-[14px]">hourglass_bottom</span>
+<span class="font-data-mono-sm text-data-mono-sm font-bold">PART-SHOT</span>
+</div>
+</div>
+</div>
+
+<div class="bg-surface-container border border-[#f59e0b]/40 rounded p-card_padding">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-[#f59e0b] text-[16px]">hourglass_bottom</span>
+<span class="font-data-mono text-data-mono text-[#f59e0b] font-bold">SCENE 44 IS PART-SHOT</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-3">0 4/8 pages and one setup remain. Locking the day does not discard them &mdash; the remainder becomes required work the next solve has to place, carrying the same cast and location.</p>
+<div class="grid grid-cols-4 gap-3">
+<div class="bg-surface-dim border border-outline-variant rounded p-2">
+<span class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Remaining</span>
+<span class="font-data-mono text-data-mono text-on-surface">0 4/8 pages &middot; 1 setup</span>
+</div>
+<div class="bg-surface-dim border border-outline-variant rounded p-2">
+<span class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Est. duration</span>
+<span class="font-data-mono text-data-mono text-on-surface">0:55</span>
+</div>
+<div class="bg-surface-dim border border-outline-variant rounded p-2">
+<span class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Must stay</span>
+<span class="font-data-mono text-data-mono text-on-surface">NIGHT &middot; cast 1</span>
+</div>
+<div class="bg-surface-dim border border-outline-variant rounded p-2">
+<span class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Becomes</span>
+<span class="font-data-mono text-data-mono text-[#f59e0b]">WorkItem 44R</span>
+</div>
+</div>
+</div>
+
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-card_padding">
+<div class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-2">Before this day can lock</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2 font-body-sm text-body-sm text-[#4ade80]"><span class="material-symbols-outlined text-[16px]">check_circle</span> Every strip has an outcome recorded</div>
+<div class="flex items-center gap-2 font-body-sm text-body-sm text-[#4ade80]"><span class="material-symbols-outlined text-[16px]">check_circle</span> Actual call and wrap recorded &mdash; 17:00 to 04:10+1, 11.2h elapsed</div>
+<div class="flex items-center gap-2 font-body-sm text-body-sm text-[#4ade80]"><span class="material-symbols-outlined text-[16px]">check_circle</span> Part-shot remainder converted to schedulable work</div>
+<div class="flex items-center gap-2 font-body-sm text-body-sm text-on-surface-variant"><span class="material-symbols-outlined text-[16px]">person</span> Recorded by T. Alvarez, Script Supervisor &middot; 12 Oct 04:22 ET</div>
+</div>
+</div>
+</main>
+
+<aside class="w-96 bg-surface border-l border-outline-variant flex flex-col shrink-0 overflow-y-auto">
+<div class="p-4 border-b border-outline-variant bg-surface-dim">
+<h2 class="font-headline-md text-headline-md text-on-surface">Script Supervisor</h2>
+<p class="font-data-mono-sm text-data-mono-sm text-on-surface-variant mt-1">T. Alvarez</p>
+<div class="mt-3 flex flex-col gap-1 font-body-sm text-body-sm">
+<div class="flex items-center gap-2 text-[#4ade80]"><span class="material-symbols-outlined text-[14px]">check</span> may record what was shot</div>
+<div class="flex items-center gap-2 text-[#4ade80]"><span class="material-symbols-outlined text-[14px]">check</span> may raise a finding</div>
+<div class="flex items-center gap-2 text-error"><span class="material-symbols-outlined text-[14px]">close</span> may not rule on coverage</div>
+<div class="flex items-center gap-2 text-error"><span class="material-symbols-outlined text-[14px]">close</span> may not select a board</div>
+</div>
+</div>
+
+<div class="p-4 border-b border-outline-variant">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-[#8e94e8] text-[16px]">edit_note</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Raise a finding</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">Nobody has to have flagged anything. A concern from the floor enters the same path as one from Gemini, and carries the same weight: advisory.</p>
+<div class="flex flex-col gap-2">
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Scene</label>
+<input class="w-full h-8 bg-background border border-outline-variant rounded px-2 font-data-mono-sm text-data-mono-sm text-on-surface" type="text" value="43"/>
+</div>
+<div>
+<label class="block font-label-caps text-label-caps text-on-surface-variant uppercase mb-1">Concern</label>
+<textarea class="w-full h-20 bg-background border border-outline-variant rounded p-2 font-body-sm text-body-sm text-on-surface">Marcus is holding the ledger in his left hand in the master and his right in the close-up. One of them will not cut.</textarea>
+</div>
+<button class="w-full py-2 bg-[#5c63b8] text-white rounded font-data-mono-sm text-data-mono-sm font-bold">Raise finding &rarr; Director</button>
+</div>
+<div class="mt-3 bg-surface-container border border-outline-variant rounded p-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[14px] mt-0.5">info</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-tight">This marks scene 43 <span class="font-data-mono text-on-surface">needs review</span> and puts it in front of the Director. It accepts nothing, rejects nothing, and orders no pickup. Only a named human ruling can do that.</p>
+</div>
+</div>
+
+<div class="mt-auto p-4 border-t border-outline-variant bg-surface-dim flex flex-col gap-2">
+<button class="w-full py-2 bg-primary text-on-primary rounded font-data-mono-sm text-data-mono-sm font-bold">Lock Day 8</button>
+<p class="text-[10px] font-data-mono text-outline leading-tight">Locking records the actor, the actuals and the snapshot. It cannot be undone from here &mdash; a locked day is history, and unlocking it would mean the board was never a record of what happened.</p>
+</div>
+</aside>
+</div>
+</div>
+</body>
+</html>

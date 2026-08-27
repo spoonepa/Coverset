@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coverset - Stripboard Schedule Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline": "#75777d",
+                        "surface-variant": "#d3e4fe",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-primary-fixed": "#0d1c2f",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#334155",
+                        "surface": "#f8f9ff",
+                        "tertiary-fixed-dim": "#b4c5ff",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#b9c7e0",
+                        "primary-fixed": "#d5e3fd",
+                        "on-secondary-container": "#626361",
+                        "secondary-fixed-dim": "#c7c6c5",
+                        "surface-container-high": "#dce9ff",
+                        "on-primary-fixed-variant": "#3a485c",
+                        "outline-variant": "#c5c6cd",
+                        "surface-container": "#e5eeff",
+                        "primary": "#1d2b3e",
+                        "on-secondary-fixed-variant": "#464746",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#213145",
+                        "secondary-container": "#e0dfde",
+                        "on-tertiary-fixed": "#00174b",
+                        "primary-fixed-dim": "#b9c7e0",
+                        "surface-tint": "#515f74",
+                        "tertiary": "#00246b",
+                        "secondary-fixed": "#e3e2e0",
+                        "on-error": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#00389a",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#44474c",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed": "#1a1c1b",
+                        "tertiary-fixed": "#dbe1ff",
+                        "surface-container-highest": "#d3e4fe",
+                        "background": "#f8f9ff",
+                        "on-tertiary-fixed-variant": "#003ea8",
+                        "secondary": "#5e5e5d",
+                        "on-primary-container": "#9eadc5",
+                        "on-tertiary-container": "#8da9ff",
+                        "surface-bright": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "on-background": "#0b1c30",
+                        "surface-container-low": "#eff4ff",
+                        "surface-dim": "#cbdbf5",
+                        "on-primary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "12px",
+                        "row-height-standard": "40px",
+                        "container-padding": "24px",
+                        "unit": "4px",
+                        "row-height-dense": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "data-tabular": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "title-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "data-tabular": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "display-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "title-sm": ["16px", { "lineHeight": "24px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .paper-texture {
+            position: relative;
+        }
+        .paper-texture::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 10;
+        }
+        .strip-int-day { border-left: 5px solid #000; }
+        .strip-ext-day { border-left: 5px solid #fbbf24; }
+        .strip-ext-night { border-left: 5px solid #3b82f6; }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen">
+<!-- SideNavBar (Shared Component) -->
+<nav class="bg-surface dark:bg-inverse-surface font-body-md text-body-md fixed left-0 top-0 h-full w-64 border-r border-outline-variant dark:border-outline flat no shadows flex flex-col h-full py-container-padding z-50">
+<div class="px-gutter mb-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">The Glasshouse</h1>
+<p class="text-secondary dark:text-secondary-fixed-dim text-sm mt-1">v4 - Active</p>
+</div>
+<ul class="flex flex-col gap-1 w-full flex-grow">
+<!-- Active Tab: Board -->
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-on-primary-fixed-variant font-bold border-r-4 border-primary dark:border-primary-fixed hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors opacity-80 duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Board
+                </a>
+</li>
+<!-- Inactive Tabs -->
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">stream_apps</span>
+                    Scenes
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">anchor</span>
+                    Grounding
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">rebase_edit</span>
+                    Replans
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">fact_check</span>
+                    Coverage Review
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+                    Call Sheets
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-gutter py-2 text-secondary dark:text-secondary-fixed-dim hover:bg-surface-container dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+                    Audit Log
+                </a>
+</li>
+</ul>
+<div class="px-gutter mt-auto flex items-center gap-3 pt-4 border-t border-outline-variant">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden">
+<img alt="First AD Profile" class="w-full h-full object-cover" data-alt="A professional headshot of an individual, likely a film production professional such as an Assistant Director. The portrait should feature clean, neutral lighting, a sharp focus on the face, and a subtle, high-end corporate or film set backdrop out of focus. The styling should align with a modern, professional, high-stakes work environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUzlRhEuoBJsaiSnHyLRFmmLNGh4s_oksXRQlFu80L8R-H9xbYoUJkPvwY0o4y8qDBVIxS9U3SUQZ8x73xRNbcBUl2tWjM6t9G8CgIiIB7DofKO5kIztbWk8XQM3NEx_8Ttx0ipmoDNviJu0MYUcxLHZlHVF0riak5ra1dLas9rTohHerYrkvcZt-qQMviY5oO6WhDJiEgQTXhcAvKSCnyXFypC8T6-unBSB8YJClg4ho4xuvF5G-s9lfCaRmUOCJUx5RxPJn6Alny"/>
+</div>
+<span class="text-secondary font-medium">First AD Profile</span>
+</div>
+</nav>
+<!-- TopAppBar (Shared Component) -->
+<header class="bg-surface dark:bg-background font-title-sm text-title-sm fixed top-0 right-0 w-[calc(100%-16rem)] h-row-height-standard border-b border-outline-variant dark:border-outline flat no shadows flex justify-between items-center px-gutter h-16 ml-64 z-40">
+<div class="flex items-center gap-6">
+<h2 class="font-headline-md text-headline-md font-extrabold text-primary dark:text-primary-fixed">The Glasshouse</h2>
+<nav class="flex gap-4">
+<span class="text-primary dark:text-primary-fixed-dim font-semibold px-2 py-1 rounded bg-surface-container-lowest border border-outline-variant">Day 8 of 20</span>
+<span class="text-primary dark:text-primary-fixed-dim font-semibold flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                    Validated
+                </span>
+<span class="text-secondary dark:text-secondary-fixed-dim flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+                    12 min ago
+                </span>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative w-64 mr-4">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-8 pr-3 py-1.5 bg-surface-container-lowest border border-outline-variant rounded-DEFAULT text-body-sm focus:border-tertiary-container focus:ring-2 focus:ring-tertiary-container/20 outline-none transition-all" placeholder="Search scenes, cast..." type="text"/>
+</div>
+<button class="flex items-center gap-2 text-secondary dark:text-secondary-fixed-dim hover:text-primary dark:hover:text-primary-fixed transition-colors">
+<span class="material-symbols-outlined">person</span>
+                First AD
+            </button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-64 pt-20 px-gutter pb-gutter flex flex-col h-screen overflow-hidden">
+<!-- Top Summary Row -->
+<section class="grid grid-cols-7 gap-3 mb-4 shrink-0">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 flex flex-col">
+<span class="font-label-caps text-label-caps text-secondary uppercase">Active Version</span>
+<span class="font-headline-md text-headline-md text-primary mt-1">v4</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 flex flex-col">
+<span class="font-label-caps text-label-caps text-secondary uppercase">Total Shoot Days</span>
+<span class="font-headline-md text-headline-md text-primary mt-1">20</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 flex flex-col border-emerald-200 bg-emerald-50/30">
+<span class="font-label-caps text-label-caps text-emerald-700 uppercase">Locked Days</span>
+<span class="font-headline-md text-headline-md text-emerald-800 mt-1">8</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 flex flex-col">
+<span class="font-label-caps text-label-caps text-secondary uppercase">Company Moves</span>
+<span class="font-headline-md text-headline-md text-primary mt-1">2</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 flex flex-col border-amber-200 bg-amber-50/30">
+<span class="font-label-caps text-label-caps text-amber-700 uppercase">Holding Costs</span>
+<span class="font-headline-md text-headline-md text-amber-800 mt-1 font-data-tabular">$2,400</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 flex flex-col border-red-200 bg-red-50/30">
+<span class="font-label-caps text-label-caps text-red-700 uppercase">Weather Risks</span>
+<span class="font-headline-md text-headline-md text-red-800 mt-1">1</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 flex flex-col">
+<span class="font-label-caps text-label-caps text-secondary uppercase">Required Approvals</span>
+<span class="font-headline-md text-headline-md text-primary mt-1">0</span>
+</div>
+</section>
+<!-- Actions Toolbar -->
+<section class="flex gap-2 mb-4 shrink-0">
+<button class="bg-slate-800 text-white px-4 py-2 rounded-DEFAULT font-title-sm text-title-sm hover:bg-slate-700 transition-colors shadow-sm">
+                Generate Board
+            </button>
+<button class="bg-transparent border border-slate-300 text-primary px-4 py-2 rounded-DEFAULT font-title-sm text-title-sm hover:bg-surface-container-lowest transition-colors">
+                Validate Board
+            </button>
+<button class="bg-transparent border border-slate-300 text-primary px-4 py-2 rounded-DEFAULT font-title-sm text-title-sm hover:bg-surface-container-lowest transition-colors">
+                Compare Options
+            </button>
+<div class="w-px bg-outline-variant mx-2"></div>
+<button class="text-slate-600 px-4 py-2 rounded-DEFAULT font-title-sm text-title-sm hover:bg-surface-container transition-colors">
+                View Sources
+            </button>
+<button class="text-slate-600 px-4 py-2 rounded-DEFAULT font-title-sm text-title-sm hover:bg-surface-container transition-colors ml-auto">
+                Load Demo Production
+            </button>
+</section>
+<!-- Board Area (Split View) -->
+<section class="flex gap-4 flex-grow overflow-hidden">
+<!-- Left: Stripboard Scrollable Area -->
+<div class="flex-grow bg-surface-container-low border border-outline-variant rounded-lg overflow-y-auto flex flex-col gap-2 p-2">
+<!-- Day 8 (Locked) -->
+<div class="group">
+<div class="sticky top-0 bg-surface-container-low z-20 py-2 flex justify-between items-center border-b-2 border-slate-200 mb-1">
+<div class="flex items-center gap-3">
+<h3 class="font-title-sm text-title-sm text-primary">Day 8</h3>
+<span class="text-secondary font-data-tabular text-data-tabular">Monday, Oct 12</span>
+</div>
+<div class="flex gap-2">
+<span class="bg-emerald-600 text-white font-label-caps text-label-caps uppercase px-2 py-0.5 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">lock</span> Locked
+                            </span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-2 flex gap-4 items-center paper-texture strip-int-day mb-1 hover:bg-slate-50 transition-colors">
+<div class="w-16 text-center font-title-sm text-title-sm text-primary shrink-0">SC-012</div>
+<div class="w-48 shrink-0 flex flex-col">
+<span class="font-title-sm text-title-sm text-primary truncate">Church Vestry</span>
+<span class="text-secondary text-sm">INT. DAY</span>
+</div>
+<div class="flex-grow flex flex-col gap-1">
+<span class="text-secondary text-sm truncate">Father Thomas prepares for service.</span>
+<div class="flex gap-2">
+<span class="text-xs bg-slate-100 border border-slate-200 text-slate-700 px-1.5 py-0.5 rounded">1, 4, 7</span>
+</div>
+</div>
+<div class="w-24 text-right font-data-tabular text-data-tabular text-secondary shrink-0">3 2/8 pgs</div>
+<div class="flex gap-2 shrink-0">
+<span class="bg-emerald-100 border border-emerald-300 text-emerald-800 font-label-caps text-label-caps uppercase px-2 py-0.5 rounded">Cast OK</span>
+<span class="bg-emerald-100 border border-emerald-300 text-emerald-800 font-label-caps text-label-caps uppercase px-2 py-0.5 rounded">Permit OK</span>
+</div>
+</div>
+<!-- Meal Break Strip (Example) -->
+<div class="bg-slate-100 border border-slate-300 rounded-DEFAULT p-2 flex justify-center items-center h-8 mb-1">
+<span class="font-label-caps text-label-caps text-slate-500 uppercase tracking-widest">Lunch Break - 60 Min</span>
+</div>
+</div>
+<!-- Day 14 (Planned - Active Inspector Target) -->
+<div class="group">
+<div class="sticky top-0 bg-surface-container-low z-20 py-2 flex justify-between items-center border-b-2 border-slate-200 mb-1 mt-4">
+<div class="flex items-center gap-3">
+<h3 class="font-title-sm text-title-sm text-primary">Day 14</h3>
+<span class="text-secondary font-data-tabular text-data-tabular">Sunday, Oct 18</span>
+</div>
+<div class="flex gap-2">
+<span class="border border-amber-400 bg-amber-50 text-amber-800 font-label-caps text-label-caps uppercase px-2 py-0.5 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">warning</span> Planned
+                            </span>
+</div>
+</div>
+<!-- Scene 007 -->
+<div class="bg-blue-50/30 border-2 border-tertiary-container shadow-[0_0_8px_rgba(0,56,154,0.1)] rounded-DEFAULT p-2 flex gap-4 items-center paper-texture strip-ext-day mb-1 relative">
+<div class="w-16 text-center font-title-sm text-title-sm text-primary shrink-0">SC-007</div>
+<div class="w-48 shrink-0 flex flex-col">
+<span class="font-title-sm text-title-sm text-primary truncate">Church Courtyard</span>
+<span class="text-secondary text-sm">EXT. DAY</span>
+</div>
+<div class="flex-grow flex flex-col gap-1">
+<span class="text-secondary text-sm truncate">The crowd gathers outside.</span>
+<div class="flex gap-2">
+<span class="text-xs bg-slate-100 border border-slate-200 text-slate-700 px-1.5 py-0.5 rounded">1, 2, 3, BG(50)</span>
+</div>
+</div>
+<div class="w-24 text-right font-data-tabular text-data-tabular text-secondary shrink-0">1 4/8 pgs</div>
+<div class="flex flex-col gap-1 shrink-0 items-end">
+<span class="border border-red-400 bg-red-50 text-red-800 font-label-caps text-label-caps uppercase px-2 py-0.5 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">rainy</span> Weather Risk (85% Rain)
+                            </span>
+<span class="border border-slate-300 bg-slate-50 text-slate-700 font-label-caps text-label-caps uppercase px-2 py-0.5 rounded">
+                                Ext Daylight Req.
+                            </span>
+</div>
+</div>
+<!-- Scene 021 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-2 flex gap-4 items-center paper-texture strip-ext-day mb-1 hover:bg-slate-50 transition-colors">
+<div class="w-16 text-center font-title-sm text-title-sm text-primary shrink-0">SC-021</div>
+<div class="w-48 shrink-0 flex flex-col">
+<span class="font-title-sm text-title-sm text-primary truncate">Church Steps</span>
+<span class="text-secondary text-sm">EXT. DAY</span>
+</div>
+<div class="flex-grow flex flex-col gap-1">
+<span class="text-secondary text-sm truncate">Confrontation on the steps.</span>
+<div class="flex gap-2">
+<span class="text-xs bg-slate-100 border border-slate-200 text-slate-700 px-1.5 py-0.5 rounded">1, 2, 4</span>
+</div>
+</div>
+<div class="w-24 text-right font-data-tabular text-data-tabular text-secondary shrink-0">2 1/8 pgs</div>
+<div class="flex gap-2 shrink-0">
+<span class="border border-slate-300 bg-slate-50 text-slate-700 font-label-caps text-label-caps uppercase px-2 py-0.5 rounded">
+                                Ext Daylight Req.
+                            </span>
+</div>
+</div>
+</div>
+<!-- Day 15 (Planned) -->
+<div class="group">
+<div class="sticky top-0 bg-surface-container-low z-20 py-2 flex justify-between items-center border-b-2 border-slate-200 mb-1 mt-4">
+<div class="flex items-center gap-3">
+<h3 class="font-title-sm text-title-sm text-primary">Day 15</h3>
+<span class="text-secondary font-data-tabular text-data-tabular">Monday, Oct 19</span>
+</div>
+<div class="flex gap-2">
+<span class="border border-slate-300 bg-surface-container-lowest text-secondary font-label-caps text-label-caps uppercase px-2 py-0.5 rounded">
+                                Planned
+                            </span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-DEFAULT p-2 flex gap-4 items-center paper-texture strip-ext-night mb-1 hover:bg-slate-50 transition-colors border-purple-200 bg-purple-50/20 relative">
+<!-- AI Suggestion Indicator -->
+<div class="absolute -left-2 -top-2 bg-white rounded-full p-0.5 shadow-sm border border-purple-200">
+<span class="material-symbols-outlined text-[16px] text-purple-600">temp_preferences_custom</span>
+</div>
+<div class="w-16 text-center font-title-sm text-title-sm text-primary shrink-0">SC-014</div>
+<div class="w-48 shrink-0 flex flex-col">
+<span class="font-title-sm text-title-sm text-primary truncate">Glasshouse Driveway</span>
+<span class="text-secondary text-sm">EXT. DUSK</span>
+</div>
+<div class="flex-grow flex flex-col gap-1">
+<span class="text-secondary text-sm truncate">The getaway car arrives.</span>
+<div class="flex gap-2">
+<span class="text-xs bg-slate-100 border border-slate-200 text-slate-700 px-1.5 py-0.5 rounded">3, 8</span>
+<span class="text-xs bg-red-100 border border-red-200 text-red-700 px-1.5 py-0.5 rounded">STUNT</span>
+</div>
+</div>
+<div class="w-24 text-right font-data-tabular text-data-tabular text-secondary shrink-0">0 6/8 pgs</div>
+<div class="flex gap-2 shrink-0">
+<span class="border border-purple-300 bg-purple-50 text-purple-800 font-label-caps text-label-caps uppercase px-2 py-0.5 rounded">AI Scheduled: Dusk Window</span>
+<span class="bg-slate-100 border border-slate-300 text-slate-700 font-label-caps text-label-caps uppercase px-2 py-0.5 rounded">Stunt Prep Req.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right: Detail Inspector Panel (Context: Day 14) -->
+<aside class="w-80 shrink-0 bg-surface-container-lowest border border-outline-variant rounded-lg flex flex-col overflow-hidden">
+<div class="p-4 border-b border-outline-variant bg-surface">
+<h3 class="font-headline-md text-headline-md text-primary">Day 14 Inspector</h3>
+<p class="text-secondary text-sm mt-1">Constraint Validation Summary</p>
+</div>
+<div class="p-4 flex-grow overflow-y-auto flex flex-col gap-6">
+<!-- Validation Summary -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="font-title-sm text-title-sm text-primary">Global Constraints</span>
+<span class="bg-emerald-100 text-emerald-800 font-label-caps text-label-caps px-2 py-0.5 rounded">42 Passed</span>
+</div>
+<div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500 w-[98%]"></div>
+</div>
+</div>
+<!-- Alerts -->
+<div>
+<h4 class="font-label-caps text-label-caps text-secondary uppercase mb-3 border-b border-outline-variant pb-1">Active Alerts (1)</h4>
+<div class="bg-red-50 border border-red-200 rounded-DEFAULT p-3 flex gap-3">
+<span class="material-symbols-outlined text-red-600 mt-0.5">thunderstorm</span>
+<div>
+<h5 class="font-title-sm text-title-sm text-red-900">Weather Risk: Rain</h5>
+<p class="text-sm text-red-800 mt-1">85% chance of precipitation on Oct 18. Scene SC-007 requires Exterior Daylight.</p>
+<button class="mt-2 text-sm text-slate-800 bg-white border border-slate-300 px-3 py-1 rounded hover:bg-slate-50 transition-colors">Find Alternative Coverset</button>
+</div>
+</div>
+</div>
+<!-- Day Statistics -->
+<div>
+<h4 class="font-label-caps text-label-caps text-secondary uppercase mb-3 border-b border-outline-variant pb-1">Day Metrics</h4>
+<ul class="flex flex-col gap-2">
+<li class="flex justify-between items-center text-sm">
+<span class="text-secondary">Total Page Count</span>
+<span class="font-data-tabular text-primary font-medium">3 5/8</span>
+</li>
+<li class="flex justify-between items-center text-sm">
+<span class="text-secondary">Estimated Setup Time</span>
+<span class="font-data-tabular text-primary font-medium">2.5 hrs</span>
+</li>
+<li class="flex justify-between items-center text-sm">
+<span class="text-secondary">Cast Count</span>
+<span class="font-data-tabular text-primary font-medium">4 Principals, 50 BG</span>
+</li>
+</ul>
+</div>
+</div>
+</aside>
+</section>
+</main>
+</body></html>

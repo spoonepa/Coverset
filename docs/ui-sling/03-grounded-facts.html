@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coverset - Grounded Facts</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Design System Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-dim": "#cbdbf5",
+                    "on-tertiary-container": "#8da9ff",
+                    "on-tertiary-fixed": "#00174b",
+                    "secondary-fixed": "#e3e2e0",
+                    "on-secondary-container": "#626361",
+                    "secondary": "#5e5e5d",
+                    "on-tertiary-fixed-variant": "#003ea8",
+                    "secondary-container": "#e0dfde",
+                    "on-secondary-fixed": "#1a1c1b",
+                    "on-primary-container": "#9eadc5",
+                    "on-primary-fixed": "#0d1c2f",
+                    "surface-container": "#e5eeff",
+                    "tertiary-fixed": "#dbe1ff",
+                    "tertiary": "#00246b",
+                    "primary-fixed-dim": "#b9c7e0",
+                    "on-secondary": "#ffffff",
+                    "primary-fixed": "#d5e3fd",
+                    "surface": "#f8f9ff",
+                    "on-surface-variant": "#44474c",
+                    "on-background": "#0b1c30",
+                    "outline": "#75777d",
+                    "on-surface": "#0b1c30",
+                    "on-error": "#ffffff",
+                    "outline-variant": "#c5c6cd",
+                    "inverse-primary": "#b9c7e0",
+                    "on-tertiary": "#ffffff",
+                    "inverse-surface": "#213145",
+                    "on-primary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "surface-container-low": "#eff4ff",
+                    "tertiary-fixed-dim": "#b4c5ff",
+                    "error-container": "#ffdad6",
+                    "inverse-on-surface": "#eaf1ff",
+                    "tertiary-container": "#00389a",
+                    "on-error-container": "#93000a",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-bright": "#f8f9ff",
+                    "background": "#f8f9ff",
+                    "surface-tint": "#515f74",
+                    "secondary-fixed-dim": "#c7c6c5",
+                    "primary": "#1d2b3e",
+                    "surface-container-high": "#dce9ff",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-secondary-fixed-variant": "#464746",
+                    "surface-variant": "#d3e4fe",
+                    "primary-container": "#334155",
+                    "on-primary-fixed-variant": "#3a485c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "unit": "4px",
+                    "row-height-standard": "40px",
+                    "container-padding": "24px",
+                    "gutter": "12px",
+                    "row-height-dense": "32px"
+            },
+            "fontFamily": {
+                    "data-tabular": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "title-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "data-tabular": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                    "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "title-sm": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "display-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.filled {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for high-density feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.background');
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.outline-variant');
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline');
+        }
+        /* Paper texture overlay for cards */
+        .texture-overlay::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-hidden h-screen w-screen flex">
+<!-- SideNavBar (from JSON) -->
+<nav class="bg-surface fixed left-0 top-0 h-full w-64 border-r border-outline-variant flex flex-col py-container-padding z-20">
+<div class="px-gutter mb-8 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold">
+<span class="material-symbols-outlined" data-icon="movie">movie</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">The Glasshouse</h1>
+<p class="font-body-sm text-body-sm text-secondary">v4 - Active</p>
+</div>
+</div>
+<ul class="flex flex-col gap-1 px-2">
+<!-- Board (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary hover:bg-surface-container transition-colors opacity-80 hover:opacity-100 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md">Board</span>
+</a>
+</li>
+<!-- Scenes (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary hover:bg-surface-container transition-colors opacity-80 hover:opacity-100 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="clapperboard">stream_apps</span>
+<span class="font-body-md text-body-md">Scenes</span>
+</a>
+</li>
+<!-- Grounding (Active) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-primary-fixed-variant font-bold border-r-4 border-primary bg-surface-container-low transition-colors opacity-100 duration-150" href="#">
+<span class="material-symbols-outlined filled" data-icon="anchor">anchor</span>
+<span class="font-body-md text-body-md">Grounding</span>
+</a>
+</li>
+<!-- Replans (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary hover:bg-surface-container transition-colors opacity-80 hover:opacity-100 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="rebase_edit">rebase_edit</span>
+<span class="font-body-md text-body-md">Replans</span>
+</a>
+</li>
+<!-- Coverage Review (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary hover:bg-surface-container transition-colors opacity-80 hover:opacity-100 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="fact_check">fact_check</span>
+<span class="font-body-md text-body-md">Coverage Review</span>
+</a>
+</li>
+<!-- Call Sheets (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary hover:bg-surface-container transition-colors opacity-80 hover:opacity-100 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-body-md text-body-md">Call Sheets</span>
+</a>
+</li>
+<!-- Audit Log (Inactive) -->
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-secondary hover:bg-surface-container transition-colors opacity-80 hover:opacity-100 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-body-md text-body-md">Audit Log</span>
+</a>
+</li>
+</ul>
+<div class="mt-auto px-4 pt-4 border-t border-outline-variant flex items-center gap-3">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="A small circular avatar portrait of a professional film director or First AD, wearing neutral colored practical set clothing, well lit with studio lighting against a dark background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuACYHx6BL3U-HY6w-DXoQmIDdrSWGcJMtW0rkwWMMr_Yo1--OE2lDQI5ak-Y-MdJz-9MJLvRLn8Rdu2SFMIXzqdpOgGYLQpVU0BgkshTP0hunK3Ngs1DfqtBJ2YleLw5A-V6FiVPyhhgAH-P6RRf_9M78BfrBbI96F50GbF3OvQK8eVjHSlUFdxOx9woEk30udvtQHbgpQ7h6a3n4TQbuALFnoAQ8AF2VLElwtk9YHpOTASyAOjBmcmxgckC1LuQAJwd1PEaHg0_Nzk"/>
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-primary font-medium">First AD Profile</span>
+<span class="font-label-caps text-label-caps text-secondary">Settings</span>
+</div>
+</div>
+</nav>
+<!-- TopAppBar (from JSON) -->
+<header class="bg-surface fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-outline-variant flex justify-between items-center px-gutter z-10">
+<div class="flex items-center gap-4">
+<h2 class="font-title-sm text-title-sm text-primary font-bold">Grounded Facts Tracker</h2>
+<div class="h-4 w-px bg-outline-variant"></div>
+<nav class="flex gap-4">
+<span class="font-body-sm text-body-sm text-secondary hover:text-primary transition-colors cursor-default">Day 8 of 20</span>
+<span class="font-body-sm text-body-sm text-primary font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="check_circle">check_circle</span>
+                    Validated
+                </span>
+<span class="font-body-sm text-body-sm text-secondary hover:text-primary transition-colors cursor-default">12 min ago</span>
+</nav>
+</div>
+<div class="flex items-center gap-3">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-secondary text-[18px]" data-icon="search">search</span>
+<input class="pl-8 pr-3 py-1 bg-surface-dim border border-outline-variant rounded font-body-sm text-body-sm focus:border-tertiary focus:ring-1 focus:ring-tertiary outline-none w-48 transition-all" placeholder="Search facts..." type="text"/>
+</div>
+<button class="bg-surface-lowest border border-outline-variant text-primary font-body-sm px-3 py-1 rounded hover:bg-surface-variant transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="refresh">refresh</span>
+                Sync Sources
+            </button>
+<div class="w-px h-6 bg-outline-variant mx-1"></div>
+<span class="font-label-caps text-label-caps text-secondary font-medium tracking-wide">First AD</span>
+</div>
+</header>
+<!-- Main Workspace -->
+<main class="ml-64 mt-16 flex-1 flex w-full h-[calc(100vh-4rem)] bg-background">
+<!-- Center Canvas: Fact List -->
+<section class="flex-1 overflow-y-auto p-container-padding flex flex-col gap-6">
+<!-- System Warnings Panel -->
+<div class="flex gap-4 mb-2">
+<!-- Conflict Alert -->
+<div class="flex-1 bg-error-container border border-error bg-opacity-20 rounded-lg p-3 flex items-start gap-3">
+<span class="material-symbols-outlined text-error mt-0.5" data-icon="warning">warning</span>
+<div>
+<h4 class="font-title-sm text-title-sm text-on-error-container">Conflict Alert: Weather Discrepancy</h4>
+<p class="font-body-sm text-body-sm text-on-error-container opacity-90 mt-1">NOAA and DarkSky report conflicting precipitation probabilities for Apr 18. Manual override or re-run required.</p>
+<div class="mt-2 flex gap-2">
+<button class="font-label-caps text-label-caps text-error border border-error px-2 py-1 rounded hover:bg-error hover:text-on-error transition-colors">Resolve Conflict</button>
+</div>
+</div>
+</div>
+<!-- Loading State -->
+<div class="w-1/3 bg-surface border border-outline-variant rounded-lg p-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary animate-spin" data-icon="sync">sync</span>
+<div>
+<h4 class="font-data-tabular text-data-tabular text-primary">In-flight Search...</h4>
+<p class="font-body-sm text-body-sm text-secondary">Querying Permit DB (City of LA)</p>
+</div>
+</div>
+</div>
+<!-- Group: Weather -->
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between border-b-2 border-outline-variant pb-1">
+<h3 class="font-title-sm text-title-sm text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="partly_cloudy_day">partly_cloudy_day</span>
+                        Weather Forecasts
+                    </h3>
+<span class="font-label-caps text-label-caps text-secondary bg-surface-variant px-2 py-0.5 rounded-full">3 Active Rules</span>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+<!-- Card 1: Selected State -->
+<div class="relative bg-surface-lowest border-2 border-primary rounded-lg p-3 flex flex-col gap-3 texture-overlay shadow-sm cursor-pointer transition-shadow hover:shadow-md">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="font-label-caps text-label-caps text-secondary bg-surface-dim px-2 py-0.5 rounded">Kind: Precipitation</span>
+<span class="font-label-caps text-label-caps text-primary bg-primary-fixed px-2 py-0.5 rounded">Target: Apr 18</span>
+</div>
+<span class="font-body-sm text-body-sm text-secondary">10:42 AM</span>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<span class="font-body-sm text-body-sm text-secondary block mb-1">Normalized Value</span>
+<span class="font-display-lg text-display-lg text-primary">85% Rain</span>
+</div>
+<div class="text-right">
+<span class="font-body-sm text-body-sm text-secondary block mb-1">Impact</span>
+<span class="font-title-sm text-title-sm text-error">High Risk</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-1 pt-3 border-t border-outline-variant">
+<div class="flex gap-2">
+<span class="flex items-center gap-1 font-label-caps text-label-caps bg-tertiary text-on-tertiary px-1.5 py-0.5 rounded" title="Validated">
+<span class="material-symbols-outlined text-[14px]" data-icon="verified">verified</span> Validated
+                                </span>
+<span class="flex items-center gap-1 font-label-caps text-label-caps bg-primary text-on-primary px-1.5 py-0.5 rounded" title="Grounded by Parallel">
+<span class="material-symbols-outlined text-[14px]" data-icon="memory">memory</span> Grounded
+                                </span>
+</div>
+<a class="font-data-tabular text-data-tabular text-tertiary hover:underline flex items-center gap-1" href="#">
+                                weather.gov/la... <span class="material-symbols-outlined text-[14px]" data-icon="open_in_new">open_in_new</span>
+</a>
+</div>
+</div>
+<!-- Card 2: AI Advisory State -->
+<div class="relative bg-tertiary-fixed border border-tertiary rounded-lg p-3 flex flex-col gap-3 texture-overlay opacity-90 cursor-pointer hover:opacity-100 transition-opacity">
+<div class="absolute -top-2 -right-2 bg-tertiary text-on-tertiary rounded-full p-1 shadow">
+<span class="material-symbols-outlined text-[14px]" data-icon="temp_preferences_custom">temp_preferences_custom</span>
+</div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="font-label-caps text-label-caps text-secondary bg-surface-lowest px-2 py-0.5 rounded">Kind: Wind Speed</span>
+<span class="font-label-caps text-label-caps text-primary bg-surface-lowest border border-outline-variant px-2 py-0.5 rounded">Target: Apr 19</span>
+</div>
+<span class="font-body-sm text-body-sm text-secondary">09:15 AM</span>
+</div>
+<div class="flex items-end justify-between">
+<div>
+<span class="font-body-sm text-body-sm text-secondary block mb-1">Advisory Value</span>
+<span class="font-headline-md text-headline-md text-tertiary">22 mph Sustained</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-1 pt-3 border-t border-tertiary-fixed-dim">
+<div class="flex gap-2">
+<span class="flex items-center gap-1 font-label-caps text-label-caps bg-surface-lowest text-primary px-1.5 py-0.5 rounded border border-tertiary">
+<span class="material-symbols-outlined text-[14px]" data-icon="auto_awesome">auto_awesome</span> Gemini Derived
+                                </span>
+</div>
+<a class="font-data-tabular text-data-tabular text-tertiary hover:underline flex items-center gap-1" href="#">
+                                View Synthesis <span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Group: Permit -->
+<div class="flex flex-col gap-3 mt-4">
+<div class="flex items-center justify-between border-b-2 border-outline-variant pb-1">
+<h3 class="font-title-sm text-title-sm text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="assignment">assignment</span>
+                        Filming Permits
+                    </h3>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+<!-- Card 3 -->
+<div class="relative bg-surface border border-outline-variant rounded-lg p-3 flex flex-col gap-3 texture-overlay cursor-pointer hover:border-primary transition-colors">
+<div class="w-1 absolute left-0 top-0 bottom-0 bg-primary rounded-l-lg"></div> <!-- Left colored edge -->
+<div class="flex justify-between items-start pl-2">
+<div class="flex items-center gap-2">
+<span class="font-label-caps text-label-caps text-secondary bg-surface-dim px-2 py-0.5 rounded">Kind: Street Closure</span>
+<span class="font-label-caps text-label-caps text-primary bg-primary-fixed px-2 py-0.5 rounded">Target: Apr 20 - 22</span>
+</div>
+</div>
+<div class="flex items-end justify-between pl-2">
+<div>
+<span class="font-body-sm text-body-sm text-secondary block mb-1">Status</span>
+<span class="font-headline-md text-headline-md text-primary">Approved - Conditions Apply</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-1 pt-3 border-t border-outline-variant pl-2">
+<div class="flex gap-2">
+<span class="flex items-center gap-1 font-label-caps text-label-caps bg-surface-container-highest text-primary px-1.5 py-0.5 rounded" title="Extracted Full Content">
+<span class="material-symbols-outlined text-[14px]" data-icon="content_copy">content_copy</span> Extracted
+                                </span>
+</div>
+<a class="font-data-tabular text-data-tabular text-tertiary hover:underline flex items-center gap-1" href="#">
+                                filmla.com/p/992... <span class="material-symbols-outlined text-[14px]" data-icon="open_in_new">open_in_new</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Panel: Source Inspector -->
+<aside class="w-[420px] bg-surface-lowest border-l border-outline-variant flex flex-col overflow-hidden shadow-[-4px_0_15px_rgba(0,0,0,0.03)] z-10">
+<!-- Inspector Header -->
+<div class="px-5 py-4 border-b border-outline-variant bg-surface flex justify-between items-center sticky top-0">
+<div>
+<h3 class="font-title-sm text-title-sm text-primary">Source Proof</h3>
+<p class="font-body-sm text-body-sm text-secondary">Weather Forecast - Apr 18</p>
+</div>
+<div class="flex gap-2">
+<button class="w-8 h-8 flex items-center justify-center rounded text-secondary hover:bg-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded text-secondary hover:bg-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+</div>
+<!-- Inspector Content (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-5 flex flex-col gap-6">
+<!-- Raw Excerpt -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<h4 class="font-data-tabular text-data-tabular text-primary font-bold uppercase tracking-wider">Raw Extraction</h4>
+<span class="font-label-caps text-label-caps text-secondary bg-surface-dim px-2 py-0.5 rounded">Table Row 4</span>
+</div>
+<div class="bg-surface-dim border border-outline-variant rounded p-3 font-data-tabular text-data-tabular text-on-surface-variant leading-relaxed overflow-x-auto whitespace-pre-wrap">
+Date: 2024-04-18 | Time: 14:00 PST
+Temp: 68F | Hum: 42%
+Cond: Heavy overcast
+<span class="bg-tertiary-container text-on-tertiary-container px-1 py-0.5 rounded shadow-sm inline-block">Precip_Prob: 85% (Rain, heavy at times)</span>
+Wind: S 12mph gusts to 25mph
+                    </div>
+</div>
+<!-- Metadata Grid -->
+<div class="grid grid-cols-2 gap-4 border-t border-outline-variant pt-5">
+<div>
+<span class="font-label-caps text-label-caps text-secondary block mb-1">Retrieval Mode</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-tertiary" data-icon="api">api</span>
+<span class="font-body-sm text-body-sm text-primary">Parallel Engine v2</span>
+</div>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-secondary block mb-1">Timestamp</span>
+<span class="font-body-sm text-body-sm text-primary">Today, 10:42:05 AM PST</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-secondary block mb-1">Confidence</span>
+<span class="font-body-sm text-body-sm text-primary flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span> 99.4%
+                        </span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-secondary block mb-1">Validator Result</span>
+<span class="font-body-sm text-body-sm text-primary">Schema Match: True</span>
+</div>
+</div>
+<!-- Dependent Constraints -->
+<div class="border-t border-outline-variant pt-5 flex flex-col gap-3">
+<h4 class="font-data-tabular text-data-tabular text-primary font-bold uppercase tracking-wider">Dependent Constraints</h4>
+<ul class="flex flex-col gap-2">
+<li class="flex items-center justify-between bg-surface p-2 border border-outline-variant rounded">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="link">link</span>
+<span class="font-body-sm text-body-sm text-primary font-medium">WEA-001</span>
+</div>
+<span class="font-label-caps text-label-caps text-secondary">Exterior Cover Need</span>
+</li>
+<li class="flex items-center justify-between bg-surface p-2 border border-outline-variant rounded">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="link">link</span>
+<span class="font-body-sm text-body-sm text-primary font-medium">SOL-006</span>
+</div>
+<span class="font-label-caps text-label-caps text-secondary">Crane Operation Limits</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Inspector Footer Actions -->
+<div class="p-4 border-t border-outline-variant bg-surface-lowest flex flex-col gap-2">
+<div class="flex gap-2">
+<button class="flex-1 bg-surface-lowest border border-outline-variant text-primary font-body-sm px-4 py-2 rounded hover:bg-surface-variant transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="open_in_new">open_in_new</span>
+                        Open Source
+                    </button>
+<button class="flex-1 bg-primary text-on-primary font-body-sm px-4 py-2 rounded hover:bg-on-primary-fixed-variant transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="find_in_page">find_in_page</span>
+                        View Span
+                    </button>
+</div>
+<div class="flex gap-2 mt-2">
+<button class="flex-1 text-secondary font-body-sm px-4 py-2 rounded hover:bg-surface-dim transition-colors flex items-center justify-center gap-2 border border-transparent">
+<span class="material-symbols-outlined text-[18px]" data-icon="refresh">refresh</span>
+                        Re-run
+                    </button>
+<button class="flex-1 text-error font-body-sm px-4 py-2 rounded hover:bg-error-container hover:text-on-error-container transition-colors flex items-center justify-center gap-2 border border-transparent">
+<span class="material-symbols-outlined text-[18px]" data-icon="flag">flag</span>
+                        Mark Conflict
+                    </button>
+</div>
+</div>
+</aside>
+</main>
+</body></html>
