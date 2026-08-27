@@ -24,6 +24,19 @@ Existing examples of that enforcement, worth matching:
 - `PickupTask` cannot be constructed without a human decision authorising it.
 - `Evidence` cannot be constructed without at least one source URL.
 - `SceneRecord` must be `active` before it converts to a `WorkItem`.
+- `Board` has no way to exist without a passing `ValidationReport` for the same
+  constraint snapshot, so an unvalidated board is not a board carrying a warning.
+- `ValidationReport` requires the ids it was obliged to check, so a vacuous report
+  that silently checked nothing cannot be constructed.
+- A `ConstraintRecord` in the `daylight` family rejects URL provenance outright, so a
+  retrieved sunset cannot masquerade as a computed one.
+- `validate.py` imports neither `solver` nor `ortools`. The independence is a fact
+  about the import graph, not about anyone remembering.
+- `ConflictSet` cannot be built naming nothing, and cannot call itself irreducible
+  while naming no relaxable constraint. An empty conflict reads as an answer.
+- Daylight binds only through a constraint record. `ScheduleProblem` synthesises
+  `SYN-DAYLIGHT` rather than letting the bound apply invisibly, so it reaches the
+  snapshot hash and the validation report like any other.
 
 When you add a boundary, make it unrepresentable rather than checked.
 
@@ -46,10 +59,22 @@ and wrong**:
   contained the requested date, and three were dense with plausible clock times.
 - A precipitation percentage bound to no particular day.
 - A daylight window an hour off across a DST boundary, from a hardcoded UTC offset.
+- A second hour-shaped one by a different road: `wrap - call` on two aware datetimes
+  that share a tzinfo returns the *wall-clock* difference, so a twelve-hour night the
+  clocks went back inside measured twelve hours and ran thirteen. Both the model and
+  the validator subtracted the same way and agreed. Use `clock.elapsed`.
 - A cast id typo (`SARA` for `SARAH`) that schedules nobody while the real performer is
   never called.
-- (Waiting to happen) a miscompiled CP-SAT constraint, where the solver proves
-  optimality of the wrong problem. See `NNG-003` / `SOL-007`.
+- A miscompiled CP-SAT objective term: company moves counted against the previous
+  *calendar* day rather than the previous *worked* day, so a board with a gap day was
+  proven optimal against a cost it did not have. Every hard constraint held; the
+  solver said `OPTIMAL`. Caught only by measuring the cost off the finished board and
+  refusing to return one when the two readings disagree. See `NNG-003` / `SOL-007`.
+- A conflict set naming the daylight constraint for a problem that was infeasible
+  with every constraint switched off. The explanation, not the value, was the
+  confident wrong answer. Two readings do not help here: **both** the model and the
+  measurement defined a company move wrongly and agreed with each other. Cross-checks
+  catch disagreement, never a shared misconception.
 
 None of these throw. None look wrong downstream. So:
 
@@ -109,10 +134,16 @@ in `.env` (gitignored).
 | `locations.py` | `Location`, `LocationBook` — shared domain type |
 | `people.py` | `CastMember`, `Roster`, `Engagement`, `Company` |
 | `actors.py` | `Role`, `Actor` — who may decide what |
+| `clock.py` | `elapsed` / `advance` — real time, never wall-clock |
 | `daylight.py` | NOAA solar computation. Never retrieved |
 | `scenes.py` / `work.py` | `SceneRecord` → `WorkItem` |
 | `fixtures.py` | Validated fixture import |
 | `review.py` | Findings, decisions, pickups |
+| `constraints.py` | `ConstraintRecord` — the only way a fact reaches the solver |
+| `solver.py` | CP-SAT compilation, objective, conflict shrink |
+| `validate.py` | The second, independent reading of every binding constraint |
+| `board.py` | `Assignment`, `Board`, `ValidationReport` — inert records |
+| `stripboard.py` | `OUT-003` stripboard and `AUD-001` per-strip tracing |
 | `grounding/` | Parallel Search/Extract → `Evidence` |
 
 `grounding/coverage.py` is *date* coverage (does this text concern the target date), not
@@ -124,6 +155,9 @@ shot coverage. Shot coverage lives in `review.py`.
 - Retrieving daylight instead of computing it. Tried; it was wrong in the worst way.
 - Adding a `Role` for cast or crew. They are recipients and constraint sources, never
   deciding actors — `ACT-010` asserts no such role exists.
+- Subtracting two aware datetimes, or `+=`-ing a timedelta onto one. Both are
+  wall-clock operations. `clock.elapsed` and `clock.advance` exist because the
+  difference is invisible on every date except two a year.
 - Trusting solver output because a solver produced it. CP-SAT guarantees a solution
   satisfies *the model it was given*, which is not the same as satisfying the actual
   constraints.
@@ -132,10 +166,27 @@ shot coverage. Shot coverage lives in `review.py`.
 
 ## Open
 
-- `SOL-005` names objective weights that **are not declared anywhere**. How many holding
-  days is one company move worth? A production judgement, and it decides what the demo's
-  three options look like. Settle before writing the objective.
 - `PIK-008`: `PickupTask.from_decision` copies cast, location and duration from the
   original coverage item, asserting a pickup needs identical resources. Often false, and
   false expensively — calling cast who are not needed accrues holding days.
-- MVP-0 is the live front: `SOL` ×10, `CON` ×3, `DAY` ×2, `AUD` ×2, `CST` ×1, `OUT` ×1.
+- MVP-0 is **47/47 unit-built**. No use case is deliverable yet: every one needs its
+  requirements at `demo-ready`, which needs an end-to-end demo path. UC-00 is the
+  nearest — fixtures → `load_scenes` → `solve` → `stripboard` all exist and are
+  tested, but nothing runs them together as a demo.
+- The solve budget is CP-SAT **deterministic** time, never `max_time_in_seconds`. A
+  wall-clock cutoff makes the board depend on machine speed and silently undoes the
+  reason the seed is recorded. `SOL-010` asserts the parameter is not there.
+- The model reasons in **calendar-day offsets**, never in a day's index in the
+  calendar. Calendars skip dark days; index arithmetic silently misdates everything
+  downstream of the first gap.
+- Daylight bounds the **prefix** of a day, not its total. Sun-bound locations are
+  emitted first and the bound is on that prefix, so an interior scene may run past
+  sunset while an exterior one may not. A bound on a total says nothing about when in
+  the day the total falls.
+- A cast daily-hours limit means **call to wrap**, not the sum of scene durations. A
+  performer waiting through a company move is still at work.
+- A shoot day is a day shoot or a night shoot. Split days are post-MVP, and the model
+  refuses to mix them rather than approximating one.
+- `SOL-005` weights are settled and declared in `SPEC.md` §4.1: one company move = 3
+  holding days, one overtime hour = 0.5. Boards are only comparable under one weight
+  set, which is why the board records the weights it was solved under.

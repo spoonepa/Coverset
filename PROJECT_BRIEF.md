@@ -268,6 +268,221 @@ a 20-day board does not need a data warehouse.
 
 *Captured during the build.*
 
+### The shared misconception the cross-check could not see
+
+Two guards in this codebase compare a compiled model against an independent reading of
+the finished board, and both had been earning their keep. Neither could see this one,
+because both readings were wrong in the same direction and therefore agreed.
+
+**Python subtracts two aware datetimes naively when they share a tzinfo object.** The
+language defines it that way: "if both are aware and have the same tzinfo attribute,
+the common tzinfo attribute is ignored and the result is a timedelta". Every time on a
+board carries the same `Location.zone`, so `wrap - call` returned the *wall-clock*
+difference. On the night the clocks go back, a call at 17:53 EDT and a wrap at 05:53
+EST measured twelve hours and really ran thirteen. The company's twelve-hour day
+passed. The crew were billed two overtime hours and worked three.
+
+Spring forward is the direction that hurts a person rather than a budget: a wrap at
+23:00 EST and a call at 11:00 EDT is eleven hours of turnaround, certified as twelve
+by every reading in the system. The constraint exists precisely to stop that.
+
+This is the same *hour-shaped* bug as the retrieved sunset further down this file, but
+it arrived by a different road. That one came from a hardcoded UTC offset, and was
+caught by comparing against published almanac values — a second source. This one could
+not be caught that way at all, because the model and the validator were not two
+sources. They were one misconception, read twice.
+
+**What that changes about the design rule.** `CLAUDE.md` already says cross-checks
+catch disagreement and never a shared misconception; this is the first time that cost
+something. The fix is therefore not a third reading but a single definition both sides
+call — `clock.elapsed` and `clock.advance`, with the reasoning in the module docstring
+so the next person does not reintroduce `+=` on an aware datetime. The solver's clock
+variables now count absolute minutes from a fixed instant rather than minutes past a
+local midnight, because durations are real minutes and the coordinate has to match.
+
+A related disagreement died with it. The model and the emitted timeline each derived
+the day's call time independently and could differ — at a location in polar day or
+polar night the model assumed an 18:00 night call while the timeline fell through to
+07:00, an eleven-hour gap that surfaced as a turnaround miscompile and was really two
+fallbacks disagreeing. There is now one `_call_time`, and both callers use it.
+
+**Also found, same round.** The objective's own counters were pinned to the truth by
+one-sided bounds that only optimality closed. Stop the search early — or weight a term
+at zero, which is permitted — and a counter sits slack above the count measured off
+the finished board, so the cost cross-check refused a board that had already passed
+independent validation, reporting a miscompile that was not there. The guard was
+right that the two numbers disagreed and wrong about which one to distrust. Counters
+are now exact at every solver status, not merely at `OPTIMAL`.
+
+### Two readings agreeing is not two readings being right
+
+A second review round found four more faults, all of which the suite was green
+through, and three of which surfaced as `ERROR` — the model proving a board the
+validator then rejected. The guards held; nothing bad shipped. But `ERROR` was
+reported as *"the compiled model does not match the constraint records"*, which named
+a miscompile when the real cause was usually a bound the model had never expressed.
+An accurate guard with an inaccurate diagnosis still sends someone the wrong way.
+
+**Calendar position is not calendar distance.** The model priced clock times and
+holding days off a day's *index* in the production calendar. A calendar skips dark
+days, weekends and holds, so the moment one is missed every clock time lands on the
+wrong date and a performer held across a dark day is priced as though the dark day did
+not exist. Both now work in calendar-day offsets, which is what `Engagement.held_days`
+has always counted.
+
+**A bound on a total says nothing about when the total happens.** Daylight was
+compiled as an aggregate: the sum of sun-bound minutes had to fit the window. In
+December, a two-hour exterior queued behind a seven-hour interior wraps well after
+sunset while the aggregate still fits comfortably. The first fix — require the whole
+day inside the window — was sound and too blunt: it forbids exterior-morning then
+interior-afternoon, which in winter is not an edge case but the standard shape of a
+day. The model now orders sun-bound locations to the front of the day and bounds only
+that prefix, so the exterior finishes before sunset and the interior is free to run
+past it.
+
+**Two components can mean different things by the same words.** A cast daily-hours
+limit meant "sum of scene durations" in the solver and "call to wrap" in the
+validator. For a minor's limit the validator is right — a performer waiting through a
+company move is still at work — so the solver now bounds the day that contains them.
+
+**An enum value with no implementation behind it.** `DAWN` and `DUSK` were accepted
+and scheduled as ordinary day work at a 07:00 call, against a civil dawn of 06:08.
+That is not a dawn scene; it is a dawn scene shot in daylight. Refused at the solver
+boundary until twilight windows exist (`DAY-010`, `DAY-011`), on the same reasoning
+that makes `WorkItem` refuse `UNKNOWN`.
+
+The round also produced a DST bug *inside the check meant to catch this class of bug*:
+the model/board timeline comparison added minutes to a zone-aware midnight, which is
+absolute arithmetic and slips an hour across a boundary. A board spanning 1 November
+would have reported drift that was not there.
+
+The lesson worth keeping is from the previous round, now confirmed twice: the
+independent validator and the cost cross-check catch *disagreement*. They cannot catch
+two components sharing a wrong definition, a bound nobody compiled, or a check that is
+itself wrong. Each of those needed someone to re-derive the requirement from what it
+means, not from what the code already said.
+
+### The confident wrong answer migrated into the diagnosis
+
+Review of the first solver found four faults that the whole 321-test suite was green
+through. Three were degrees of the same thing: the system was sure, and wrong.
+
+**A conflict set that named the wrong constraint.** A scene longer than the maximum
+shooting day is infeasible before any constraint applies — but the day-length bound
+was compiled without an assumption literal, so CP-SAT could not cite it. It returned
+whatever assumption was to hand, the deletion filter could not shrink below one member
+(it never tested the empty set), and a `len(core) == 1` shortcut in the irreducibility
+proof declared the survivor load-bearing without testing it. The First AD was told to
+renegotiate the daylight constraint. Relaxing it would have changed nothing.
+
+With no daylight record present the same problem returned an **empty** conflict set
+marked irreducible: "no schedule exists", asserted as minimal, naming nothing. That is
+worse than silence, because it reads as an answer.
+
+Both are now unconstructible. `ConflictSet` requires either a relaxable constraint or
+a named structural cause, and refuses to call a conflict irreducible when it names no
+constraints. Where nothing relaxable is at fault, a structural pass names why —
+`STRUCT-DAY-LENGTH`, `STRUCT-DAY-NIGHT-SPLIT`, `STRUCT-TOTAL-CAPACITY` — reporting all
+of them at once rather than the first.
+
+**A hard bound with no record behind it.** Daylight capacity was compiled
+unconditionally, so an eleven-hour exterior scene was correctly refused in December by
+a constraint that appeared in no constraint set, no snapshot hash and no validation
+report. Nobody could trace it, waive it, or deactivate it. Daylight binds because the
+sun does — but the binding still has to be *stated*, so `ScheduleProblem` now
+synthesises an explicit `SYN-DAYLIGHT` record when work needs the sun and the set is
+silent, and the capacity bound is gated on that record like any other.
+
+**Company moves undercounted, in both readings at once.** A move was modelled as
+"consecutive days sharing no location". Play the park then the studio on Monday and
+return to the park on Tuesday, and the days share the park, so no overnight move was
+counted — while the trucks plainly drove from the studio back to the park. The cost
+cross-check could not catch it, because the measurement was wrong the same way as the
+model. That is the limit of cross-checking two readings: it catches disagreement, not
+shared misconception. Only re-deriving the definition from what a company move *is*
+found it.
+
+The fix models each day's start and end location, and paid for itself immediately: given
+the freedom to choose where a day wraps, the solver now orders Monday as studio-then-park
+so Tuesday calls where Monday finished — a genuine one-move board where the old model
+had been claiming one move for a two-move schedule.
+
+**Turnaround compiled as something else.** Minimum rest was approximated as a cap on
+day *length*, which says nothing about a night wrap at 00:06 running into a 06:36
+sunrise call. The validator caught the violation, so no bad board shipped — but the
+result was no board at all plus a diagnosis blaming a miscompiled model, when the model
+had simply never expressed the bound. A conservative approximation that reports its
+failures as somebody else's bug is not conservative. The model now carries absolute
+call and wrap times, and rest is compiled against them exactly.
+
+The through-line: the independent validator is a strong guarantee about *values on a
+board*, and it says nothing about explanations, about bounds nobody declared, or about
+a definition that both readings share. Those needed separate structural answers.
+
+### CP-SAT's infeasibility core is sufficient, not minimal
+
+`SOL-003` promises an irreducible conflict set: remove any listed constraint and the
+conflict is no longer proven. CP-SAT's `sufficient_assumptions_for_infeasibility`
+does not promise that, and probing found the gap is not theoretical. On the
+two-performer conflict fixture — one scene needing two people whose availability
+windows do not overlap — CP-SAT returns a core of **three**, including a location
+window that has nothing to do with the collision. Dropping it changes nothing.
+
+A deletion filter re-proves the conflict without each member in turn and reduces it to
+the two records that actually collide. Without that pass, Coverset would hand a First
+AD a third constraint to go and renegotiate, confidently, for no reason — the same
+shape of failure as the misbound sunset, in the explanation rather than the value.
+
+Two synthetic probes beforehand both returned minimal cores, which would have been
+enough to conclude the filter was unnecessary. The real fixture disagreed. Probes
+built to test a mechanism are not evidence about the problem the mechanism will meet.
+
+### A board's identity depends on the solver's parameters, not just the problem
+
+Same problem, same weights, different random seed: **different board, identical
+objective value.** Ties among equally optimal boards are broken by search order, and
+search order is a function of the seed and the worker count. Multi-worker solving adds
+wall-clock nondeterminism on top.
+
+This matters for an auditable product. "Reproduce the board that was approved on
+Tuesday" needs the seed, not just the constraint snapshot — so `Board` records
+`seed`, worker count and model version alongside the snapshot hash, and solving pins
+`num_workers=1`. Without that the audit trail names a board nobody can regenerate.
+
+Recording the seed is necessary and was not sufficient. The first implementation also
+passed `max_time_in_seconds`, a **wall-clock** budget — so a solve cut off at the
+limit resolves differently on a fast machine than a slow one, whatever the seed says.
+The determinism the seed buys is given straight back by the cutoff, and the failure is
+invisible: both boards are valid, both are optimal-looking, and the discrepancy only
+shows up when someone tries to regenerate one. CP-SAT's `max_deterministic_time` cuts
+off at the same point in the search on every machine, and that is what the solver uses.
+
+Comparing against a mature retail workforce scheduler sharpened this. That codebase
+runs `num_search_workers = 8` with a wall-clock limit and sets no seed at all, so the
+same inputs produce different rosters run to run. For retail rostering that is close
+to harmless — one balanced roster is as good as another. For a board a First AD signs
+off and a production spends money against, it is not.
+
+### The independent validator caught a real miscompile immediately
+
+The arrangement where the solver and the validator read the same `ConstraintRecord`s
+through two pieces of code that share nothing paid for itself during the first build,
+not later.
+
+Company moves were modelled as *within-day relocations plus consecutive days sharing
+no location*. That is wrong when the calendar has a gap: shoot at the park Monday,
+nothing Tuesday, the studio Wednesday, and the model sees no overnight move because
+Tuesday's location set is empty — while the board plainly contains one. Every hard
+constraint was satisfied, the solver reported `OPTIMAL`, and the objective was
+minimising a cost the board did not have.
+
+Nothing about the board looked wrong. What caught it was a cross-check that measures
+moves and holding days off the finished assignments and refuses to return a board when
+that disagrees with what the model optimised. The fix was to carry the unit's base
+forward across gap days. The lesson is the one this codebase keeps relearning: the
+check that finds these has to be a second, independent reading, because the first
+reading is exactly the thing that is wrong.
+
 ### The retrieved sunset that was confidently wrong
 
 The first grounding path treated sunrise and sunset as web facts. Against the live

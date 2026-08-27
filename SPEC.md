@@ -190,6 +190,29 @@ relax a constraint, it must be emitted separately as an `ExceptionScenario`, lis
 
 Exception scenarios are not active schedules until approved and validated.
 
+### 4.1 Declared objective weights
+
+`SOL-005` requires the objective to optimize against *declared* weights. These are the
+declaration; the solver reads them and refuses to build an objective from anything it
+was not given.
+
+| Term | Weight | Unit |
+|---|---:|---|
+| Company move | 3.0 | per move |
+| Cast holding day | 1.0 | per held day, per performer |
+| Overtime exposure | 0.5 | per hour beyond the standard day |
+
+Holding days are the numeraire: one company move is worth three of them, one overtime
+hour half of one. The ratio is a production judgement rather than a fact, and it is
+recorded here because it decides what the board looks like — a move-averse weighting
+clusters by location and holds cast longer, a cast-averse one moves more often to
+release performers. Changing these changes the schedule, so a board records the weights
+it was solved under (`SOL-008`) and two boards are only comparable under the same set.
+
+The weights are ratios, not currency. They deliberately do not model actual rates:
+a real performer's holding day and a real unit move differ by production, and
+`CST-008` places rate-accurate costing after the hackathon.
+
 ---
 
 ## 5. Core domain model
@@ -499,10 +522,10 @@ No board may be returned as viable unless `status` is `optimal` or `feasible` an
 | CST-004 | A performer held between first and last work day accrues holding days paid whether worked or not. | unit-built | offline | MVP-0 | Existing model/tests; must be integrated into objective breakdown. |
 | CST-005 | Billable days are the greater of engagement span and contracted guarantee. | unit-built | offline | MVP-0 | Existing model/tests. |
 | CST-006 | A minor carries a restricted maximum working day. | unit-built | offline | MVP-0 | Existing model/tests; legal libraries post-MVP. |
-| CST-007 | Minimum turnaround between wrap and next call is modeled for cast individually and crew as a unit. | unit-built | offline | MVP-0 | Existing cast/company model; solver integration missing. |
+| CST-007 | Minimum turnaround between wrap and next call is modeled for cast individually and crew as a unit. | unit-built | offline | MVP-0 | Compiled exactly against absolute call/wrap times for schedule-wide and per-cast subjects, and re-checked on the board. |
 | CST-008 | Union agreements and jurisdiction-specific child-labor limits are pluggable constraint libraries. Defaults are illustrative production norms, not authority. | not-started | offline | POST | [deferred] Keep out of MVP. |
 | CST-009 | Any scene/work item referencing cast validates all cast IDs against the active roster before solving. | unit-built | offline | MVP-0 | Fixture import validates cast against the roster before any record is built. |
-| CST-010 | A cast availability or minor-work constraint compiled into CP-SAT is also independently evaluable against a returned board. | not-started | offline | MVP-0 | Needed for independent validation. |
+| CST-010 | A cast availability or minor-work constraint compiled into CP-SAT is also independently evaluable against a returned board. | unit-built | offline | MVP-0 | Cast availability and minor-hour limits re-evaluated by `coverset.validate`. |
 
 ---
 
@@ -569,8 +592,10 @@ permits; Gemini-derived records are candidates until accepted.
 | DAY-005 | Latitudes where the sun does not rise or set are reported as polar day/night, not crashed on. | unit-built | offline | MVP-0 | [edge-case] Existing tests. |
 | DAY-006 | Coordinates without a timezone are rejected at construction. | unit-built | offline | MVP-0 | [invariant] Existing tests. |
 | DAY-007 | Horizon obstruction at a location can override astronomical sunset. | not-started | offline | POST | [deferred] Not needed for MVP. |
-| DAY-008 | Deterministic daylight algorithms are rerun during solve/replan; they are not monitored as mutable external sources. | not-started | offline | MVP-0 | Daylight computation exists; solve/replan integration is not implemented. |
-| DAY-009 | A daylight constraint compiled into CP-SAT is independently evaluable against a returned board. | not-started | offline | MVP-0 | Needed for board validation. |
+| DAY-008 | Deterministic daylight algorithms are rerun during solve/replan; they are not monitored as mutable external sources. | unit-built | offline | MVP-0 | Recomputed per date during solve and again during validation. Daylight binds only through a constraint record; `ScheduleProblem` synthesises `SYN-DAYLIGHT` when work needs the sun and the set is silent, so the bound reaches the snapshot hash. |
+| DAY-009 | A daylight constraint compiled into CP-SAT is independently evaluable against a returned board. | unit-built | offline | MVP-0 | Daylight bound re-evaluated against the finished board. |
+| DAY-010 | Work whose time of day is dawn or dusk is refused before solving rather than scheduled as an ordinary day call. | unit-built | offline | MVP-0 | [invariant] Twilight is a short hard window the model does not represent; scheduling it as day work would place it in broad daylight. Refusal until DAY-011. |
+| DAY-011 | Dawn and dusk work is scheduled inside its computed twilight window (civil dawn to sunrise, golden hour to civil dusk). | not-started | offline | POST | [deferred] `daylight.py` already computes the windows; the solver needs a third day type to place them. |
 
 ---
 
@@ -601,11 +626,11 @@ constraints from grounded values; full Gemini translation is post-MVP.
 | CON-001 | Plain-English production constraints are translated into candidate typed constraint records. | not-started | offline | POST | Existing broad requirement reframed as candidate output. |
 | CON-002 | A typed constraint derived from retrieved text is validated by fact-family-specific checks before activation. | not-started | offline | MVP-1 | Define validators below. |
 | CON-003 | Extraction may bind a dated value only from evidence sources recorded as covering the target date. | not-started | offline | MVP-1 | Source-level date binding. |
-| CON-004 | A typed fixture constraint validates against the `ConstraintRecord` schema before entering `ScheduleProblem`. | not-started | offline | MVP-0 | Enables MVP-0. |
-| CON-005 | A candidate constraint with unknown cast, location, work item, units, or date range blocks solving until corrected, accepted with explicit waiver, or rejected. | not-started | offline | MVP-0 | Prevents silent omissions. |
+| CON-004 | A typed fixture constraint validates against the `ConstraintRecord` schema before entering `ScheduleProblem`. | unit-built | offline | MVP-0 | Implemented as `coverset.constraints.ConstraintRecord`. |
+| CON-005 | A candidate constraint with unknown cast, location, work item, units, or date range blocks solving until corrected, accepted with explicit waiver, or rejected. | unit-built | offline | MVP-0 | `ConstraintSet.resolve` reports every unresolved reference at once. |
 | CON-006 | Weather probability validators enforce units/ranges and forecast/climatology classification. | not-started | offline | MVP-1 | Fact-family validator. |
 | CON-007 | Permit-window validators enforce local timezone, chronological order, date/effective range, and authoritative source provenance. | not-started | offline | MVP-1 | Fact-family validator. |
-| CON-008 | Daylight constraints cite the deterministic algorithm/version rather than source URLs. | not-started | offline | MVP-0 | Daylight windows cite algorithm provenance; ConstraintRecord-level daylight constraints are not implemented. |
+| CON-008 | Daylight constraints cite the deterministic algorithm/version rather than source URLs. | unit-built | offline | MVP-0 | Made unrepresentable: a daylight family with non-algorithmic provenance cannot be constructed. |
 | CON-009 | Constraint activation records who/what created it, who accepted it when human acceptance is required, and when it became active. | not-started | offline | MVP-1 | Audit artifact. |
 
 ---
@@ -614,18 +639,19 @@ constraints from grounded values; full Gemini translation is post-MVP.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
 |---|---|---|---|---|---|
-| SOL-001 | The schedule is produced by CP-SAT. No language model emits a schedule. | not-started | offline | MVP-0 | Requires OR-Tools dependency/module. |
-| SOL-002 | Every returned viable board satisfies all active hard constraints and all unwaived waivable constraints. Soft costs and exposures are represented as objective terms or required approvals. | not-started | offline | MVP-0 | Replaces ambiguous all-constraints wording. |
-| SOL-003 | When no valid schedule exists, Coverset returns an irreducible conflicting constraint subset: removing any one listed constraint makes the reported conflict no longer proven. | not-started | offline | MVP-0 | Avoids ambiguous cardinality-minimal promise. |
+| SOL-001 | The schedule is produced by CP-SAT. No language model emits a schedule. | unit-built | offline | MVP-0 | Implemented as `coverset.solver`; CP-SAT only, asserted by an import check. |
+| SOL-002 | Every returned viable board satisfies all active hard constraints and all unwaived waivable constraints. Soft costs and exposures are represented as objective terms or required approvals. | unit-built | offline | MVP-0 | Every binding constraint is re-checked on the returned board by `coverset.validate`. |
+| SOL-003 | When no valid schedule exists, Coverset returns an irreducible conflicting constraint subset: removing any one listed constraint makes the reported conflict no longer proven. | unit-built | offline | MVP-0 | Deletion filter shrinks CP-SAT's core to load-bearing records; where no constraint is at fault the cause is named structurally. A conflict set naming nothing is unconstructible. |
 | SOL-004 | Days already shot are immutable across replans. | not-started | offline | MVP-2 | Critical path. |
-| SOL-005 | The objective minimizes company moves, cast holding days, and overtime/turnaround exposure according to declared weights. | not-started | offline | MVP-0 | Weights/config must be explicit. |
-| SOL-006 | MVP constraint families are modeled: cast availability, location/permit windows, daylight/day-night feasibility, turnaround/rest, company moves, and lock constraints. Weather participates when production policy maps it to feasibility or objective cost. | not-started | offline | MVP-0 | Adds weather policy link. |
-| SOL-007 | No board may be returned unless solver status is `FEASIBLE` or `OPTIMAL` and an independent validator checks every active hard constraint against the board. `UNKNOWN` and unvalidated solutions are not schedules. | not-started | offline | MVP-0 | New safety requirement. |
-| SOL-008 | A returned board records solver status, model version, objective value, constraint snapshot hash, and validation result. | not-started | offline | MVP-0 | Audit. |
-| SOL-009 | Objective breakdown reports company moves, holding-day cost/days, overtime/turnaround exposure, weather risk cost when applicable, and added shoot days separately. | not-started | offline | MVP-0 | Production-readable costs. |
-| SOL-010 | A `ScheduleProblem` with a two-day/two-scene fixture schedules deterministically and validates cleanly. | not-started | offline | MVP-0 | First acceptance fixture. |
-| SOL-011 | A fixture with impossible cast availability returns a conflict set containing the expected constraint IDs. | not-started | offline | MVP-0 | Infeasibility acceptance. |
+| SOL-005 | The objective minimizes company moves, cast holding days, and overtime/turnaround exposure according to declared weights. | unit-built | offline | MVP-0 | Weights declared in section 4.1; exact integer coefficients, no rounding. |
+| SOL-006 | MVP constraint families are modeled: cast availability, location/permit windows, daylight/day-night feasibility, turnaround/rest, company moves, and lock constraints. Weather participates when production policy maps it to feasibility or objective cost. | unit-built | offline | MVP-0 | Cast, location/permit, daylight, turnaround, company move and lock compiled. Moves model each day's start and end location. Split days out of scope (post-MVP). |
+| SOL-007 | No board may be returned unless solver status is `FEASIBLE` or `OPTIMAL` and an independent validator checks every active hard constraint against the board. `UNKNOWN` and unvalidated solutions are not schedules. | unit-built | offline | MVP-0 | `Board` is unconstructible without a passing report for the same snapshot. |
+| SOL-008 | A returned board records solver status, model version, objective value, constraint snapshot hash, and validation result. | unit-built | offline | MVP-0 | Records status, objective, snapshot hash, validation, seed and weights. |
+| SOL-009 | Objective breakdown reports company moves, holding-day cost/days, overtime/turnaround exposure, weather risk cost when applicable, and added shoot days separately. | unit-built | offline | MVP-0 | `ObjectiveBreakdown`; costs measured off the board, not read back from the model. |
+| SOL-010 | A `ScheduleProblem` with a two-day/two-scene fixture schedules deterministically and validates cleanly. | unit-built | offline | MVP-0 | `tests/test_solver.py` two-day/two-scene fixture; deterministic per seed. The solve budget is CP-SAT deterministic time, not wall clock -- a wall-clock cutoff makes the board depend on machine speed, which defeats recording the seed. |
+| SOL-011 | A fixture with impossible cast availability returns a conflict set containing the expected constraint IDs. | unit-built | offline | MVP-0 | Disjoint cast availability returns the two colliding IDs. |
 | SOL-012 | A replan fixture cannot move, delete, resequence, or reassign work on `LockedDayRecord`s. | not-started | offline | MVP-2 | Immutability acceptance. |
+| SOL-013 | A returned board records the solver's best objective bound and the proven optimality gap. A `feasible` board states how far from optimal it may be, and a board claiming `optimal` may not carry a non-zero gap. | unit-built | offline | MVP-0 | `Board.optimality_gap` / `cost_bracket`; inconsistent status and gap is unconstructible. |
 
 ---
 
@@ -667,7 +693,7 @@ schemas are specified now.
 |---|---|---|---|---|---|
 | OUT-001 | A call sheet is generated for a scheduled day. | not-started | offline | POST | Existing requirement; schema below. |
 | OUT-002 | Two schedule versions can be diffed with the delta quantified in production terms. | not-started | offline | MVP-2 | Needed for replan options. |
-| OUT-003 | A stripboard output lists shoot days, ordered work items, scene IDs, locations, day/night, cast, and estimated call/wrap windows. | not-started | offline | MVP-0 | MVP output. |
+| OUT-003 | A stripboard output lists shoot days, ordered work items, scene IDs, locations, day/night, cast, and estimated call/wrap windows. | unit-built | offline | MVP-0 | Implemented as `coverset.stripboard.stripboard`. |
 | OUT-004 | `CallSheet` includes day, scenes, locations, cast calls, crew call, wrap estimate, daylight windows, turnaround notes, permit notes, recipients, and schedule version. | not-started | offline | POST | Full call-sheet schema. |
 | OUT-005 | `ScheduleDiff` reports added days, moved scenes, changed call times, added pickups, cast holding delta, company move delta, overtime/turnaround delta, and required approvals. | not-started | offline | MVP-2 | Production-readable delta. |
 | OUT-006 | Recipients receive call sheets read-only and have no scheduling authority by receiving them. | not-started | offline | POST | Actor boundary. |
@@ -716,11 +742,11 @@ solver-ready pickup work.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
 |---|---|---|---|---|---|
-| AUD-001 | Every scheduling decision traces to explicit active constraints and objective terms. | not-started | offline | MVP-0 | Requires Board/ScheduleProblem. |
+| AUD-001 | Every scheduling decision traces to explicit active constraints and objective terms. | unit-built | offline | MVP-0 | Implemented as `coverset.stripboard.explain_assignment`. |
 | AUD-002 | Every constraint traces to either source URL/value provenance, a named deterministic algorithm, or a human-entered production rule. | domain-model | live | MVP-1 | Offline covers deterministic/algorithm provenance; live is required for externally grounded constraints. Full ConstraintRecord is still missing. |
 | AUD-003 | Every constraint records whether it was derived from full page content, excerpt, algorithm, fixture, or human input. | domain-model | offline | MVP-1 | Evidence has extraction mode; constraints missing. |
 | AUD-004 | Every pickup task traces to a named human decision. No automated process can create shoot work. | unit-built | offline | MVP-3 | Existing tests. |
-| AUD-005 | Every active board records the constraint snapshot hash used to solve and validate it. | not-started | offline | MVP-0 | New board audit. |
+| AUD-005 | Every active board records the constraint snapshot hash used to solve and validate it. | unit-built | offline | MVP-0 | `ConstraintSet.snapshot_hash`, carried on the board and on its validation report. |
 | AUD-006 | A schedule version records parent version, creation trigger, selected board, selecting actor when applicable, and approval state. | not-started | offline | MVP-2 | Needed for replans. |
 | AUD-007 | A live-grounded requirement declares whether live verification is required, exempt, or manual, and traceability reports missing live coverage separately from offline coverage. | not-started | live | MVP-1 | [meta] Strengthens traceability. |
 
@@ -755,7 +781,7 @@ The First AD loads pre-parsed scenes and typed constraints, then Coverset produc
 valid stripboard.
 
 **Actors:** First AD · Solver  
-**Exercises:** AUD-001, AUD-005, CON-004, CON-008, CST-001, CST-003, CST-009, CST-010, DAY-001, DAY-003, DAY-008, DAY-009, OUT-003, SCN-001, SCN-002, SCN-003, SOL-001, SOL-002, SOL-005, SOL-006, SOL-007, SOL-008, SOL-009, SOL-010  
+**Exercises:** AUD-001, AUD-005, CON-004, CON-008, CST-001, CST-003, CST-009, CST-010, DAY-001, DAY-003, DAY-008, DAY-009, OUT-003, SCN-001, SCN-002, SCN-003, SOL-001, SOL-002, SOL-005, SOL-006, SOL-007, SOL-008, SOL-009, SOL-010, SOL-013  
 
 ### UC-01 — Build the initial board from a screenplay
 

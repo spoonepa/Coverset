@@ -79,6 +79,18 @@ class WorkItem:
     must_complete_by: dt.date | None = None
     source_record_id: str = ""
     """The `SceneRecord` or `PickupTask` this came from, for the audit trail."""
+    requires_daylight: bool | None = None
+    """Whether the sun must be up for this work, which `day_night` alone cannot say.
+
+    An interior DAY scene on a stage needs no daylight window; an exterior one is
+    hard-bounded by sunrise and sunset. That distinction lives on the scene's INT/EXT,
+    which does not survive the conversion to work, so it is carried explicitly.
+
+    `None` means nobody said, and it resolves conservatively to whatever `day_night`
+    implies -- see `needs_daylight`. Over-constraining is recoverable; the solver
+    reports the day as tight and someone corrects the record. Under-constraining puts
+    an exterior day scene after dark and nothing downstream notices.
+    """
 
     def __post_init__(self) -> None:
         if not self.work_id.strip():
@@ -100,6 +112,18 @@ class WorkItem:
     @property
     def duration(self) -> dt.timedelta:
         return dt.timedelta(minutes=self.estimated_duration_minutes)
+
+    @property
+    def needs_daylight(self) -> bool:
+        """Whether this work must fall inside the sun-above-horizon window.
+
+        Falls back to the time of day when unstated, which can only ever tighten the
+        bound. A missing constraint the solver never learns about is one the board is
+        free to violate.
+        """
+        if self.requires_daylight is None:
+            return self.day_night.needs_daylight
+        return self.requires_daylight
 
     @property
     def is_pickup(self) -> bool:

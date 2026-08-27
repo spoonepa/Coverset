@@ -148,4 +148,5 @@ class SceneRecord:
             cast_ids=self.cast_ids,
             flags=self.flags,
             source_record_id=self.scene_id,
+            requires_daylight=self.needs_daylight,
         )

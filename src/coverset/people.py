@@ -23,6 +23,8 @@ import datetime as dt
 from dataclasses import dataclass, field
 from typing import Iterator
 
+from .clock import elapsed
+
 __all__ = [
     "DEFAULT_CAST_TURNAROUND_HOURS",
     "DEFAULT_CREW_TURNAROUND_HOURS",
@@ -220,6 +222,11 @@ class Company:
     maximum_day_hours: float = 12.0
 
     def turnaround_satisfied(self, wrap: dt.datetime, next_call: dt.datetime) -> bool:
-        """Whether the rest between wrap and the next call meets the minimum."""
-        rest = (next_call - wrap).total_seconds() / 3600
+        """Whether the rest between wrap and the next call meets the minimum.
+
+        Elapsed time, not the difference of two clock faces: a wrap at 23:00 and a
+        call at 11:00 across the spring forward is eleven hours of rest, and the
+        performer is an hour short in exactly the way this method exists to prevent.
+        """
+        rest = elapsed(wrap, next_call).total_seconds() / 3600
         return rest >= self.minimum_turnaround_hours

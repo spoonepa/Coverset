@@ -23,6 +23,7 @@ import math
 from dataclasses import dataclass
 from enum import StrEnum
 
+from .clock import elapsed
 from .locations import Location
 
 __all__ = ["ALGORITHM", "DaylightWindow", "SunCondition", "daylight_window"]
@@ -98,7 +99,7 @@ class DaylightWindow:
         """Sunrise to sunset."""
         if self.sunrise is None or self.sunset is None:
             return dt.timedelta(days=1) if self.condition is SunCondition.POLAR_DAY else dt.timedelta()
-        return self.sunset - self.sunrise
+        return elapsed(self.sunrise, self.sunset)
 
     @property
     def exterior_day_window(self) -> tuple[dt.datetime, dt.datetime] | None:
