@@ -137,7 +137,8 @@ in `.env` (gitignored).
 | `clock.py` | `elapsed` / `advance` — real time, never wall-clock |
 | `daylight.py` | NOAA solar computation. Never retrieved |
 | `scenes.py` / `work.py` | `SceneRecord` → `WorkItem` |
-| `fixtures.py` | Validated fixture import |
+| `fixtures.py` | Validated fixture import — `load_scenes`, `load_constraints` |
+| `demo.py` | `UC-00` end to end: fixtures → board → stripboard |
 | `review.py` | Findings, decisions, pickups |
 | `constraints.py` | `ConstraintRecord` — the only way a fact reaches the solver |
 | `solver.py` | CP-SAT compilation, objective, conflict shrink |
@@ -169,10 +170,17 @@ shot coverage. Shot coverage lives in `review.py`.
 - `PIK-008`: `PickupTask.from_decision` copies cast, location and duration from the
   original coverage item, asserting a pickup needs identical resources. Often false, and
   false expensively — calling cast who are not needed accrues holding days.
-- MVP-0 is **47/47 unit-built**. No use case is deliverable yet: every one needs its
-  requirements at `demo-ready`, which needs an end-to-end demo path. UC-00 is the
-  nearest — fixtures → `load_scenes` → `solve` → `stripboard` all exist and are
-  tested, but nothing runs them together as a demo.
+- **UC-00 is deliverable** (25/25 demo-ready) — the only one. `coverset.demo` runs
+  `fixtures/uc00/` → `load_scenes`/`load_constraints` → `solve` → `validate` →
+  `stripboard`, and `tests/test_demo.py` asserts the fixture bounds reached the
+  finished board rather than merely that a board came back. Every other use case
+  still needs requirements built, not just wired up; `scripts/traceability.py` ranks
+  them. `SOL-004` (locked days) blocks three.
+- The demo board leaves a 75-minute Monday standing, because nothing prices a shoot
+  day. Moves, holding days and overtime are the declared weights (§4.1), so a board
+  that calls the company for one strip costs the same as one that folds it into
+  Tuesday and the solver is genuinely indifferent. Real productions price the day.
+  Adding that weight changes every board, so it is a decision rather than a fix.
 - The solve budget is CP-SAT **deterministic** time, never `max_time_in_seconds`. A
   wall-clock cutoff makes the board depend on machine speed and silently undoes the
   reason the seed is recorded. `SOL-010` asserts the parameter is not there.
@@ -185,6 +193,16 @@ shot coverage. Shot coverage lives in `review.py`.
   the day the total falls.
 - A cast daily-hours limit means **call to wrap**, not the sum of scene durations. A
   performer waiting through a company move is still at work.
+- **Call times are derived, not chosen.** `_call_time` fixes a day's call from the
+  location, the date and whether the day is a night — day work calls at sunrise or
+  07:00, night work calls at sunset. The solver picks *which day* work lands on and
+  never *when the day starts*. One consequence is not obvious and bites immediately:
+  under a twelve-hour turnaround a night day cannot be followed by a shooting day at
+  all, because a sunset call wrapping at 21:00 cannot be followed by a 07:00 call.
+  Night work therefore has to end a week or sit against a dark day. The first UC-00
+  fixture was infeasible for exactly this reason and the conflict set named it
+  correctly — `C-CHURCH-PERMIT`, `C-SARAH-AVAILABILITY`, `C-TURNAROUND` — which is
+  the machinery working, not a bug.
 - A shoot day is a day shoot or a night shoot. Split days are post-MVP, and the model
   refuses to mix them rather than approximating one.
 - `SOL-005` weights are settled and declared in `SPEC.md` §4.1: one company move = 3

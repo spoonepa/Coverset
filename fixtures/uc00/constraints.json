@@ -1,0 +1,71 @@
+[
+  {
+    "constraint_id": "C-DAYLIGHT",
+    "family": "daylight",
+    "policy": "hard",
+    "subject": {"kind": "schedule"},
+    "expression": {"type": "daylight"},
+    "source": {"type": "algorithm"},
+    "created_by": "coverset.daylight",
+    "validated_against": "NOAA solar position algorithm, checked against published almanac tables"
+  },
+  {
+    "constraint_id": "C-SARAH-AVAILABILITY",
+    "family": "cast",
+    "policy": "hard",
+    "subject": {"kind": "cast", "ref": "SARAH"},
+    "expression": {
+      "type": "date_windows",
+      "windows": [{"start": "2026-09-14", "end": "2026-09-16"}]
+    },
+    "source": {
+      "type": "human",
+      "author": {"name": "Dana Whitfield", "role": "first_ad"},
+      "statement": "Sarah is on another picture from Thursday. We have her Monday to Wednesday and that is all."
+    },
+    "created_by": "Dana Whitfield (first_ad)"
+  },
+  {
+    "constraint_id": "C-CHURCH-PERMIT",
+    "family": "permit",
+    "policy": "hard",
+    "subject": {"kind": "location", "ref": "st-anns-church"},
+    "expression": {
+      "type": "date_windows",
+      "windows": [{"start": "2026-09-16", "end": "2026-09-17"}]
+    },
+    "source": {
+      "type": "human",
+      "author": {"name": "Dana Whitfield", "role": "first_ad"},
+      "statement": "The parish will only have us Wednesday and Thursday. Services the rest of the week."
+    },
+    "created_by": "Dana Whitfield (first_ad)",
+    "validated_against": "MVP-0 fixture; MVP-1 grounds permit windows through Parallel"
+  },
+  {
+    "constraint_id": "C-TURNAROUND",
+    "family": "turnaround",
+    "policy": "hard",
+    "subject": {"kind": "schedule"},
+    "expression": {"type": "minimum_rest", "hours": 12.0},
+    "source": {
+      "type": "human",
+      "author": {"name": "Dana Whitfield", "role": "first_ad"},
+      "statement": "Twelve hours between wrap and call, company-wide. No forced calls on this one."
+    },
+    "created_by": "Dana Whitfield (first_ad)"
+  },
+  {
+    "constraint_id": "C-COMPANY-DAY",
+    "family": "turnaround",
+    "policy": "hard",
+    "subject": {"kind": "schedule"},
+    "expression": {"type": "maximum_daily_hours", "hours": 12.0},
+    "source": {
+      "type": "human",
+      "author": {"name": "Priya Raman", "role": "upm"},
+      "statement": "Twelve-hour days. Anything longer comes to me before it is scheduled, not after."
+    },
+    "created_by": "Priya Raman (upm)"
+  }
+]

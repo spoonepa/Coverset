@@ -1,0 +1,119 @@
+[
+  {
+    "scene_id": "S1",
+    "scene_number": "1",
+    "slugline": "EXT. BROOKLYN BRIDGE PARK - DAY",
+    "int_ext": "ext",
+    "day_night": "day",
+    "location_ref": "brooklyn-bridge-park",
+    "page_eighths": 16,
+    "cast_ids": [
+      "SARAH",
+      "TOM"
+    ],
+    "status": "active",
+    "source_page_range": "1-3"
+  },
+  {
+    "scene_id": "S2",
+    "scene_number": "2",
+    "slugline": "EXT. BROOKLYN BRIDGE PARK - PROMENADE - DAY",
+    "int_ext": "ext",
+    "day_night": "day",
+    "location_ref": "brooklyn-bridge-park",
+    "page_eighths": 12,
+    "cast_ids": [
+      "SARAH"
+    ],
+    "status": "active",
+    "source_page_range": "3-4"
+  },
+  {
+    "scene_id": "S3",
+    "scene_number": "3",
+    "slugline": "EXT. BROOKLYN BRIDGE PARK - PIER - DAY",
+    "int_ext": "ext",
+    "day_night": "day",
+    "location_ref": "brooklyn-bridge-park",
+    "page_eighths": 10,
+    "cast_ids": [
+      "TOM"
+    ],
+    "status": "active",
+    "source_page_range": "4-5"
+  },
+  {
+    "scene_id": "S4",
+    "scene_number": "4",
+    "slugline": "INT. ST. ANN'S CHURCH - NAVE - DAY",
+    "int_ext": "int",
+    "day_night": "day",
+    "location_ref": "st-anns-church",
+    "page_eighths": 20,
+    "cast_ids": [
+      "TOM",
+      "NINA"
+    ],
+    "status": "active",
+    "source_page_range": "6-8"
+  },
+  {
+    "scene_id": "S5",
+    "scene_number": "5",
+    "slugline": "EXT. ST. ANN'S CHURCH - STEPS - NIGHT",
+    "int_ext": "ext",
+    "day_night": "night",
+    "location_ref": "st-anns-church",
+    "page_eighths": 16,
+    "cast_ids": [
+      "TOM",
+      "NINA"
+    ],
+    "status": "active",
+    "source_page_range": "8-10"
+  },
+  {
+    "scene_id": "S6",
+    "scene_number": "6",
+    "slugline": "INT. SILVERCUP STAGE 4 - APARTMENT - DAY",
+    "int_ext": "int",
+    "day_night": "day",
+    "location_ref": "silvercup-studios",
+    "page_eighths": 24,
+    "cast_ids": [
+      "NINA",
+      "RAY"
+    ],
+    "status": "active",
+    "source_page_range": "11-14"
+  },
+  {
+    "scene_id": "S7",
+    "scene_number": "7",
+    "slugline": "INT. SILVERCUP STAGE 4 - APARTMENT - NIGHT",
+    "int_ext": "int",
+    "day_night": "night",
+    "location_ref": "silvercup-studios",
+    "page_eighths": 16,
+    "cast_ids": [
+      "RAY"
+    ],
+    "status": "active",
+    "source_page_range": "14-16"
+  },
+  {
+    "scene_id": "S8",
+    "scene_number": "8",
+    "slugline": "INT. SILVERCUP STAGE 4 - KITCHEN - DAY",
+    "int_ext": "int",
+    "day_night": "day",
+    "location_ref": "silvercup-studios",
+    "page_eighths": 14,
+    "cast_ids": [
+      "SARAH",
+      "NINA"
+    ],
+    "status": "active",
+    "source_page_range": "16-18"
+  }
+]
