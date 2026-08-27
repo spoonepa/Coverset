@@ -221,6 +221,91 @@ def test_every_binding_constraint_is_re_checked_on_the_returned_board():
     assert board.validation_result.passed
 
 
+@pytest.mark.req("SOL-002")
+def test_the_companys_maximum_day_reaches_the_solver_as_a_record():
+    """A bound compiled straight from `Company` binds invisibly.
+
+    It had no record, so no assumption literal, nothing in the constraint snapshot,
+    and no second reading. Three things followed, all of them wrong in the quiet way
+    this project keeps having to design against — see `SYN-DAYLIGHT`, which exists
+    for exactly this reason.
+    """
+    problem = two_day_problem(company=Company(maximum_day_hours=12.0))
+    record = next(r for r in problem.constraints if r.constraint_id == "SYN-COMPANY-DAY")
+    assert record.expression == MaximumDailyHours(hours=12.0)
+    assert record.subject.kind is SubjectKind.SCHEDULE
+
+    # 1. two productions with different maximum days are different problems.
+    assert (problem.constraint_snapshot_hash
+            != two_day_problem(company=Company(maximum_day_hours=16.0)
+                               ).constraint_snapshot_hash)
+
+    # 2. the validator is obliged to re-check it, rather than taking the model's word.
+    board = solve(problem).board
+    assert "SYN-COMPANY-DAY" in board.validation_result.expected_ids
+
+    # 3. a production that states its own day length keeps it; nothing is overruled.
+    stated = human("C-DAY", Family.TURNAROUND, Subject(SubjectKind.SCHEDULE),
+                   MaximumDailyHours(hours=14.0), said="fourteens this week")
+    ids = {r.constraint_id for r in two_day_problem(
+        constraints=(DAYLIGHT_RULE, stated)).constraints}
+    assert "SYN-COMPANY-DAY" not in ids
+
+
+@pytest.mark.req("SOL-003")
+def test_a_schedule_impossible_only_because_of_the_company_day_names_it():
+    """The AD gets something to negotiate, not a structural dead end.
+
+    A thirteen-hour scene under a twelve-hour day used to report `STRUCT-DAY-LENGTH`
+    — structure being, by definition, what no relaxation can fix. Authorising a
+    fourteen-hour day fixes it, so it was never structural.
+    """
+    long_scene = scene("L1", STUDIO, DayNight.DAY, 104, ("SARAH",), IntExt.INT).to_work_item()
+    assert long_scene.estimated_duration_minutes == 780, "meant to be a 13h scene"
+    result = solve(ScheduleProblem(
+        problem_id="LONGDAY", production_calendar=ProductionCalendar((D1, D2)),
+        work_items=(long_scene,), constraints=ConstraintSet(()), roster=ROSTER,
+        locations=PLACES, company=Company(maximum_day_hours=12.0),
+    ))
+    assert result.status is SolverStatus.INFEASIBLE
+    assert result.conflict_set.constraint_ids == ("SYN-COMPANY-DAY",)
+    assert result.conflict_set.irreducible
+
+    # Relaxing exactly what it named is what makes the difference.
+    assert solve(ScheduleProblem(
+        problem_id="LONGDAY", production_calendar=ProductionCalendar((D1, D2)),
+        work_items=(long_scene,), constraints=ConstraintSet(()), roster=ROSTER,
+        locations=PLACES, company=Company(maximum_day_hours=14.0),
+    )).status is SolverStatus.OPTIMAL
+
+
+@pytest.mark.req("SOL-007")
+def test_every_objective_term_is_read_a_second_time_off_the_board():
+    """Overtime used to be compiled, minimised, and reported from a measurement
+    nothing compared against — so a miscompile of it would have produced a board
+    proven optimal against a cost it did not have.
+
+    Tampering with a reading stands in for that miscompile. All three terms must be
+    caught, or the term that is not is the one a future mistake hides in.
+    """
+    import coverset.solver as solver_module
+
+    problem = two_day_problem()
+    assert solve(problem).status is SolverStatus.OPTIMAL, "the honest board must solve"
+
+    for name in ("_measure_moves", "_measure_overtime_minutes"):
+        original = getattr(solver_module, name)
+        try:
+            setattr(solver_module, name, lambda *a, **k: original(*a, **k) + 99)
+            result = solve(problem)
+        finally:
+            setattr(solver_module, name, original)
+        assert result.status is SolverStatus.ERROR, (
+            f"a corrupted {name} reading was not caught; that term has no second reading"
+        )
+        assert "disagree about what the board costs" in result.diagnostics[0]
+
+
 @pytest.mark.req("SOL-007")
 def test_a_board_cannot_be_constructed_from_an_unproven_solve():
     report = ValidationReport(checks=(), expected_ids=frozenset(), constraint_snapshot_hash="h")

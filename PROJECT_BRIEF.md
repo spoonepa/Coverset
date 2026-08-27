@@ -268,6 +268,46 @@ a 20-day board does not need a data warehouse.
 
 *Captured during the build.*
 
+### A bound with no record is a bound with no second reading
+
+`SYN-DAYLIGHT` exists because a bound that appears in no constraint set reaches no
+snapshot hash, no conflict set and no validation report. The company's maximum day was
+the same shape of bound and had not been given the same treatment: it was compiled
+straight from `Company.maximum_day_hours` into an unconditional CP-SAT constraint.
+
+Three consequences, each of which looked fine from every angle except the right one.
+A board an hour over the company day put to the validator came back **passed, with
+zero checks performed** — `validate_board` took a `company` argument and never read
+it, so the day length was the one hard bound in the system read exactly once. Two
+productions with different maximum days produced the **same constraint snapshot hash**,
+so boards solved under a twelve-hour day and a sixteen-hour day compared as
+equivalent. And a schedule impossible *only* because of the twelve-hour day was
+reported as **structurally** impossible — structure being, by definition, the category
+of cause no relaxation can fix. Authorising a fourteen-hour day fixes it. The AD was
+handed a dead end and told it was physics.
+
+The fix is the one the codebase already knew: synthesise the record. `SYN-COMPANY-DAY`
+now carries the production's maximum day, so it compiles through the same
+record-driven path as everything else, gets an assumption literal, reaches the hash,
+and is re-read by the validator. The unconditional cap left with it — except for
+twenty-four hours, which stays, because a calendar day is not a policy anyone can
+authorise their way past. That distinction is what keeps a twenty-five-hour scene
+reported as structural while a thirteen-hour one is reported as the company day.
+
+**And the term nobody was checking.** Company moves and holding days were each read
+twice and compared; overtime was compiled, minimised, and then reported from a
+measurement nothing compared against. Corrupting the moves reading was caught
+immediately; corrupting the overtime reading produced a board carrying ninety-nine
+invented overtime hours, cheerfully returned. It is now the third term in the
+comparison, and the figure in the breakdown *is* the compared figure rather than a
+second call that could drift from it.
+
+**Still outstanding, same shape.** `Company.minimum_turnaround_hours`,
+`CastMember.minimum_turnaround_hours` and `WorkItem.must_complete_by` are declared on
+domain types and reach neither CP-SAT nor the validator. `Company.turnaround_satisfied`
+has no callers at all. Unlike the maximum day, giving these records would change which
+boards are feasible, so it is a decision rather than a repair.
+
 ### The shared misconception the cross-check could not see
 
 Two guards in this codebase compare a compiled model against an independent reading of
