@@ -50,6 +50,7 @@ The central design is unchanged:
 | `none` | No accepted verification yet. | Nothing. |
 | `offline` | `uv run pytest` | Deterministic wiring, shape, invariants; no network/key. |
 | `live` | `uv run pytest -m live` | Real provider behavior and fact-binding invariants. Requires `PARALLEL_API_KEY`. |
+| `corpus` | `uv run pytest -m corpus` | Behavior against real third-party screenplays. Robustness and invariants only &mdash; a downloaded script carries no breakdown, so it cannot prove correctness. |
 | `manual-demo` | Recorded/manual demo script plus artifacts. | End-to-end product journey where automated checking is not yet enough. |
 
 ### Intent tags
@@ -559,6 +560,14 @@ No board may be returned as viable unless `status` is `optimal` or `feasible` an
 MVP-0 accepts structured scene fixtures. Gemini PDF parsing is post-MVP unless time
 permits; Gemini-derived records are candidates until accepted.
 
+Breakdown is verified against two different things for two different reasons. Real
+third-party screenplays supply formatting no fixture author would invent -- dual
+dialogue, `CONT'D`, montages, `OMITTED` scenes, four scene-numbering conventions --
+and supply no breakdown, so they can only prove robustness. An authored screenplay
+supplies the answer key, because its scene list is written before its pages. Neither
+substitutes for the other, and the `corpus` tier is barred from claiming correctness
+so the distinction cannot quietly collapse.
+
 | ID | Requirement | Maturity | Verification | Slice | Notes |
 |---|---|---|---|---|---|
 | SCN-001 | A `SceneRecord` has stable id, scene number, slugline, INT/EXT enum, day/night enum, location reference, page eighths, cast IDs, flags, and source span. | demo-ready | offline | MVP-0 | Implemented as `coverset.scenes.SceneRecord`. |
@@ -569,6 +578,12 @@ permits; Gemini-derived records are candidates until accepted.
 | BRK-003 | Gemini-derived scene records below the configured confidence threshold are marked `needs_review` and cannot feed the solver. | not-started | offline | POST | Prevents wrong candidate records becoming active. |
 | BRK-004 | Cast extracted from a screenplay is resolved to roster IDs or reported as unresolved; unresolved cast blocks board generation. | not-started | offline | POST | Test with fixture screenplay/candidate output. |
 | BRK-005 | Page eighths are rounded by a documented rule and keep enough provenance to audit the source page/line. | not-started | offline | POST | [deferred] Avoids untestable page-count claims. |
+| BRK-006 | A corpus source records a URL and a content hash. A document that no longer matches its hash is refused and reported, never used. | unit-built | offline | POST | [meta] Studios replace drafts at the same URL; the corpus would change under a passing test. |
+| BRK-007 | Screenplay corpus verification runs in its own tier, deselected by default. No offline test downloads anything. | unit-built | offline | POST | [meta] Keeps `uv run pytest` deterministic and network-free. |
+| BRK-008 | An unavailable corpus source is reported as unavailable and skipped. It is never counted as a pass. | unit-built | offline | POST | [meta] FYC postings come down after the season; that is lifecycle, not incident. |
+| BRK-009 | Corpus verification asserts structural invariants and parse stability, never breakdown correctness. | unit-built | offline | POST | [meta] A downloaded script has no answer key; checking a parser against your own reading of it validates a method against itself. |
+| BRK-010 | No screenplay text is committed to the repository, and the application redistributes no screenplays. | unit-built | offline | POST | [invariant] Config holds addresses and hashes; production takes uploads. |
+| BRK-011 | Breakdown correctness is verified against an authored screenplay whose breakdown is known by construction. | not-started | offline | POST | [meta] The answer key BRK-009 refuses to fake. Scene list written first, pages written to match. |
 
 ---
 

@@ -37,7 +37,7 @@ UC_EXERCISES = re.compile(r"^\*\*Exercises:\*\*\s*(.+)$")
 
 MATURITY = ["not-started", "domain-model", "unit-built", "integrated", "demo-ready"]
 RANK = {m: i for i, m in enumerate(MATURITY)}
-TIERS = ["none", "offline", "live", "manual-demo"]
+TIERS = ["none", "offline", "live", "corpus", "manual-demo"]
 SLICES = ["MVP-0", "MVP-1", "MVP-2", "MVP-3", "POST"]
 
 INTENT_TAGS = ("invariant", "edge-case", "cross-cutting", "meta", "deferred")

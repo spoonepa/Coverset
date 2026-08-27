@@ -25,8 +25,9 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["tests", "scripts"]
-addopts = "-q -m 'not live'"
+addopts = "-q -m 'not live and not corpus'"
 markers = [
     "req(*ids): requirement IDs from SPEC.md that this test verifies",
     "live: hits the real Parallel API; needs PARALLEL_API_KEY. Deselected by default.",
+    "corpus: downloads real screenplays from configured URLs. Deselected by default.",
 ]

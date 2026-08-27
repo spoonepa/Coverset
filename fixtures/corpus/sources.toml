@@ -1,0 +1,65 @@
+# Screenplay corpus for the `corpus` verification tier.
+#
+# Studios publish screenplays each awards season for guild voters. They are free and
+# legal to download and read, and they are fully copyrighted: no redistribution right
+# is granted. So the script text is never committed here and never ships in the
+# application -- only the address of a document someone else is hosting.
+#
+# In production the user uploads their own screenplay, so the application distributes
+# no scripts at all. This file exists only so breakdown can be exercised against real
+# formatting during development.
+#
+# WHAT THIS TIER CAN AND CANNOT PROVE
+#
+# A downloaded screenplay comes with no breakdown, so it cannot tell you whether the
+# extracted records are *correct*. It can tell you the parser survives real formatting
+# and that its output holds the invariants a scene record must hold. Correctness is
+# asserted only against `fixtures/corpus/authored/`, where the breakdown is known
+# because the scene list was written first (BRK-009).
+#
+# WHERE TO PUT ENTRIES
+#
+# Either file works; they merge, and `sources.local.toml` wins on a shared id.
+#
+#   sources.toml         committed. Anyone cloning gets the same corpus -- and the
+#                        same breakage when a studio takes a script down, which
+#                        happens every year after awards season.
+#   sources.local.toml   gitignored. Your links, your rot, nobody else's failing gate.
+#
+# Prefer the local file unless you want the whole team pinned to the same documents.
+#
+# SCHEMA
+#
+#   id      stable slug, unique across both files
+#   url     direct link to the document
+#   sha256  hash of the bytes you validated against
+#   media   "pdf" or "text"
+#   note    optional; where it came from, why it is here
+#
+# The hash is not ceremony. Studios replace a draft at the same URL between
+# publication and awards night. Without a hash the corpus silently changes underneath
+# a passing test, which is the same failure this project guards against everywhere
+# else: the input changed, nothing looked wrong, and the result meant something other
+# than what it appeared to mean. A mismatch is reported, never used (BRK-006).
+#
+# To add one:
+#   1. download it by hand and read enough to know it is the document you meant
+#   2. shasum -a 256 <file>
+#   3. add the entry below
+#
+# EXAMPLE (commented; fill in a real hash before uncommenting)
+#
+# [[source]]
+# id     = "example-fyc-drama"
+# url    = "https://example-studio.com/fyc/screenplay.pdf"
+# sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+# media  = "pdf"
+# note   = "FYC posting, 2026 season. Expect this to 404 by summer."
+#
+# Indexes worth checking each season:
+#   https://awardswatch.com/studio-fyc-pages-for-2025-2026-film-awards-season/
+#   https://nofilmschool.com/2026-oscar-screenplays-pdf
+#   https://www.writing.ninja/free-screenplay-downloads-pdf/
+#   https://www.simplyscripts.com/year/
+
+# No sources are committed. The tier skips loudly rather than passing empty (BRK-008).
