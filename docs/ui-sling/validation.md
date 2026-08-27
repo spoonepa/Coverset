@@ -20,6 +20,10 @@ API credentials were supplied via environment for generation and are not stored 
 | Coverage pickup | `05-coverage-pickup.v4.html` | Advisory finding → human ruling → pickup |
 | Call sheet | `06-call-sheet.v4.html` | Second AD call sheet preview |
 | Audit log | `07-audit-log.v4.html` | Authority and provenance ledger |
+| Infeasible board | `08-infeasible-conflict.v4.html` | Irreducible conflicting constraint subset |
+| Constraint entry | `09-constraint-entry.v4.html` | Plain English → candidate typed constraints → activation |
+| Lock day / actuals | `10-lock-day-actuals.v4.html` | Script Supervisor records what was shot, raises findings |
+| Cost approval | `11-cost-approval.v4.html` | UPM/Line Producer rules on an added-day cost |
 
 `manifest.json`, `iteration-*-manifest.json`, `*.prompt.md`, and the `*.v2`/`*.v3` HTML
 are historical. Do not use them as a baseline.
@@ -37,6 +41,11 @@ device scale 1. Every other `*.png` here is historical and shows uncorrected scr
 Render at 2048 wide, not 1024 at 2× — these are fixed-viewport app shells that scroll
 internally, and a narrower viewport collapses the strip columns into each other.
 `04-grounded-facts` is rendered at 2048×2150 because it now carries six cards.
+
+Screens 08–11 were hand-authored against the shared theme block rather than generated,
+because Stitch invented scene, cast and location detail on every prior pass and each one
+then had to be corrected by hand anyway. They reuse screen 01's `<head>` verbatim, so
+the tokens, fonts and spacing scale cannot drift.
 
 ## How this is checked
 
@@ -93,6 +102,19 @@ screens had satisfied were missing. Rows below cite the requirement they check.
 | OUT-006 | Recipients are read-only | 06 | Recipients listed as `Viewers (Read-only)`. |
 | SOL-007 | Objective is re-measured off the finished board | 07 | Validator entry records the two readings agreeing. |
 | ACT-002 | An advisory agent is never a decider | 02, 05, 07 | Gemini rows are labelled advisory; every decision row names a human and a role. |
+| SOL-003 | Infeasibility yields the conflicting subset, not a generic failure | 08 | `STATUS: INFEASIBLE` distinguished from budget exhaustion; four named constraints with the arithmetic that conflicts. |
+| SOL-011 | A conflict set names at least one relaxable constraint | 08 | Three relaxable with costs, one fixed; verified minimal by re-solving once per member, and non-vacuous by re-solving with all four relaxed. |
+| AUD-002 | Every constraint traces to URL, algorithm, or human rule | 08 | All three provenance kinds appear and are labelled distinctly. |
+| CON-001 / CON-002 | Plain English yields candidates that cannot reach the solver | 09 | Four candidates typed from one spoken instruction; `A candidate is inert` until activated. |
+| CON-005 | Activation is a separate human act | 09 | `AWAITING ACTIVATION` on every candidate; activation panel names the actor and the snapshot change. |
+| CON-009 | Weather policy needs a human classification | 09 | `CANNOT BE TYPED YET` — feasibility vs objective cost is not chosen for the user. |
+| CST-001 | A near-miss cast name is refused, not corrected | 09 | `Sara — no such cast id`, refused rather than resolved to SARAH. |
+| LCK-001 / LCK-002 | Actuals recorded; the locked day is immutable | 10 | Planned vs actual per strip, actual call/wrap, and the immutability statement. |
+| LCK-003 | Part-shot work survives the lock | 10 | Scene 44 remainder becomes `WorkItem 44R`, keeping NIGHT and its cast. |
+| ACT-006 / REV-008 | Script Supervisor may record and raise, may not rule | 10 | Authority list is explicit; the raised finding goes to the Director and decides nothing. |
+| ACT-005 / ACT-008 / PIK-010 | Added-day cost stays pending until a UPM records it | 11 | `pending_cost_approval`; the `CostApproval` fields are shown before the decision is taken. |
+| OUT-005 | A schedule diff reads in production terms | 11 | Days, moved scenes, call times, pickups, holding, moves, overtime, turnaround — priced at the declared weights. |
+| AUD-004 | No automated process creates shoot work | 11 | Authorisation trace from advisory finding through two named humans to the board. |
 
 ## Corrections applied to v4
 
@@ -131,21 +153,29 @@ Against the generated screens, keyed to what they violated:
   published screenshots as well as locally. Nothing caught it because nothing rendered
   the files.
 
-## Not covered by any screen
+## Use-case coverage
 
-Four use cases have no screen at all. This is a gap in the reference set, not a
-statement about the requirements:
+Every use case in `SPEC.md` now has a screen:
 
-| Use case | Missing | Requirements with no UI |
-|---|---|---|
-| UC-06 | Infeasibility view — the irreducible conflicting constraint subset | SOL-003, SOL-011 |
-| UC-02 | Plain-English constraint entry → typed candidates → activation | CON-001, CON-002, CON-005 |
-| UC-07 | Lock the day / record actuals | LCK-001…004, ACT-006 |
-| UC-08 | UPM cost-approval view | ACT-008 |
-| UC-09 | Script Supervisor raising a finding from the floor | REV-008 |
+| Use case | Screen |
+|---|---|
+| UC-00 Build an MVP board from fixtures | 01 |
+| UC-01 Build the initial board from a screenplay | 02 |
+| UC-02 State a constraint in plain English | 09 |
+| UC-03 Replan when the world changes | 03 |
+| UC-04 Review coverage and order a pickup | 05 |
+| UC-05 Produce a call sheet | 06 |
+| UC-06 Diagnose an impossible schedule | 08 |
+| UC-07 Lock the day as the shoot progresses | 10 |
+| UC-08 Approve the cost of a pickup day | 11 |
+| UC-09 Raise a coverage concern from the floor | 10 |
 
-UC-06 is the most conspicuous: the conflict set is a headline capability and the words
-"infeasible", "conflict" and "irreducible" appear nowhere in the screen set.
+UC-07 and UC-09 share screen 10 deliberately: both are the Script Supervisor, on set,
+at the same moment. Splitting them would invent a navigation step the job does not have.
+
+A screen is not an implementation. These demonstrate that each journey has a coherent
+surface and that the authority boundaries survive contact with one; the requirements
+they exercise remain at whatever maturity `SPEC.md` records.
 
 ## Relationship to `docs/ui`
 
