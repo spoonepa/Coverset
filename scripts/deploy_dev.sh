@@ -91,8 +91,8 @@ API_URL="$(terraform -chdir="${TF_DIR}" output -raw api_url)"
 WEB_URL="$(terraform -chdir="${TF_DIR}" output -raw web_url)"
 TOKEN="$(identity_token "${API_URL}")"
 
-echo "== smoke: API health =="
-curl -fsS -H "Authorization: Bearer ${TOKEN}" "${API_URL}/healthz"
+echo "== smoke: API readiness =="
+curl -fsS -H "Authorization: Bearer ${TOKEN}" "${API_URL}/readyz"
 echo
 
 echo "== smoke: fixture demo end-to-end =="

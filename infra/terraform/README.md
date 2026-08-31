@@ -21,7 +21,7 @@ To call a private API endpoint:
 
 ```sh
 API_URL=$(terraform -chdir=infra/terraform output -raw api_url)
-curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" "$API_URL/healthz"
+curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" "$API_URL/readyz"
 ```
 
 Real Gemini/Parallel keys should be added to Secret Manager after rotating leaked keys. Do not commit `.env` or `*.tfvars` files.

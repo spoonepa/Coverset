@@ -192,7 +192,7 @@ User still should rotate the pasted Gemini key before production-like use, then 
 4. `terraform -chdir=infra/terraform validate`
 5. `scripts/bootstrap_gcp_secrets.sh`
 6. `scripts/deploy_dev.sh`
-7. API smoke: `/healthz`
+7. API smoke: `/readyz`
 8. E2E smoke: production -> screenplay -> breakdown -> accept -> solve -> board
 
 ## Risks

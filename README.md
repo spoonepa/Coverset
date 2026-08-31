@@ -76,7 +76,7 @@ scripts/deploy_dev.sh
 ```
 
 Default target: project `spoonepa`, region `us-central1`, private Cloud Run. The deploy
-script smoke-tests `/healthz` and `/demo/run` with an identity token.
+script smoke-tests `/readyz` and `/demo/run` with an identity token.
 
 Real Gemini/Parallel keys must live in Secret Manager. Rotate leaked keys first, then run:
 

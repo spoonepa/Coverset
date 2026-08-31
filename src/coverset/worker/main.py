@@ -30,6 +30,11 @@ def healthz() -> dict[str, str | bool]:
     return {"ok": True, "service": "coverset-worker", "environment": settings.environment}
 
 
+@app.get("/readyz")
+def readyz() -> dict[str, str | bool]:
+    return healthz()
+
+
 @app.post("/jobs/run-once")
 def run_once_endpoint() -> dict[str, int | bool]:
     init_db()

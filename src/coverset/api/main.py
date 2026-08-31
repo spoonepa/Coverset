@@ -83,6 +83,11 @@ def healthz() -> HealthResponse:
     )
 
 
+@app.get("/readyz", response_model=HealthResponse)
+def readyz() -> HealthResponse:
+    return healthz()
+
+
 @app.post("/productions", response_model=ProductionResponse)
 def create_production_endpoint(
     payload: ProductionCreate,

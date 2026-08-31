@@ -73,6 +73,13 @@ def test_service_runs_screenplay_to_persisted_board(db_session: Session, tmp_pat
     assert board.result_json["shoot_day_count"] == 2
 
 
+def test_health_alias_is_available():
+    client = TestClient(app)
+    response = client.get("/readyz")
+    assert response.status_code == 200, response.text
+    assert response.json()["storage_backend"] in {"local", "gcs"}
+
+
 @pytest.mark.req("BRK-001", "SOL-001")
 def test_demo_endpoint_runs_the_vertical_slice(db_session: Session):
     def override_session() -> Iterator[Session]:
