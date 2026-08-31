@@ -23,14 +23,23 @@ function upstreamUrlFor(path: string, search: string): URL | Response {
   }
 }
 
+function headersToRecord(headers: Headers | Record<string, unknown>): Record<string, string> {
+  if (typeof (headers as Headers).entries === "function") {
+    return Object.fromEntries((headers as Headers).entries());
+  }
+  return Object.fromEntries(
+    Object.entries(headers)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => [key, String(value)]),
+  );
+}
+
 async function authHeaders(url: string): Promise<Record<string, string>> {
   if (!API_AUDIENCE) return {};
   const auth = new GoogleAuth();
   const client = await auth.getIdTokenClient(API_AUDIENCE);
   const headers = await client.getRequestHeaders(url);
-  return Object.fromEntries(
-    Object.entries(headers).map(([key, value]) => [key, String(value)]),
-  );
+  return headersToRecord(headers as Headers | Record<string, unknown>);
 }
 
 async function proxy(
@@ -45,7 +54,7 @@ async function proxy(
   }
 
   const headers = new Headers(request.headers);
-  for (const name of ["host", "connection", "content-length"]) {
+  for (const name of ["host", "connection", "content-length", "authorization"]) {
     headers.delete(name);
   }
   const identityHeaders = await authHeaders(upstreamUrl.toString());
