@@ -23,7 +23,9 @@ function upstreamUrlFor(path: string, search: string): URL | Response {
   }
 }
 
-function headersToRecord(headers: Headers | Record<string, unknown>): Record<string, string> {
+function headersToRecord(
+  headers: Headers | Record<string, unknown>,
+): Record<string, string> {
   if (typeof (headers as Headers).entries === "function") {
     return Object.fromEntries((headers as Headers).entries());
   }
@@ -54,7 +56,14 @@ async function proxy(
   }
 
   const headers = new Headers(request.headers);
-  for (const name of ["host", "connection", "content-length", "authorization"]) {
+  for (const name of [
+    "host",
+    "connection",
+    "content-length",
+    "authorization",
+    "x-serverless-authorization",
+    "proxy-authorization",
+  ]) {
     headers.delete(name);
   }
   const identityHeaders = await authHeaders(upstreamUrl.toString());
