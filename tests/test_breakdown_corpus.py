@@ -75,7 +75,7 @@ def test_breakdown_output_holds_its_invariants(source):
         assert record.page_eighths > 0, f"{where}: page eighths must be positive"
         assert record.day_night in set(DayNight), f"{where}: {record.day_night!r} is not a day/night value"
         assert record.slugline.strip(), f"{where}: empty slugline"
-        assert record.candidate_status is not CandidateStatus.ACTIVE, (
+        assert record.status is not CandidateStatus.ACTIVE, (
             f"{where}: a parsed record must arrive as a candidate. Only a human "
             f"activates, and an active record converts straight to solver work."
         )
@@ -110,7 +110,7 @@ def test_unknown_cast_is_reported_rather_than_invented(source):
 
 
 @pytest.mark.skipif(not SOURCES, reason="no corpus sources configured -- see fixtures/corpus/sources.toml")
-@pytest.mark.req("BRK-003")
+@pytest.mark.req("BRK-012")
 @pytest.mark.parametrize("source", SOURCES, ids=lambda s: s.id)
 def test_the_same_document_parses_the_same_way_twice(source):
     """Non-determinism in breakdown is a bug that hides as a difference of opinion.

@@ -268,6 +268,59 @@ a 20-day board does not need a data warehouse.
 
 *Captured during the build.*
 
+### Fewer than half of scene headings say what time of day it is
+
+Before designing breakdown, six real screenplays were run through a throwaway parser:
+two shooting drafts, three spec drafts, one in between, from three studios. 856 scene
+headings. The proposed architecture rested on one claim -- that scene number, INT/EXT
+and day/night are mechanically derivable from the slugline, so they can be *parsed*
+rather than inferred and will therefore be deterministic across two runs of a
+model-backed reader. Half that claim survived contact.
+
+**The structural half held.** Openers are only `INT` (574), `EXT` (279), `INT/EXT` (3).
+Between 95% and 100% of headings match a strict pattern once revision asterisks, curly
+apostrophes and trailing parentheticals are allowed for; the one outlier is 83%. INT/EXT
+and location really are grammar.
+
+**Day/night is not.** Only **47%** of headings state a time of day at all:
+
+| | share | |
+|---|---:|---|
+| direct `DAY`/`NIGHT`/`DAWN`/`DUSK` | 47.4% | usable as-is |
+| relative | 36.9% | `CONTINUOUS` (110), `LATER` (53), `MOMENTS LATER` (51), `SOON` (21) |
+| descriptive | 9.5% | `MORNING`, `EVENING`, `LATE AFTERNOON` -- a ruling, not a parse |
+| unrecognised | 5.6% | `THE PAST`, `SEVEN YEARS AGO`, and sub-locations sitting where the time goes |
+
+Three things follow, and none of them were in the design before the probe.
+
+**Relative times are non-local, and the chains are long.** `CONTINUOUS` inherits from
+the previous scene, which may inherit from the one before. 355 of 369 relative headings
+resolve by carrying forward -- but the longest unbroken chain is **47 scenes**. One
+wrong reading at the head of that chain propagates silently through forty-seven scenes,
+every one of them well-formed and plausible. That is this project's documented failure
+mode with a 47x multiplier, so the fold has to record what it inherited from and how
+many links back, and confidence has to decay with depth.
+
+**Some values are a production ruling rather than a fact about the script.** Whether
+`EVENING` is a day shoot or a night shoot is a decision about this production. It
+belongs in the constraint layer as policy, not in breakdown as a guess.
+
+**Twilight is real and currently unschedulable.** `TWILIGHT`, `DAYBREAK`, `DUSK`,
+`DAWN`, `PRE-DAWN`, `MAGIC HOUR` -- about 2% of headings. `ScheduleProblem` refuses
+`DAWN` and `DUSK` outright because the model has no twilight window. Real scripts
+contain those scenes routinely, so that refusal is a live product gap, not a corner.
+
+**Two smaller findings.** Scene numbers exist in only three of the six: shooting drafts
+number every heading, spec drafts number none, so breakdown must synthesise them and
+`SceneRecord.scene_number` cannot mean "the screenplay's own numbering" in general.
+And dual dialogue -- two speakers side by side, in three of the six -- survives
+`pdftotext -layout` and is destroyed by `-raw`, which interleaves the columns and
+silently attributes one character's lines to another. Since cast extraction reads that
+text, the extraction mode is a correctness requirement rather than a preference.
+
+The sample is six recent English-language awards-season films. Older scripts, television
+and non-English formats would likely be worse, not better.
+
 ### A bound with no record is a bound with no second reading
 
 `SYN-DAYLIGHT` exists because a bound that appears in no constraint set reaches no

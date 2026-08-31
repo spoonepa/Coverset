@@ -62,4 +62,52 @@
 #   https://www.writing.ninja/free-screenplay-downloads-pdf/
 #   https://www.simplyscripts.com/year/
 
-# No sources are committed. The tier skips loudly rather than passing empty (BRK-008).
+# Chosen for formatting spread rather than for the films. Two shooting drafts (scene
+# numbers on every heading), three spec drafts (none at all), and one in between;
+# three carry dual dialogue. Measured across all six: 856 scene headings, of which
+# only 47% state their time of day. See PROJECT_BRIEF.md.
+#
+# These are FYC postings and will 404 after the season. That degrades to a reported
+# skip, not a failure (BRK-008) -- so a dead link costs coverage, never a red gate.
+
+[[source]]
+id     = "eddington"
+url    = "https://a24awards.com/assets/Eddington-by-Ari-Aster.pdf"
+sha256 = "9f69e9646815d96b87c71daa7a728ba95924163c78fa4c7532d898ce7649edf6"
+media  = "pdf"
+note   = "A24 FYC. Loosest headings of the six: 83% strict, parentheticals like (START OF DAY 2), 17 dual-dialogue pairs."
+
+[[source]]
+id     = "warfare"
+url    = "https://a24awards.com/assets/WARFARE-final-script_2025-12-09-032723_tvud.pdf"
+sha256 = "da2bbec25956b4ea9c88b717de12f83edf23c60ffc1e80324b7235d0f8109d8c"
+media  = "pdf"
+note   = "A24 FYC. Shooting draft: all 114 headings numbered. Nearly all DAY -- the degenerate end of the range."
+
+[[source]]
+id     = "marty-supreme"
+url    = "https://a24awards.com/assets/MARTY-SUPREME-by-Ronald-Bronstein-Josh-Safdie_2025-11-24-005003_tahr.pdf"
+sha256 = "f5e46cc2b4ecf777846680bc584d2b1b394becd24ca280b8a32fd380d56a5b87"
+media  = "pdf"
+note   = "A24 FYC. CONTINUOUS on 55 of 162 headings, and the longest carry-forward chain in the set."
+
+[[source]]
+id     = "sorry-baby"
+url    = "https://a24awards.com/assets/Sorry-Baby-by-Eva-Victor.pdf"
+sha256 = "682d65a7b4b0a359082541e8918cc057dff21a2cb7235c4a8f3fd40b981e5bc0"
+media  = "pdf"
+note   = "A24 FYC. Cleanest of the six: 100% strict, no scene numbers. The easy case, kept as a control."
+
+[[source]]
+id     = "deliver-me-from-nowhere"
+url    = "https://assets.debut.disney.com/documents/UPDATED%20DELIVER%20ME%20FROM%20NOWHERE%20Final%20Shooting%20Draft%5B4%5D.pdf"
+sha256 = "3127e64e7bb07723419102a551ff1c5ebd82f52a5d121f95df74a0fb5b3fc375"
+media  = "pdf"
+note   = "Disney FYC. Final shooting draft: 226/226 numbered, revision asterisks throughout, LATER on 33 headings."
+
+[[source]]
+id     = "is-this-thing-on"
+url    = "https://assets.debut.disney.com/documents/IS%20THIS%20THING%20ON%20Screenplay.pdf"
+sha256 = "0f7b68b80749df780cd6217c16252985d820e4e795892d58a3d6596d9ca77cbc"
+media  = "pdf"
+note   = "Disney FYC. 22 dual-dialogue pairs, the most of the six; comma-separated sub-locations in headings."

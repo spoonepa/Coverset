@@ -209,6 +209,18 @@ def test_no_screenplay_text_is_committed_to_the_repository():
 
 @pytest.mark.req("BRK-006")
 def test_the_shipped_config_parses(tmp_path):
-    # The committed file is documentation as much as configuration. If the worked
-    # example drifts out of the schema it teaches the wrong shape.
-    assert load_sources(local_config=tmp_path / "absent.toml") == ()
+    # The committed file is documentation as much as configuration. If an entry drifts
+    # out of the schema it teaches the wrong shape -- so parsing it *is* the assertion:
+    # `CorpusSource` validates id, hash and media on construction.
+    #
+    # This asserted the shipped file was empty while it was. Now that it carries real
+    # sources, the same intent is that every committed entry is well-formed and says
+    # what it is there for; a source with no note is a link nobody can evaluate.
+    shipped = load_sources(local_config=tmp_path / "absent.toml")
+    assert shipped, "the committed corpus is empty, so the tier would skip everything"
+    assert len({s.id for s in shipped}) == len(shipped), "duplicate source ids"
+    for source in shipped:
+        assert source.url.startswith("https://"), f"{source.id}: {source.url}"
+        assert source.note.strip(), (
+            f"{source.id}: a committed source must record why it is in the corpus"
+        )

@@ -584,6 +584,9 @@ so the distinction cannot quietly collapse.
 | BRK-009 | Corpus verification asserts structural invariants and parse stability, never breakdown correctness. | unit-built | offline | POST | [meta] A downloaded script has no answer key; checking a parser against your own reading of it validates a method against itself. |
 | BRK-010 | No screenplay text is committed to the repository, and the application redistributes no screenplays. | unit-built | offline | POST | [invariant] Config holds addresses and hashes; production takes uploads. |
 | BRK-011 | Breakdown correctness is verified against an authored screenplay whose breakdown is known by construction. | not-started | offline | POST | [meta] The answer key BRK-009 refuses to fake. Scene list written first, pages written to match. |
+| BRK-012 | Two parses of one document return the same scene list, and the same INT/EXT and day/night for every scene. | not-started | corpus | POST | [invariant] Non-determinism in breakdown hides as a difference of opinion: if a parse can vary, "did the board change because the script changed, or because the parser read it differently?" has no answer and every schedule diff becomes unfalsifiable. Structural fields are parsed and folded deterministically; model variance is confined to cast and flags, which reach the solver only through BRK-004 and human activation. |
+| BRK-013 | A location read from a slugline resolves to a `LocationBook` id or is reported as unresolved; unresolved locations block board generation. A sub-location resolves to the unit location the company travels to, and a heading naming two places resolves to one unit location or is reported unresolved &mdash; never to the nearest match. | not-started | offline | POST | Cast had BRK-004 and locations had nothing, while `load_scenes` already rejects unknown location refs. Nearest-match resolution is the `SARA`/`SARAH` bug by a new road, and the unit location is what company moves and permits attach to, so reading it wrong misprices the board. |
+| BRK-014 | Scene numbers are preserved verbatim where the screenplay supplies them and synthesised where it does not; a synthesised number is recorded as synthesised and never presented as the production's own. | not-started | offline | POST | [invariant] Three of six corpus scripts number every heading and three number none, while `SceneRecord` requires a non-empty number and the corpus tier requires uniqueness &mdash; so synthesis is forced by the type, not chosen. Recording which is which needs a field `SceneRecord` does not have. The floor refers to a scene by number; a synthesised one reading as the script's own sends the crew to the wrong page. |
 
 ---
 
@@ -829,7 +832,7 @@ The First AD hands Coverset a screenplay and the production's constraints, and g
 board back.
 
 **Actors:** First AD · Breakdown agent · Constraint agent · Solver  
-**Exercises:** BRK-001, BRK-002, BRK-003, BRK-004, CON-001, CON-002, CON-003, CST-001, CST-002, CST-003, DAY-001, GRD-005, TRK-001, SOL-001, SOL-002, SOL-006, SOL-007
+**Exercises:** BRK-001, BRK-002, BRK-003, BRK-004, BRK-013, CON-001, CON-002, CON-003, CST-001, CST-002, CST-003, DAY-001, GRD-005, TRK-001, SOL-001, SOL-002, SOL-006, SOL-007
 
 ### UC-02 — State a constraint in plain English
 
