@@ -42,23 +42,33 @@ echo "== terraform init/validate =="
 terraform -chdir="${TF_DIR}" init -input=false
 terraform -chdir="${TF_DIR}" validate
 
-echo "== terraform bootstrap/apply with placeholder images =="
-terraform -chdir="${TF_DIR}" apply -auto-approve -input=false \
-  -var "project_id=${PROJECT_ID}" \
-  -var "region=${REGION}" \
-  -var "repository_id=${REPOSITORY}" \
-  -var "developer_principal=${DEVELOPER_PRINCIPAL}" \
-  -var "agent_mode=${AGENT_MODE}" \
-  -var "api_image=${PLACEHOLDER_IMAGE}" \
-  -var "worker_image=${PLACEHOLDER_IMAGE}" \
-  -var "web_image=${PLACEHOLDER_IMAGE}"
-
-echo "== optionally updating Secret Manager from shell environment =="
-PROJECT_ID="${PROJECT_ID}" "${ROOT}/scripts/bootstrap_gcp_secrets.sh"
-
 API_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/coverset-api:${TAG}"
 WORKER_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/coverset-worker:${TAG}"
 WEB_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/coverset-web:${TAG}"
+
+if [[ -f "${GENERATED_TFVARS}" ]]; then
+  echo "== terraform bootstrap/apply with current image vars =="
+  terraform -chdir="${TF_DIR}" apply -auto-approve -input=false \
+    -var "project_id=${PROJECT_ID}" \
+    -var "region=${REGION}" \
+    -var "repository_id=${REPOSITORY}" \
+    -var "developer_principal=${DEVELOPER_PRINCIPAL}" \
+    -var "agent_mode=${AGENT_MODE}"
+else
+  echo "== terraform bootstrap/apply with placeholder images =="
+  terraform -chdir="${TF_DIR}" apply -auto-approve -input=false \
+    -var "project_id=${PROJECT_ID}" \
+    -var "region=${REGION}" \
+    -var "repository_id=${REPOSITORY}" \
+    -var "developer_principal=${DEVELOPER_PRINCIPAL}" \
+    -var "agent_mode=${AGENT_MODE}" \
+    -var "api_image=${PLACEHOLDER_IMAGE}" \
+    -var "worker_image=${PLACEHOLDER_IMAGE}" \
+    -var "web_image=${PLACEHOLDER_IMAGE}"
+fi
+
+echo "== optionally updating Secret Manager from shell environment =="
+PROJECT_ID="${PROJECT_ID}" "${ROOT}/scripts/bootstrap_gcp_secrets.sh"
 
 echo "== Cloud Build images =="
 gcloud builds submit . \
