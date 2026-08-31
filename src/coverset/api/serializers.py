@@ -92,7 +92,11 @@ def locations_from_models(rows: list[LocationModel]) -> LocationBook:
             id=row.location_id,
             latitude=row.latitude,
             longitude=row.longitude,
-            timezone=row.timezone,
+            timezone=(
+                row.timezone
+                if row.latitude is not None and row.longitude is not None
+                else None
+            ),
         )
         for row in rows
     ))

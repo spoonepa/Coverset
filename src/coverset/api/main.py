@@ -16,6 +16,9 @@ from .db import get_session, init_db  # type: ignore[import-not-found]
 from .models import (  # type: ignore[import-not-found]
     BoardModel,
     BreakdownRunModel,
+    CastMemberModel,
+    LocationAliasModel,
+    LocationModel,
     ProductionModel,
     SceneCandidateModel,
     ScheduleRunModel,
@@ -25,8 +28,16 @@ from .schemas import (  # type: ignore[import-not-found]
     BoardResponse,
     BreakdownRequest,
     BreakdownRunResponse,
+    CalendarResponse,
+    CalendarUpdate,
+    CandidateBatchAcceptResponse,
     CandidateReviewRequest,
+    CandidateUpdateRequest,
+    CastMemberCreate,
+    CastMemberResponse,
     HealthResponse,
+    LocationCreate,
+    LocationResponse,
     ProductionCreate,
     ProductionResponse,
     SceneCandidateResponse,
@@ -36,18 +47,25 @@ from .schemas import (  # type: ignore[import-not-found]
 )
 from .services import (  # type: ignore[import-not-found]
     ServiceError,
+    add_cast_member,
+    add_location,
+    batch_accept_candidates,
     create_production,
     get_board,
     get_breakdown_run,
     get_production,
     get_schedule_run,
+    list_aliases,
     list_candidates_for_run,
     list_cast,
     list_locations,
+    list_shoot_days,
     materialize_demo_script,
     review_candidate,
     run_breakdown,
     run_scheduler,
+    set_calendar,
+    update_candidate,
     upload_screenplay,
 )
 
@@ -107,6 +125,88 @@ def get_production_endpoint(
     return _production_response(session, get_production(session, production_id))
 
 
+@app.get("/productions/{production_id}/cast", response_model=list[CastMemberResponse])
+def list_cast_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[CastMemberResponse]:
+    get_production(session, production_id)
+    return [_cast_response(row) for row in list_cast(session, production_id)]
+
+
+@app.post("/productions/{production_id}/cast", response_model=CastMemberResponse)
+def add_cast_endpoint(
+    production_id: str,
+    payload: CastMemberCreate,
+    session: Annotated[Session, Depends(get_session)],
+) -> CastMemberResponse:
+    return _cast_response(
+        add_cast_member(
+            session,
+            production_id,
+            cast_id=payload.cast_id,
+            performer=payload.performer,
+            character=payload.character,
+            is_minor=payload.is_minor,
+        )
+    )
+
+
+@app.get("/productions/{production_id}/locations", response_model=list[LocationResponse])
+def list_locations_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[LocationResponse]:
+    get_production(session, production_id)
+    aliases = list_aliases(session, production_id)
+    return [_location_response(row, aliases) for row in list_locations(session, production_id)]
+
+
+@app.post("/productions/{production_id}/locations", response_model=LocationResponse)
+def add_location_endpoint(
+    production_id: str,
+    payload: LocationCreate,
+    session: Annotated[Session, Depends(get_session)],
+) -> LocationResponse:
+    location = add_location(
+        session,
+        production_id,
+        location_id=payload.location_id,
+        name=payload.name,
+        city=payload.city,
+        state=payload.state,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        timezone=payload.timezone,
+        aliases=payload.aliases,
+    )
+    return _location_response(location, list_aliases(session, production_id))
+
+
+@app.get("/productions/{production_id}/calendar", response_model=CalendarResponse)
+def get_calendar_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> CalendarResponse:
+    return CalendarResponse(
+        production_id=production_id,
+        shoot_dates=[row.shoot_date for row in list_shoot_days(session, production_id)],
+    )
+
+
+@app.put("/productions/{production_id}/calendar", response_model=CalendarResponse)
+def set_calendar_endpoint(
+    production_id: str,
+    payload: CalendarUpdate,
+    session: Annotated[Session, Depends(get_session)],
+) -> CalendarResponse:
+    days = set_calendar(session, production_id, shoot_dates=payload.shoot_dates)
+    return CalendarResponse(
+        production_id=production_id,
+        shoot_dates=[row.shoot_date for row in days],
+    )
+
+
 @app.post(
     "/productions/{production_id}/screenplays", response_model=ScreenplayAssetResponse
 )
@@ -152,6 +252,21 @@ def get_breakdown_endpoint(
 
 
 @app.patch("/scene-candidates/{candidate_id}", response_model=SceneCandidateResponse)
+def update_candidate_endpoint(
+    candidate_id: str,
+    payload: CandidateUpdateRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> SceneCandidateResponse:
+    return _candidate_response(
+        update_candidate(
+            session,
+            candidate_id=candidate_id,
+            changes=payload.model_dump(exclude_unset=True),
+        )
+    )
+
+
+@app.patch("/scene-candidates/{candidate_id}/review", response_model=SceneCandidateResponse)
 def review_candidate_endpoint(
     candidate_id: str,
     payload: CandidateReviewRequest,
@@ -159,6 +274,22 @@ def review_candidate_endpoint(
 ) -> SceneCandidateResponse:
     return _candidate_response(
         review_candidate(session, candidate_id=candidate_id, decision=payload.decision)
+    )
+
+
+@app.post(
+    "/breakdowns/{run_id}/candidates/batch-accept",
+    response_model=CandidateBatchAcceptResponse,
+)
+def batch_accept_candidates_endpoint(
+    run_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> CandidateBatchAcceptResponse:
+    accepted, skipped, candidates = batch_accept_candidates(session, run_id=run_id)
+    return CandidateBatchAcceptResponse(
+        accepted=accepted,
+        skipped=skipped,
+        candidates=[_candidate_response(candidate) for candidate in candidates],
     )
 
 
@@ -222,6 +353,35 @@ def _production_response(
         title=production.title,
         cast_count=len(list_cast(session, production.id)),
         location_count=len(list_locations(session, production.id)),
+        shoot_day_count=len(list_shoot_days(session, production.id)),
+    )
+
+
+def _cast_response(row: CastMemberModel) -> CastMemberResponse:
+    return CastMemberResponse(
+        id=row.id,
+        production_id=row.production_id,
+        cast_id=row.cast_id,
+        performer=row.performer,
+        character=row.character,
+        is_minor=row.is_minor,
+    )
+
+
+def _location_response(
+    row: LocationModel, aliases: list[LocationAliasModel]
+) -> LocationResponse:
+    return LocationResponse(
+        id=row.id,
+        production_id=row.production_id,
+        location_id=row.location_id,
+        name=row.name,
+        city=row.city,
+        state=row.state,
+        latitude=row.latitude,
+        longitude=row.longitude,
+        timezone=row.timezone,
+        aliases=[alias.alias for alias in aliases if alias.location_id == row.location_id],
     )
 
 
@@ -234,7 +394,22 @@ def _asset_response(asset: ScreenplayAssetModel) -> ScreenplayAssetResponse:
         media=media,
         content_sha256=asset.content_sha256,
         storage_uri=asset.storage_uri,
+        normalized_text_uri=asset.normalized_text_uri,
+        extraction_metadata=asset.extraction_metadata or {},
+        extraction_error=asset.extraction_error or "",
     )
+
+
+def _scene_page_eighths(scene: dict) -> int:
+    value = scene.get("page_eighths", 0)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        try:
+            return int(value)
+        except ValueError:
+            return 0
+    return 0
 
 
 def _candidate_response(candidate: SceneCandidateModel) -> SceneCandidateResponse:
@@ -247,9 +422,12 @@ def _candidate_response(candidate: SceneCandidateModel) -> SceneCandidateRespons
         int_ext=str(scene.get("int_ext", "unknown")),
         day_night=str(scene.get("day_night", "unknown")),
         location_ref=str(scene.get("location_ref", "")),
+        page_eighths=_scene_page_eighths(scene),
         cast_ids=list(scene.get("cast_ids", [])),
         flags=dict(scene.get("flags", {})),
+        source_page_range=str(scene.get("source_page_range", "")),
         confidence=scene.get("confidence"),
+        proposal_scene=candidate.proposal_scene_json or scene,
         status=candidate.status,
         accepted=candidate.accepted,
         rejected=candidate.rejected,

@@ -63,6 +63,9 @@ node_modules/
 .next/
 out/
 .vercel/
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/tsconfig.tsbuildinfo
 infra/terraform/.terraform/
 infra/terraform/*.tfstate
 infra/terraform/*.tfstate.*

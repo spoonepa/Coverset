@@ -4,10 +4,18 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from pathlib import Path
+from threading import Lock
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
+
+try:
+    from alembic import command  # type: ignore[import-not-found]
+    from alembic.config import Config  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - migrations are a runtime dependency.
+    command = None  # type: ignore[assignment]
+    Config = None  # type: ignore[assignment]
 
 from .config import Settings, get_settings  # type: ignore[import-not-found]
 from .models import Base  # type: ignore[import-not-found]
@@ -28,10 +36,43 @@ def create_coverset_engine(settings: Settings | None = None) -> Engine:
 
 _engine = create_coverset_engine()
 SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
+_initialized = False
+_init_lock = Lock()
 
 
-def init_db(engine: Engine | None = None) -> None:
-    Base.metadata.create_all(engine or _engine)
+def init_db(engine: Engine | None = None, *, use_migrations: bool | None = None) -> None:
+    """Initialize the database schema once for the current process.
+
+    Tests and ad-hoc SQLite databases use SQLAlchemy metadata directly. Long-lived
+    app/worker runtimes can run Alembic head migrations and fail startup loudly when
+    the migration assets or dependency are unavailable.
+    """
+    global _initialized
+    target = engine or _engine
+    if engine is not None:
+        Base.metadata.create_all(target)
+        return
+    with _init_lock:
+        if _initialized:
+            return
+        migrate = use_migrations if use_migrations is not None else not target.url.drivername.startswith("sqlite")
+        if migrate:
+            run_migrations()
+        else:
+            Base.metadata.create_all(target)
+        _initialized = True
+
+
+def run_migrations(settings: Settings | None = None) -> None:
+    if command is None or Config is None:
+        raise RuntimeError("Alembic is not installed; cannot initialize service schema")
+    root = Path(__file__).resolve().parents[3]
+    config_path = root / "alembic.ini"
+    if not config_path.exists():
+        raise RuntimeError(f"Alembic config is missing: {config_path}")
+    config = Config(str(config_path))
+    config.set_main_option("sqlalchemy.url", (settings or get_settings()).sqlalchemy_url)
+    command.upgrade(config, "head")
 
 
 def get_session() -> Iterator[Session]:

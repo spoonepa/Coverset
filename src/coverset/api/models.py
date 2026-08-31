@@ -10,7 +10,7 @@ from __future__ import annotations
 import datetime as dt
 import uuid
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -40,6 +40,9 @@ class ProductionModel(Base):
         back_populates="production", cascade="all, delete-orphan"
     )
     location_aliases: Mapped[list[LocationAliasModel]] = relationship(
+        back_populates="production", cascade="all, delete-orphan"
+    )
+    shoot_days: Mapped[list[ShootDayModel]] = relationship(
         back_populates="production", cascade="all, delete-orphan"
     )
 
@@ -84,6 +87,32 @@ class LocationAliasModel(Base):
     production: Mapped[ProductionModel] = relationship(back_populates="location_aliases")
 
 
+class ShootDayModel(Base):
+    __tablename__ = "shoot_days"
+    __table_args__ = (UniqueConstraint("production_id", "shoot_date", name="uq_shoot_days_date"),)
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    shoot_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    day_order: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    production: Mapped[ProductionModel] = relationship(back_populates="shoot_days")
+
+
+class ConstraintModel(Base):
+    __tablename__ = "constraints"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    constraint_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    family: Mapped[str] = mapped_column(String(80), nullable=False)
+    policy: Mapped[str] = mapped_column(String(80), nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=False)
+    constraint_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    provenance_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class ScreenplayAssetModel(Base):
     __tablename__ = "screenplay_assets"
 
@@ -92,7 +121,10 @@ class ScreenplayAssetModel(Base):
     filename: Mapped[str] = mapped_column(String(240), nullable=False)
     media: Mapped[str] = mapped_column(String(20), nullable=False)
     storage_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    normalized_text_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
     content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    extraction_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
+    extraction_error: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -124,6 +156,7 @@ class SceneCandidateModel(Base):
     rejected: Mapped[bool] = mapped_column(Boolean, default=False)
     schedulable: Mapped[bool] = mapped_column(Boolean, default=False)
     resolution_errors: Mapped[list[str]] = mapped_column(JSON, default=list)
+    proposal_scene_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     scene_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     active_scene_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

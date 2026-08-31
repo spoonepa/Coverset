@@ -4,17 +4,22 @@ from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from coverset.api.config import Settings  # type: ignore[import-not-found]
-from coverset.api.db import get_session  # type: ignore[import-not-found]
+from coverset.api.db import (  # type: ignore[import-not-found]
+    create_coverset_engine,
+    get_session,
+    run_migrations,
+)
 from coverset.api.main import app  # type: ignore[import-not-found]
 from coverset.api.models import Base  # type: ignore[import-not-found]
 from coverset.api.services import (  # type: ignore[import-not-found]
     create_production,
     get_board,
+    list_candidates_for_run,
     materialize_demo_script,
     run_breakdown,
     run_scheduler,
@@ -98,3 +103,278 @@ def test_demo_endpoint_runs_the_vertical_slice(db_session: Session):
     payload = response.json()
     assert payload["solver_status"] == "optimal"
     assert "STRIPBOARD" in payload["stripboard"]
+
+
+def test_migrations_create_expected_tables_and_are_idempotent(tmp_path):
+    settings = Settings(database_url=f"sqlite:///{tmp_path / 'coverset.db'}")
+
+    run_migrations(settings)
+    run_migrations(settings)
+
+    engine = create_coverset_engine(settings)
+    inspector = inspect(engine)
+    assert {
+        "productions",
+        "cast_members",
+        "locations",
+        "shoot_days",
+        "scene_candidates",
+        "audit_events",
+    }.issubset(set(inspector.get_table_names()))
+    columns = {column["name"] for column in inspector.get_columns("scene_candidates")}
+    assert "proposal_scene_json" in columns
+
+
+@pytest.mark.req("BRK-001", "BRK-004", "BRK-013", "SOL-001")
+def test_production_setup_api_builds_scheduler_ready_state(
+    db_session: Session, tmp_path
+):
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        created = client.post(
+            "/productions", json={"title": "Custom Ferry", "seed_demo_data": False}
+        )
+        assert created.status_code == 200, created.text
+        production_id = created.json()["id"]
+        assert created.json()["cast_count"] == 0
+        assert created.json()["location_count"] == 0
+
+        cast_rows = [
+            ("cast-maya", "A. Idowu", "MAYA", False),
+            ("cast-dev", "B. Whitfield", "DEV", False),
+            ("cast-ruth", "C. Okonkwo", "RUTH", False),
+            ("cast-kid", "D. Alvarez", "KID", True),
+        ]
+        for cast_id, performer, character, is_minor in cast_rows:
+            response = client.post(
+                f"/productions/{production_id}/cast",
+                json={
+                    "cast_id": cast_id,
+                    "performer": performer,
+                    "character": character,
+                    "is_minor": is_minor,
+                },
+            )
+            assert response.status_code == 200, response.text
+        duplicate = client.post(
+            f"/productions/{production_id}/cast",
+            json={
+                "cast_id": "cast-maya",
+                "performer": "Duplicate",
+                "character": "MAYA",
+            },
+        )
+        assert duplicate.status_code == 409
+
+        locations = [
+            {
+                "location_id": "maya-s-apartment",
+                "name": "Maya's Apartment",
+                "city": "Brooklyn",
+                "state": "NY",
+                "latitude": 40.7,
+                "longitude": -73.99,
+            },
+            {
+                "location_id": "brooklyn-bridge-park",
+                "name": "Brooklyn Bridge Park",
+                "city": "Brooklyn",
+                "state": "NY",
+                "latitude": 40.7002,
+                "longitude": -73.9967,
+            },
+            {
+                "location_id": "warehouse",
+                "name": "Warehouse",
+                "city": "Queens",
+                "state": "NY",
+                "latitude": 40.742,
+                "longitude": -73.938,
+            },
+            {
+                "location_id": "ferry-terminal",
+                "name": "Ferry Terminal",
+                "city": "Manhattan",
+                "state": "NY",
+                "latitude": 40.701,
+                "longitude": -74.013,
+                "aliases": ["FERRY TERMINAL / RIVER DOCK"],
+            },
+        ]
+        for payload in locations:
+            response = client.post(f"/productions/{production_id}/locations", json=payload)
+            assert response.status_code == 200, response.text
+        invalid = client.post(
+            f"/productions/{production_id}/locations",
+            json={
+                "location_id": "bad",
+                "name": "Bad",
+                "city": "Nowhere",
+                "state": "NA",
+                "latitude": 100,
+            },
+        )
+        assert invalid.status_code == 400
+
+        calendar = client.put(
+            f"/productions/{production_id}/calendar",
+            json={"shoot_dates": ["2026-10-01", "2026-10-02"]},
+        )
+        assert calendar.status_code == 200, calendar.text
+        assert calendar.json()["shoot_dates"] == ["2026-10-01", "2026-10-02"]
+    finally:
+        app.dependency_overrides.clear()
+
+    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    storage = ObjectStorage(settings)
+    asset = upload_screenplay(
+        db_session,
+        production_id=production_id,
+        filename="the_ferry_job.txt",
+        media="text",
+        content=materialize_demo_script(),
+        storage=storage,
+    )
+    breakdown_run = run_breakdown(
+        db_session,
+        production_id=production_id,
+        screenplay_asset_id=asset.id,
+        auto_accept_schedulable=True,
+        agent_mode="fixture",
+        storage=storage,
+        settings=settings,
+    )
+    assert breakdown_run.status == "complete"
+    schedule_run = run_scheduler(db_session, production_id=production_id)
+    assert schedule_run.status == "optimal"
+    assert schedule_run.board_id is not None
+    board = get_board(db_session, schedule_run.board_id)
+    assert board.result_json["days"][0]["date"] == "2026-10-01"
+
+
+@pytest.mark.req("BRK-004", "BRK-013")
+def test_screenplay_upload_records_normalized_text_and_pdf_errors(
+    db_session: Session, tmp_path
+):
+    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    storage = ObjectStorage(settings)
+    production = create_production(db_session, title="Assets", seed_demo_data=True)
+
+    text_asset = upload_screenplay(
+        db_session,
+        production_id=production.id,
+        filename="script.txt",
+        media="text",
+        content=b"INT. ROOM - DAY\r\nAction.\r\n",
+        storage=storage,
+    )
+    assert text_asset.normalized_text_uri is not None
+    assert text_asset.extraction_error == ""
+    assert text_asset.extraction_metadata["strategy"] == "utf-8"
+    assert storage.get(text_asset.normalized_text_uri) == b"INT. ROOM - DAY\nAction.\n"
+
+    pdf_asset = upload_screenplay(
+        db_session,
+        production_id=production.id,
+        filename="broken.pdf",
+        media="pdf",
+        content=b"not a pdf",
+        storage=storage,
+    )
+    assert pdf_asset.normalized_text_uri is None
+    assert pdf_asset.extraction_error
+    failed = run_breakdown(
+        db_session,
+        production_id=production.id,
+        screenplay_asset_id=pdf_asset.id,
+        agent_mode="fixture",
+        storage=storage,
+        settings=settings,
+    )
+    assert failed.status == "failed"
+    assert "screenplay extraction failed" in failed.error
+
+
+def test_candidate_edit_clears_blockers_before_explicit_accept(
+    db_session: Session, tmp_path
+):
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        created = client.post(
+            "/productions", json={"title": "Review", "seed_demo_data": False}
+        )
+        production_id = created.json()["id"]
+        assert client.post(
+            f"/productions/{production_id}/cast",
+            json={"cast_id": "cast-maya", "performer": "A", "character": "MAYA"},
+        ).status_code == 200
+        assert client.post(
+            f"/productions/{production_id}/locations",
+            json={
+                "location_id": "maya-s-apartment",
+                "name": "Maya's Apartment",
+                "city": "Brooklyn",
+                "state": "NY",
+            },
+        ).status_code == 200
+
+        settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+        storage = ObjectStorage(settings)
+        asset = upload_screenplay(
+            db_session,
+            production_id=production_id,
+            filename="the_ferry_job.txt",
+            media="text",
+            content=materialize_demo_script(),
+            storage=storage,
+        )
+        breakdown_run = run_breakdown(
+            db_session,
+            production_id=production_id,
+            screenplay_asset_id=asset.id,
+            auto_accept_schedulable=False,
+            agent_mode="fixture",
+            storage=storage,
+            settings=settings,
+        )
+        first = list_candidates_for_run(db_session, breakdown_run.id)[0]
+        blocked = client.patch(
+            f"/scene-candidates/{first.id}/review", json={"decision": "accept"}
+        )
+        assert blocked.status_code == 400
+        assert "unresolved cast cue: DEV" in blocked.text
+
+        assert client.post(
+            f"/productions/{production_id}/cast",
+            json={"cast_id": "cast-dev", "performer": "B", "character": "DEV"},
+        ).status_code == 200
+        edited = client.patch(
+            f"/scene-candidates/{first.id}",
+            json={"cast_ids": ["cast-maya", "cast-dev"]},
+        )
+        assert edited.status_code == 200, edited.text
+        edited_payload = edited.json()
+        assert edited_payload["schedulable"] is True
+        assert edited_payload["proposal_scene"]["cast_ids"] == ["cast-maya"]
+        assert edited_payload["cast_ids"] == ["cast-maya", "cast-dev"]
+
+        accepted = client.patch(
+            f"/scene-candidates/{first.id}/review", json={"decision": "accept"}
+        )
+        assert accepted.status_code == 200, accepted.text
+        assert accepted.json()["accepted"] is True
+
+        batch = client.post(f"/breakdowns/{breakdown_run.id}/candidates/batch-accept")
+        assert batch.status_code == 200, batch.text
+        assert first.id in batch.json()["accepted"]
+        assert any(batch.json()["skipped"].values())
+    finally:
+        app.dependency_overrides.clear()

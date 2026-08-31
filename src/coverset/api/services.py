@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
-from typing import Protocol
+import re
+from io import BytesIO
+from dataclasses import replace
+from typing import Any, Protocol
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 import coverset.breakdown as breakdown  # type: ignore[import-not-found]
 from coverset.breakdown import RawScene  # type: ignore[import-not-found]
 from coverset.constraints import ConstraintSet
 from coverset.scenes import CandidateStatus, SceneRecord
-from coverset.solver import ScheduleProblem, SolverError, solve
+from coverset.solver import ProductionCalendar, ScheduleProblem, SolverError, solve
 from coverset.stripboard import stripboard
 from coverset.work import DayNight
 
@@ -29,6 +33,7 @@ from .models import (  # type: ignore[import-not-found]
     SceneCandidateModel,
     ScheduleRunModel,
     ScreenplayAssetModel,
+    ShootDayModel,
     new_id,
     utcnow,
 )
@@ -36,6 +41,8 @@ from .serializers import (  # type: ignore[import-not-found]
     aliases_from_models,
     board_to_json,
     default_calendar,
+    flags_from_json,
+    flags_to_json,
     locations_from_models,
     roster_from_models,
     scene_from_json,
@@ -142,8 +149,22 @@ def seed_demo_entities(session: Session, production_id: str) -> None:
             alias="FERRY TERMINAL / RIVER DOCK", location_id="ferry-terminal",
         ),
     )
-    session.add_all([*cast, *locations, *aliases])
-    audit(session, production_id, "production.demo_seeded", {"cast": 4, "locations": 4})
+    shoot_days = tuple(
+        ShootDayModel(
+            id=new_id("day"),
+            production_id=production_id,
+            shoot_date=day,
+            day_order=i,
+        )
+        for i, day in enumerate(default_calendar().days)
+    )
+    session.add_all([*cast, *locations, *aliases, *shoot_days])
+    audit(
+        session,
+        production_id,
+        "production.demo_seeded",
+        {"cast": 4, "locations": 4, "shoot_days": len(shoot_days)},
+    )
 
 
 def get_production(session: Session, production_id: str) -> ProductionModel:
@@ -169,6 +190,161 @@ def list_aliases(session: Session, production_id: str) -> list[LocationAliasMode
     return list(session.scalars(
         select(LocationAliasModel).where(LocationAliasModel.production_id == production_id)
     ))
+
+
+def add_cast_member(
+    session: Session,
+    production_id: str,
+    *,
+    cast_id: str,
+    performer: str,
+    character: str,
+    is_minor: bool = False,
+) -> CastMemberModel:
+    get_production(session, production_id)
+    normalized_id = _stable_id(cast_id)
+    if _cast_id_exists(session, production_id, normalized_id):
+        raise ServiceError(f"cast id already exists: {normalized_id}", status_code=409)
+    row = CastMemberModel(
+        id=new_id("castrow"),
+        production_id=production_id,
+        cast_id=normalized_id,
+        performer=performer.strip(),
+        character=character.strip().upper(),
+        is_minor=is_minor,
+    )
+    session.add(row)
+    audit(
+        session,
+        production_id,
+        "cast.created",
+        {"cast_id": row.cast_id, "character": row.character},
+    )
+    session.commit()
+    return row
+
+
+def add_location(
+    session: Session,
+    production_id: str,
+    *,
+    location_id: str,
+    name: str,
+    city: str,
+    state: str,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    timezone: str = "America/New_York",
+    aliases: list[str] | None = None,
+) -> LocationModel:
+    get_production(session, production_id)
+    normalized_id = _stable_id(location_id)
+    if _location_id_exists(session, production_id, normalized_id):
+        raise ServiceError(f"location id already exists: {normalized_id}", status_code=409)
+    if latitude is not None and not -90 <= latitude <= 90:
+        raise ServiceError("latitude must be between -90 and 90")
+    if longitude is not None and not -180 <= longitude <= 180:
+        raise ServiceError("longitude must be between -180 and 180")
+    row = LocationModel(
+        id=new_id("locrow"),
+        production_id=production_id,
+        location_id=normalized_id,
+        name=name.strip(),
+        city=city.strip(),
+        state=state.strip(),
+        latitude=latitude,
+        longitude=longitude,
+        timezone=timezone.strip() or "America/New_York",
+    )
+    session.add(row)
+    for alias in aliases or []:
+        cleaned = alias.strip()
+        if cleaned:
+            session.add(
+                LocationAliasModel(
+                    id=new_id("alias"),
+                    production_id=production_id,
+                    alias=cleaned,
+                    location_id=row.location_id,
+                )
+            )
+    audit(
+        session,
+        production_id,
+        "location.created",
+        {"location_id": row.location_id, "name": row.name},
+    )
+    session.commit()
+    return row
+
+
+def list_shoot_days(session: Session, production_id: str) -> list[ShootDayModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(ShootDayModel)
+            .where(ShootDayModel.production_id == production_id)
+            .order_by(ShootDayModel.day_order, ShootDayModel.shoot_date)
+        )
+    )
+
+
+def set_calendar(
+    session: Session, production_id: str, *, shoot_dates: list[dt.date]
+) -> list[ShootDayModel]:
+    get_production(session, production_id)
+    unique_dates = tuple(sorted(set(shoot_dates)))
+    if len(unique_dates) != len(shoot_dates):
+        raise ServiceError("shoot dates must not contain duplicates")
+    session.execute(
+        delete(ShootDayModel).where(ShootDayModel.production_id == production_id)
+    )
+    rows = [
+        ShootDayModel(
+            id=new_id("day"),
+            production_id=production_id,
+            shoot_date=day,
+            day_order=i,
+        )
+        for i, day in enumerate(unique_dates)
+    ]
+    session.add_all(rows)
+    audit(
+        session,
+        production_id,
+        "calendar.updated",
+        {"shoot_dates": [day.isoformat() for day in unique_dates]},
+    )
+    session.commit()
+    return rows
+
+
+def _production_calendar(session: Session, production_id: str) -> ProductionCalendar:
+    days = tuple(row.shoot_date for row in list_shoot_days(session, production_id))
+    return ProductionCalendar(days) if days else default_calendar()
+
+
+def _cast_id_exists(session: Session, production_id: str, cast_id: str) -> bool:
+    return session.scalars(
+        select(CastMemberModel).where(
+            CastMemberModel.production_id == production_id,
+            CastMemberModel.cast_id == cast_id,
+        )
+    ).first() is not None
+
+
+def _location_id_exists(session: Session, production_id: str, location_id: str) -> bool:
+    return session.scalars(
+        select(LocationModel).where(
+            LocationModel.production_id == production_id,
+            LocationModel.location_id == location_id,
+        )
+    ).first() is not None
+
+
+def _stable_id(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-")
+    return slug or new_id("id")
 
 
 def upload_screenplay(
@@ -199,8 +375,36 @@ def upload_screenplay(
         filename=filename,
         content=content,
     )
+    text, metadata, extraction_error = _extract_screenplay_text(
+        content, media=detected, filename=filename
+    )
+    asset.extraction_metadata = metadata
+    asset.extraction_error = extraction_error
+    if text is not None:
+        normalized = _normalize_screenplay_text(text).encode("utf-8")
+        asset.normalized_text_uri = store.put(
+            production_id=production_id,
+            object_id=asset.id,
+            filename=f"{filename}.normalized.txt",
+            content=normalized,
+        )
+        asset.extraction_metadata = {
+            **metadata,
+            "normalized_sha256": sha256_bytes(normalized),
+            "normalized_bytes": len(normalized),
+        }
     session.add(asset)
-    audit(session, production_id, "screenplay.uploaded", {"asset_id": asset.id, "media": detected})
+    audit(
+        session,
+        production_id,
+        "screenplay.uploaded",
+        {
+            "asset_id": asset.id,
+            "media": detected,
+            "content_sha256": asset.content_sha256,
+            "extraction_error": bool(extraction_error),
+        },
+    )
     session.commit()
     return asset
 
@@ -212,6 +416,34 @@ def _detect_media(filename: str) -> str:
     if lower.endswith(".txt") or lower.endswith(".fountain"):
         return "text"
     return "unknown"
+
+
+def _extract_screenplay_text(
+    content: bytes, *, media: str, filename: str
+) -> tuple[str | None, dict[str, Any], str]:
+    if media == "text":
+        try:
+            return content.decode("utf-8"), {"strategy": "utf-8", "source": filename}, ""
+        except UnicodeDecodeError as exc:
+            return None, {"strategy": "utf-8", "source": filename}, str(exc)
+    if media == "pdf":
+        try:
+            from pypdf import PdfReader  # type: ignore[import-not-found]
+
+            reader = PdfReader(BytesIO(content))
+            pages = [page.extract_text() or "" for page in reader.pages]
+            text = "\n\n".join(page for page in pages if page.strip())
+            if not text.strip():
+                return None, {"strategy": "pypdf", "pages": len(reader.pages)}, "PDF contained no extractable text"
+            return text, {"strategy": "pypdf", "pages": len(reader.pages)}, ""
+        except Exception as exc:  # noqa: BLE001 - user-facing ingestion boundary
+            return None, {"strategy": "pypdf", "source": filename}, str(exc)
+    return None, {"strategy": "none", "source": filename}, "unsupported media"
+
+
+def _normalize_screenplay_text(text: str) -> str:
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    return "\n".join(line.rstrip() for line in normalized.split("\n")).strip() + "\n"
 
 
 def run_breakdown(
@@ -240,10 +472,15 @@ def run_breakdown(
     session.commit()
 
     try:
-        content = (storage or ObjectStorage(resolved_settings)).get(asset.storage_uri)
+        if asset.extraction_error:
+            raise ServiceError(f"screenplay extraction failed: {asset.extraction_error}")
+        store = storage or ObjectStorage(resolved_settings)
+        content_uri = asset.normalized_text_uri or asset.storage_uri
+        content = store.get(content_uri)
+        parse_media = "text" if asset.normalized_text_uri else asset.media
         records = breakdown.parse(
             content,
-            media=asset.media,
+            media=parse_media,
             agent=agent or _agent_for_mode(mode, settings=resolved_settings),
         )
         locations = locations_from_models(list_locations(session, production_id))
@@ -259,6 +496,7 @@ def run_breakdown(
             schedulable = _candidate_can_be_scheduled(record, errors)
             accepted = bool(auto_accept_schedulable and schedulable)
             active_scene = breakdown.activate(record) if accepted else None
+            scene_snapshot = scene_to_json(record)
             session.add(SceneCandidateModel(
                 id=new_id("scene"),
                 production_id=production_id,
@@ -270,7 +508,8 @@ def run_breakdown(
                 rejected=False,
                 schedulable=schedulable,
                 resolution_errors=errors,
-                scene_json=scene_to_json(record),
+                proposal_scene_json=scene_snapshot,
+                scene_json=scene_snapshot,
                 active_scene_json=scene_to_json(active_scene) if active_scene else None,
                 reviewed_at=utcnow() if accepted else None,
             ))
@@ -316,12 +555,11 @@ def _candidate_can_be_scheduled(record: SceneRecord, errors: list[str]) -> bool:
 
 
 def review_candidate(session: Session, *, candidate_id: str, decision: str) -> SceneCandidateModel:
-    candidate = session.get(SceneCandidateModel, candidate_id)
-    if candidate is None:
-        raise ServiceError(f"scene candidate not found: {candidate_id}", status_code=404)
+    candidate = _get_candidate(session, candidate_id)
     if decision == "reject":
         candidate.rejected = True
         candidate.accepted = False
+        candidate.status = CandidateStatus.REJECTED.value
         candidate.active_scene_json = None
         candidate.reviewed_at = utcnow()
         audit(session, candidate.production_id, "scene.rejected", {"candidate_id": candidate.id})
@@ -334,15 +572,125 @@ def review_candidate(session: Session, *, candidate_id: str, decision: str) -> S
             "candidate cannot be accepted for scheduling until it is fully resolved: "
             + "; ".join(candidate.resolution_errors)
         )
-    record = scene_from_json(candidate.scene_json)
+    record = replace(scene_from_json(candidate.scene_json), status=CandidateStatus.CANDIDATE)
     active = breakdown.activate(record)
     candidate.accepted = True
     candidate.rejected = False
+    candidate.status = CandidateStatus.ACTIVE.value
+    candidate.scene_json = scene_to_json(record)
     candidate.active_scene_json = scene_to_json(active)
     candidate.reviewed_at = utcnow()
     audit(session, candidate.production_id, "scene.accepted", {"candidate_id": candidate.id})
     session.commit()
     return candidate
+
+
+def update_candidate(
+    session: Session, *, candidate_id: str, changes: dict[str, Any]
+) -> SceneCandidateModel:
+    candidate = _get_candidate(session, candidate_id)
+    before = dict(candidate.scene_json)
+    current = dict(candidate.scene_json)
+    for key in (
+        "scene_number",
+        "slugline",
+        "int_ext",
+        "day_night",
+        "location_ref",
+        "page_eighths",
+        "source_page_range",
+    ):
+        if key in changes and changes[key] is not None:
+            current[key] = changes[key]
+    if "cast_ids" in changes and changes["cast_ids"] is not None:
+        current["cast_ids"] = [str(c).strip() for c in changes["cast_ids"] if str(c).strip()]
+    if "flags" in changes and changes["flags"] is not None:
+        flags = flags_from_json(changes["flags"])
+        current["flags"] = flags_to_json(flags)
+    current["status"] = CandidateStatus.CANDIDATE.value
+    try:
+        record = scene_from_json(current)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ServiceError(f"invalid scene edit: {exc}") from exc
+    record, errors, schedulable = _resolve_candidate_record(
+        session, candidate.production_id, record
+    )
+    candidate.scene_json = scene_to_json(record)
+    candidate.scene_number = record.scene_number
+    candidate.status = record.status.value
+    candidate.accepted = False
+    candidate.rejected = False
+    candidate.schedulable = schedulable
+    candidate.resolution_errors = errors
+    candidate.active_scene_json = None
+    candidate.reviewed_at = None
+    audit(
+        session,
+        candidate.production_id,
+        "scene.edited",
+        {"candidate_id": candidate.id, "before": before, "after": candidate.scene_json},
+    )
+    session.commit()
+    return candidate
+
+
+def batch_accept_candidates(
+    session: Session, *, run_id: str
+) -> tuple[list[str], dict[str, list[str]], list[SceneCandidateModel]]:
+    get_breakdown_run(session, run_id)
+    candidates = list_candidates_for_run(session, run_id)
+    accepted: list[str] = []
+    skipped: dict[str, list[str]] = {}
+    for candidate in candidates:
+        if candidate.accepted:
+            accepted.append(candidate.id)
+            continue
+        if candidate.rejected:
+            skipped[candidate.id] = ["candidate is rejected"]
+            continue
+        if not candidate.schedulable:
+            skipped[candidate.id] = list(candidate.resolution_errors) or ["not schedulable"]
+            continue
+        record = replace(scene_from_json(candidate.scene_json), status=CandidateStatus.CANDIDATE)
+        active = breakdown.activate(record)
+        candidate.accepted = True
+        candidate.rejected = False
+        candidate.status = CandidateStatus.ACTIVE.value
+        candidate.scene_json = scene_to_json(record)
+        candidate.active_scene_json = scene_to_json(active)
+        candidate.reviewed_at = utcnow()
+        accepted.append(candidate.id)
+    audit(
+        session,
+        candidates[0].production_id if candidates else None,
+        "scene.batch_accepted",
+        {"run_id": run_id, "accepted": accepted, "skipped": skipped},
+    )
+    session.commit()
+    return accepted, skipped, list_candidates_for_run(session, run_id)
+
+
+def _get_candidate(session: Session, candidate_id: str) -> SceneCandidateModel:
+    candidate = session.get(SceneCandidateModel, candidate_id)
+    if candidate is None:
+        raise ServiceError(f"scene candidate not found: {candidate_id}", status_code=404)
+    return candidate
+
+
+def _resolve_candidate_record(
+    session: Session, production_id: str, record: SceneRecord
+) -> tuple[SceneRecord, list[str], bool]:
+    locations = locations_from_models(list_locations(session, production_id))
+    roster = roster_from_models(list_cast(session, production_id))
+    aliases = aliases_from_models(list_aliases(session, production_id))
+    located = breakdown.resolve_locations((record,), locations=locations, aliases=aliases)
+    casted = breakdown.resolve_cast(located.records, roster=roster)
+    loc_errors = {scene_id: place for scene_id, place in located.unresolved_by_scene}
+    cast_errors = {scene_id: cues for scene_id, cues in casted.unresolved_by_scene}
+    resolved = casted.records[0]
+    errors = _resolution_errors(resolved, loc_errors, cast_errors)
+    schedulable = _candidate_can_be_scheduled(resolved, errors)
+    return resolved, errors, schedulable
 
 
 def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
@@ -363,7 +711,7 @@ def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
         locations = locations_from_models(list_locations(session, production_id))
         problem = ScheduleProblem(
             problem_id=f"{production_id}-mvp",
-            production_calendar=default_calendar(),
+            production_calendar=_production_calendar(session, production_id),
             work_items=work_items,
             constraints=ConstraintSet(()),
             roster=roster,
