@@ -231,6 +231,23 @@ def test_a_reparse_of_identical_bytes_is_memoised():
     assert first is second
 
 
+@pytest.mark.req("BRK-001", "BRK-014")
+def test_a_margin_scene_number_does_not_break_the_heading():
+    # Shooting drafts print the scene number in the margin, so a real read returns it
+    # inside the verbatim slugline: "1   INT. ...". The heading must still fold, and the
+    # number stays the script's own, not synthesised. Caught by the live tier against
+    # real Gemini, pinned here so it cannot regress offline.
+    agent = FakeAgent((
+        RawScene("1   INT. MAYA'S APARTMENT - NIGHT", ("MAYA",), "1", 8, 0.95),
+    ))
+    (record,) = breakdown.parse(DOCUMENT, media="text", agent=agent)
+    assert (record.int_ext, record.day_night) == (IntExt.INT, DayNight.NIGHT)
+    assert record.location_ref == "MAYA'S APARTMENT"
+    assert record.slugline == "INT. MAYA'S APARTMENT - NIGHT"
+    assert record.scene_number == "1" and not record.number_synthesized
+    assert record.status is CandidateStatus.CANDIDATE
+
+
 def test_unknown_media_is_rejected():
     with pytest.raises(breakdown.BreakdownError):
         breakdown.parse(DOCUMENT, media="docx", agent=FakeAgent())

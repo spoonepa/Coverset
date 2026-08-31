@@ -201,6 +201,25 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.casefold()).strip("-")
 
 
+_LEADING_SCENE_NO = re.compile(
+    r"^\s*\d{1,4}[A-Za-z]?[.)]?\s+(?=(?:INT|EXT|EST|I\.?/E|E\.?/I))",
+    re.IGNORECASE,
+)
+
+
+def _strip_leading_number(slugline: str) -> str:
+    """Drop a margin scene number a shooting script prints in front of the heading.
+
+    A real breakdown returns the heading verbatim, and a shooting draft numbers both
+    margins -- "1   INT. MAYA'S APARTMENT - NIGHT". That number is captured separately as
+    the scene number; left on the front it stops the heading being read as a heading at
+    all, which is precisely the gap the live tier caught against real Gemini. Stripped
+    only when a slugline keyword follows, so a place that merely begins with a digit
+    ("10 DOWNING STREET") is left alone.
+    """
+    return _LEADING_SCENE_NO.sub("", slugline.strip(), count=1).strip()
+
+
 def _clamp01(value: float) -> float:
     try:
         return max(0.0, min(1.0, float(value)))
@@ -220,7 +239,8 @@ def _fold(raw: tuple[RawScene, ...], *, threshold: float) -> tuple[SceneRecord, 
     """
     records: list[SceneRecord] = []
     for i, r in enumerate(raw):
-        int_ext, day_night, location_text = _parse_slugline(r.slugline)
+        heading = _strip_leading_number(r.slugline)
+        int_ext, day_night, location_text = _parse_slugline(heading)
 
         printed = (r.scene_number or "").strip()
         synthesised = not printed
@@ -255,12 +275,12 @@ def _fold(raw: tuple[RawScene, ...], *, threshold: float) -> tuple[SceneRecord, 
             SceneRecord(
                 scene_id=f"BRK-{i + 1:03d}",
                 scene_number=scene_number,
-                slugline=r.slugline.strip(),
+                slugline=heading,
                 int_ext=int_ext,
                 day_night=day_night,
                 # Holds the screenplay's place text until resolve_locations swaps it for
                 # a LocationBook id. Never blank -- SceneRecord requires a place.
-                location_ref=location_text or r.slugline.strip() or "UNRESOLVED",
+                location_ref=location_text or heading or "UNRESOLVED",
                 page_eighths=page_eighths,
                 # Character cues, not roster ids, until resolve_cast maps them.
                 cast_ids=cast_names,
