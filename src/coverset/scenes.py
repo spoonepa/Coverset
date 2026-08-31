@@ -86,6 +86,17 @@ class SceneRecord:
     confidence: float | None = None
     """Present for model-derived records, absent for hand-entered ones."""
     status: CandidateStatus = CandidateStatus.CANDIDATE
+    number_synthesized: bool = False
+    """Whether `scene_number` was invented by the breakdown rather than read off the page.
+
+    Three of six corpus scripts number every heading and three number none, while a
+    `SceneRecord` requires a non-empty number and the corpus tier requires uniqueness --
+    so a parse of an unnumbered script must synthesise numbers to produce records at all
+    (BRK-014). Recording which is which is not cosmetic: the floor refers to a scene by
+    number, and a synthesised number presented as the production's own sends the crew to
+    the wrong page. A synthesised number is the parser's own index, never a claim about
+    what the script prints.
+    """
 
     def __post_init__(self) -> None:
         if not self.scene_id.strip():

@@ -1,0 +1,71 @@
+THE FERRY JOB
+An authored breakdown fixture. Original text, written for coverset.
+
+Why this file exists (BRK-011): the corpus tier proves the parser survives real
+formatting but cannot say the records are correct, because a downloaded script has no
+answer key. This one does -- the scene list was written first and the pages written to
+match -- so the offline suite can assert correctness against it. It carries, on purpose:
+a mix of numbered and unnumbered headings (BRK-014), a CONTINUOUS heading that states no
+time of day, a heading naming two places (BRK-013), and stunt, VFX and minor flags
+(BRK-002).
+
+
+1   INT. MAYA'S APARTMENT - NIGHT
+
+Rain on the window. MAYA counts a thin stack of bills at the table. Three
+knocks. She doesn't look up.
+
+MAYA
+It's open.
+
+DEV steps in, soaked through.
+
+DEV
+We move at first light. You in?
+
+MAYA
+I was in before you knocked.
+
+
+2   EXT. BROOKLYN BRIDGE PARK - DAY
+
+Joggers. Gulls. MAYA and DEV walk the rail above the water.
+
+Without breaking stride DEV vaults the railing, drops eight feet to the
+maintenance walk below, and lands clean. A stunt, timed to the second.
+
+DEV
+Nobody follows us across.
+
+MAYA
+Show-off.
+
+
+INT. WAREHOUSE - CONTINUOUS
+
+Crates to the ceiling. RUTH waits on an upturned pallet, checking her watch.
+
+RUTH
+You're late. The tide doesn't wait and neither do I.
+
+
+EXT. FERRY TERMINAL / RIVER DOCK - DUSK
+
+The last ferry noses into the slip. Behind it, impossibly, a second identical
+ferry glides through -- a visual-effects plate to be composited in post.
+
+MAYA
+That's our ride. Both of them.
+
+
+3   INT. MAYA'S APARTMENT - DAY
+
+Morning light now. A KID, no older than nine, hides under the same table,
+knees to chest.
+
+MAYA
+Stay down, and stay quiet. Whatever you hear.
+
+The KID nods, wide-eyed.
+
+FADE OUT.
