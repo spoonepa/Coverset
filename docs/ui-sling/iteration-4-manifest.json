@@ -5,7 +5,6 @@
   "semanticSource": "docs/ui-sling/validation.md + SPEC.md",
   "screens": [
     {
-      "key": "01-stripboard-dashboard",
       "title": "Stripboard dashboard",
       "screenId": "8bf0bfe64bce4ea2b718052b983985d8",
       "projectId": "9988483262710983263",
@@ -29,10 +28,10 @@
         "status": 200,
         "path": "docs/ui-sling/01-stripboard-dashboard.v4.hires.png",
         "bytes": 354353
-      }
+      },
+      "slug": "01-stripboard-dashboard"
     },
     {
-      "key": "02-scene-breakdown-review",
       "title": "Scene breakdown / review",
       "screenId": "47cec33ef8f84c2399009c43f7045e29",
       "projectId": "9988483262710983263",
@@ -56,10 +55,10 @@
         "status": 200,
         "path": "docs/ui-sling/02-scene-breakdown-review.v4.hires.png",
         "bytes": 349237
-      }
+      },
+      "slug": "02-scene-breakdown-review"
     },
     {
-      "key": "03-replan-options",
       "title": "Replan option comparison",
       "screenId": "b3403f855c784be9808a5775112262a8",
       "projectId": "9988483262710983263",
@@ -83,10 +82,10 @@
         "status": 200,
         "path": "docs/ui-sling/03-replan-options.v4.hires.png",
         "bytes": 393940
-      }
+      },
+      "slug": "03-replan-options"
     },
     {
-      "key": "04-grounded-facts",
       "title": "Grounded facts / source provenance",
       "screenId": "4a9c79e056eb4b00b37a9ffc6c7f2ca9",
       "projectId": "9988483262710983263",
@@ -110,10 +109,10 @@
         "status": 200,
         "path": "docs/ui-sling/04-grounded-facts.v4.hires.png",
         "bytes": 433373
-      }
+      },
+      "slug": "04-grounded-facts"
     },
     {
-      "key": "05-coverage-pickup",
       "title": "Coverage review / pickup",
       "screenId": "0da855fec61248c1aec32919b3f9361d",
       "projectId": "9988483262710983263",
@@ -137,10 +136,10 @@
         "status": 200,
         "path": "docs/ui-sling/05-coverage-pickup.v4.hires.png",
         "bytes": 362317
-      }
+      },
+      "slug": "05-coverage-pickup"
     },
     {
-      "key": "06-call-sheet",
       "title": "Call sheet preview",
       "screenId": "f5ffe59d66d5406383bf6ca7bf6f8209",
       "projectId": "9988483262710983263",
@@ -164,10 +163,10 @@
         "status": 200,
         "path": "docs/ui-sling/06-call-sheet.v4.hires.png",
         "bytes": 256453
-      }
+      },
+      "slug": "06-call-sheet"
     },
     {
-      "key": "07-audit-log",
       "title": "Audit log",
       "screenId": "9eab0e68af324f8baaf58591b288866c",
       "projectId": "9988483262710983263",
@@ -191,7 +190,8 @@
         "status": 200,
         "path": "docs/ui-sling/07-audit-log.v4.hires.png",
         "bytes": 425732
-      }
+      },
+      "slug": "07-audit-log"
     }
   ]
 }

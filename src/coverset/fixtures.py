@@ -14,7 +14,8 @@ from __future__ import annotations
 import datetime as dt
 import json
 import pathlib
-from typing import Any
+from enum import StrEnum
+from typing import Any, TypeVar
 
 from .actors import Actor, Role
 from .constraints import (
@@ -43,10 +44,19 @@ from .people import AvailabilityWindow, Roster
 from .scenes import CandidateStatus, IntExt, SceneRecord
 from .work import DayNight, WorkFlags
 
+EnumT = TypeVar("EnumT", bound=StrEnum)
+
 __all__ = ["FixtureError", "load_constraints", "load_scenes"]
 
-REQUIRED = ("scene_id", "scene_number", "slugline", "int_ext", "day_night",
-            "location_ref", "page_eighths")
+REQUIRED = (
+    "scene_id",
+    "scene_number",
+    "slugline",
+    "int_ext",
+    "day_night",
+    "location_ref",
+    "page_eighths",
+)
 
 
 class FixtureError(Exception):
@@ -58,7 +68,9 @@ class FixtureError(Exception):
         super().__init__(f"{len(problems)} problem(s) in scene fixtures:\n  {body}")
 
 
-def _enum(value: Any, kind: type, field: str, where: str, problems: list[str]):
+def _enum(
+    value: Any, kind: type[EnumT], field: str, where: str, problems: list[str]
+) -> EnumT | None:
     try:
         return kind(value)
     except ValueError:
@@ -108,7 +120,9 @@ def load_scenes(
         if sid := raw.get("scene_id"):
             where = f"scene {sid!r}"
             if sid in seen:
-                problems.append(f"{where}: duplicate scene_id, first seen at index {seen[sid]}")
+                problems.append(
+                    f"{where}: duplicate scene_id, first seen at index {seen[sid]}"
+                )
                 continue
             seen[sid] = i
 
@@ -121,11 +135,15 @@ def load_scenes(
         found: list[str] = []
         int_ext = _enum(raw["int_ext"], IntExt, "int_ext", where, found)
         day_night = _enum(raw["day_night"], DayNight, "day_night", where, found)
-        status = _enum(raw.get("status", "candidate"), CandidateStatus, "status", where, found)
+        status = _enum(
+            raw.get("status", "candidate"), CandidateStatus, "status", where, found
+        )
 
         eighths = raw["page_eighths"]
         if not isinstance(eighths, int) or isinstance(eighths, bool) or eighths <= 0:
-            found.append(f"{where}: page_eighths must be a positive integer, got {eighths!r}")
+            found.append(
+                f"{where}: page_eighths must be a positive integer, got {eighths!r}"
+            )
 
         cast_ids = tuple(raw.get("cast_ids", ()))
         if unknown := sorted(set(cast_ids) - known_cast):
@@ -139,27 +157,32 @@ def load_scenes(
         if found:
             problems.extend(found)
             continue
+        assert int_ext is not None
+        assert day_night is not None
+        assert status is not None
 
         raw_flags = raw.get("flags") or {}
         try:
-            records.append(SceneRecord(
-                scene_id=raw["scene_id"],
-                scene_number=str(raw["scene_number"]),
-                slugline=raw["slugline"],
-                int_ext=int_ext,
-                day_night=day_night,
-                location_ref=raw["location_ref"],
-                page_eighths=eighths,
-                cast_ids=cast_ids,
-                flags=WorkFlags(
-                    stunts=bool(raw_flags.get("stunts")),
-                    minors=bool(raw_flags.get("minors")),
-                    vfx=bool(raw_flags.get("vfx")),
-                ),
-                source_page_range=raw.get("source_page_range", ""),
-                confidence=raw.get("confidence"),
-                status=status,
-            ))
+            records.append(
+                SceneRecord(
+                    scene_id=raw["scene_id"],
+                    scene_number=str(raw["scene_number"]),
+                    slugline=raw["slugline"],
+                    int_ext=int_ext,
+                    day_night=day_night,
+                    location_ref=raw["location_ref"],
+                    page_eighths=eighths,
+                    cast_ids=cast_ids,
+                    flags=WorkFlags(
+                        stunts=bool(raw_flags.get("stunts")),
+                        minors=bool(raw_flags.get("minors")),
+                        vfx=bool(raw_flags.get("vfx")),
+                    ),
+                    source_page_range=raw.get("source_page_range", ""),
+                    confidence=raw.get("confidence"),
+                    status=status,
+                )
+            )
         except ValueError as exc:
             problems.append(f"{where}: {exc}")
 
@@ -168,7 +191,14 @@ def load_scenes(
     return tuple(records)
 
 
-CONSTRAINT_REQUIRED = ("constraint_id", "family", "policy", "subject", "expression", "source")
+CONSTRAINT_REQUIRED = (
+    "constraint_id",
+    "family",
+    "policy",
+    "subject",
+    "expression",
+    "source",
+)
 
 
 def _date(value: Any, field: str, where: str, problems: list[str]) -> dt.date | None:
@@ -188,10 +218,18 @@ def _hours(value: Any, field: str, where: str, problems: list[str]) -> float | N
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         problems.append(f"{where}: {field} must be a number of hours, got {value!r}")
         return None
-    return float(value)
+    try:
+        return float(value)
+    except (OverflowError, TypeError, ValueError):
+        problems.append(
+            f"{where}: {field} must be a finite number of hours, got {value!r}"
+        )
+        return None
 
 
-def _text(raw: dict[str, Any], field: str, where: str, problems: list[str]) -> str | None:
+def _text(
+    raw: dict[str, Any], field: str, where: str, problems: list[str]
+) -> str | None:
     value = raw.get(field)
     if not isinstance(value, str) or not value.strip():
         problems.append(f"{where}: {field} must be a non-empty string, got {value!r}")
@@ -208,7 +246,9 @@ def _expression(raw: Any, where: str, problems: list[str]) -> Expression | None:
     nobody wrote until a board violates it.
     """
     if not isinstance(raw, dict):
-        problems.append(f"{where}: expression must be an object, got {type(raw).__name__}")
+        problems.append(
+            f"{where}: expression must be an object, got {type(raw).__name__}"
+        )
         return None
 
     kind = raw.get("type")
@@ -231,7 +271,9 @@ def _expression(raw: Any, where: str, problems: list[str]) -> Expression | None:
                             f"{where}: windows[{j}] must be an object with 'start' and 'end'"
                         )
                         continue
-                    start = _date(w.get("start"), f"windows[{j}].start", where, problems)
+                    start = _date(
+                        w.get("start"), f"windows[{j}].start", where, problems
+                    )
                     end = _date(w.get("end"), f"windows[{j}].end", where, problems)
                     if start is not None and end is not None:
                         try:
@@ -246,7 +288,10 @@ def _expression(raw: Any, where: str, problems: list[str]) -> Expression | None:
             if not isinstance(dates, list) or not dates:
                 problems.append(f"{where}: blackout needs a non-empty 'dates' list")
             else:
-                parsed = [_date(d, f"dates[{j}]", where, problems) for j, d in enumerate(dates)]
+                parsed = [
+                    _date(d, f"dates[{j}]", where, problems)
+                    for j, d in enumerate(dates)
+                ]
                 if len(problems) == before:
                     built = BlackoutDates(tuple(d for d in parsed if d is not None))
 
@@ -259,8 +304,11 @@ def _expression(raw: Any, where: str, problems: list[str]) -> Expression | None:
         case "minimum_rest" | "maximum_daily_hours":
             hours = _hours(raw.get("hours"), "hours", where, problems)
             if hours is not None:
-                built = (MinimumRest(hours) if kind == "minimum_rest"
-                         else MaximumDailyHours(hours))
+                built = (
+                    MinimumRest(hours)
+                    if kind == "minimum_rest"
+                    else MaximumDailyHours(hours)
+                )
 
         case "pinned_day":
             day = _date(raw.get("day"), "day", where, problems)
@@ -404,8 +452,11 @@ def load_constraints(
                 f"{where}: subject must be an object with 'kind' and (unless "
                 f"schedule-wide) 'ref', got {type(raw_subject).__name__}"
             )
-        elif (kind := _enum(raw_subject.get("kind"), SubjectKind, "subject.kind",
-                            where, found)) is not None:
+        elif (
+            kind := _enum(
+                raw_subject.get("kind"), SubjectKind, "subject.kind", where, found
+            )
+        ) is not None:
             try:
                 subject = Subject(kind, raw_subject.get("ref", ""))
             except ConstraintError as exc:
@@ -421,17 +472,19 @@ def load_constraints(
         assert subject is not None and expression is not None and provenance is not None
 
         try:
-            records.append(ConstraintRecord(
-                constraint_id=raw["constraint_id"],
-                family=family,
-                policy=policy,
-                subject=subject,
-                expression=expression,
-                source=provenance,
-                created_by=raw.get("created_by", ""),
-                validated_against=raw.get("validated_against", ""),
-                active=raw.get("active", True),
-            ))
+            records.append(
+                ConstraintRecord(
+                    constraint_id=raw["constraint_id"],
+                    family=family,
+                    policy=policy,
+                    subject=subject,
+                    expression=expression,
+                    source=provenance,
+                    created_by=raw.get("created_by", ""),
+                    validated_against=raw.get("validated_against", ""),
+                    active=raw.get("active", True),
+                )
+            )
         except ConstraintError as exc:
             problems.append(f"{where}: {exc}")
 
@@ -440,5 +493,7 @@ def load_constraints(
 
     try:
         return ConstraintSet(tuple(records))
-    except ConstraintError as exc:  # duplicate ids are caught above; this is belt-and-braces
+    except (
+        ConstraintError
+    ) as exc:  # duplicate ids are caught above; this is belt-and-braces
         raise FixtureError([str(exc)]) from exc

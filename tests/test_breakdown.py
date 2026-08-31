@@ -26,7 +26,10 @@ from coverset.work import DayNight
 
 FIXTURE = (
     pathlib.Path(__file__).resolve().parents[1]
-    / "fixtures" / "corpus" / "authored" / "the_ferry_job.txt"
+    / "fixtures"
+    / "corpus"
+    / "authored"
+    / "the_ferry_job.txt"
 )
 DOCUMENT = FIXTURE.read_bytes()
 
@@ -35,9 +38,13 @@ DOCUMENT = FIXTURE.read_bytes()
 # flags -- the shapes the offline suite has to prove the folding and gating handle.
 ANSWER_KEY = (
     RawScene("INT. MAYA'S APARTMENT - NIGHT", ("MAYA", "DEV"), "1", 8, 0.95),
-    RawScene("EXT. BROOKLYN BRIDGE PARK - DAY", ("MAYA", "DEV"), "2", 6, 0.92, stunt=True),
+    RawScene(
+        "EXT. BROOKLYN BRIDGE PARK - DAY", ("MAYA", "DEV"), "2", 6, 0.92, stunt=True
+    ),
     RawScene("INT. WAREHOUSE - CONTINUOUS", ("RUTH",), None, 3, 0.88),
-    RawScene("EXT. FERRY TERMINAL / RIVER DOCK - DUSK", ("MAYA",), None, 4, 0.82, vfx=True),
+    RawScene(
+        "EXT. FERRY TERMINAL / RIVER DOCK - DUSK", ("MAYA",), None, 4, 0.82, vfx=True
+    ),
     RawScene("INT. MAYA'S APARTMENT - DAY", ("MAYA", "KID"), "3", 3, 0.70, minors=True),
 )
 
@@ -53,23 +60,55 @@ class FakeAgent:
         return self._scenes
 
 
-ROSTER = Roster((
-    CastMember("cast-maya", "A. Idowu", "MAYA"),
-    CastMember("cast-dev", "B. Whitfield", "DEV"),
-    CastMember("cast-ruth", "C. Okonkwo", "RUTH"),
-    CastMember("cast-kid", "D. Alvarez", "KID", is_minor=True),
-))
+ROSTER = Roster(
+    (
+        CastMember("cast-maya", "A. Idowu", "MAYA"),
+        CastMember("cast-dev", "B. Whitfield", "DEV"),
+        CastMember("cast-ruth", "C. Okonkwo", "RUTH"),
+        CastMember("cast-kid", "D. Alvarez", "KID", is_minor=True),
+    )
+)
 
-LOCATIONS = LocationBook((
-    Location("Maya's Apartment", "Brooklyn", "NY", id="maya-s-apartment",
-             latitude=40.700, longitude=-73.990, timezone="America/New_York"),
-    Location("Brooklyn Bridge Park", "Brooklyn", "NY", id="brooklyn-bridge-park",
-             latitude=40.7002, longitude=-73.9967, timezone="America/New_York"),
-    Location("Warehouse", "Queens", "NY", id="warehouse",
-             latitude=40.742, longitude=-73.938, timezone="America/New_York"),
-    Location("Ferry Terminal", "Manhattan", "NY", id="ferry-terminal",
-             latitude=40.701, longitude=-74.013, timezone="America/New_York"),
-))
+LOCATIONS = LocationBook(
+    (
+        Location(
+            "Maya's Apartment",
+            "Brooklyn",
+            "NY",
+            id="maya-s-apartment",
+            latitude=40.700,
+            longitude=-73.990,
+            timezone="America/New_York",
+        ),
+        Location(
+            "Brooklyn Bridge Park",
+            "Brooklyn",
+            "NY",
+            id="brooklyn-bridge-park",
+            latitude=40.7002,
+            longitude=-73.9967,
+            timezone="America/New_York",
+        ),
+        Location(
+            "Warehouse",
+            "Queens",
+            "NY",
+            id="warehouse",
+            latitude=40.742,
+            longitude=-73.938,
+            timezone="America/New_York",
+        ),
+        Location(
+            "Ferry Terminal",
+            "Manhattan",
+            "NY",
+            id="ferry-terminal",
+            latitude=40.701,
+            longitude=-74.013,
+            timezone="America/New_York",
+        ),
+    )
+)
 
 # The two-place heading resolves to the one unit location the company travels to.
 ALIASES = {"FERRY TERMINAL / RIVER DOCK": "ferry-terminal"}
@@ -102,7 +141,7 @@ def test_the_structural_spine_folds_as_expected():
     assert [(r.int_ext, r.day_night) for r in records] == [
         (IntExt.INT, DayNight.NIGHT),
         (IntExt.EXT, DayNight.DAY),
-        (IntExt.INT, DayNight.UNKNOWN),   # CONTINUOUS states no time of day
+        (IntExt.INT, DayNight.UNKNOWN),  # CONTINUOUS states no time of day
         (IntExt.EXT, DayNight.DUSK),
         (IntExt.INT, DayNight.DAY),
     ]
@@ -121,7 +160,9 @@ def test_scene_numbers_are_verbatim_or_labelled_as_synthesised():
     assert records[2].number_synthesized and records[2].scene_number == "S3"
     assert records[3].number_synthesized and records[3].scene_number == "S4"
     numbers = [r.scene_number for r in records]
-    assert len(numbers) == len(set(numbers)), "synthesised numbers collided with printed"
+    assert len(numbers) == len(set(numbers)), (
+        "synthesised numbers collided with printed"
+    )
 
 
 @pytest.mark.req("BRK-002")
@@ -169,12 +210,14 @@ def test_cues_resolve_to_roster_ids_when_the_cast_is_known():
 @pytest.mark.req("BRK-004")
 def test_a_near_miss_stays_unresolved_rather_than_snapping_to_the_nearest():
     # The SARA/SARAH bug: a roster holding MAYAH must not resolve a MAYA cue to it.
-    near = Roster((
-        CastMember("cast-mayah", "X", "MAYAH"),
-        CastMember("cast-dev", "Y", "DEV"),
-        CastMember("cast-ruth", "Z", "RUTH"),
-        CastMember("cast-kid", "W", "KID", is_minor=True),
-    ))
+    near = Roster(
+        (
+            CastMember("cast-mayah", "X", "MAYAH"),
+            CastMember("cast-dev", "Y", "DEV"),
+            CastMember("cast-ruth", "Z", "RUTH"),
+            CastMember("cast-kid", "W", "KID", is_minor=True),
+        )
+    )
     result = breakdown.resolve_cast(_records(), roster=near)
     assert "MAYA" in result.unresolved
     assert not result.records_ready_for_solver
@@ -182,10 +225,15 @@ def test_a_near_miss_stays_unresolved_rather_than_snapping_to_the_nearest():
 
 @pytest.mark.req("BRK-013")
 def test_slugline_places_resolve_to_location_ids():
-    result = breakdown.resolve_locations(_records(), locations=LOCATIONS, aliases=ALIASES)
+    result = breakdown.resolve_locations(
+        _records(), locations=LOCATIONS, aliases=ALIASES
+    )
     assert result.unresolved == ()
     assert {r.location_ref for r in result.records} == {
-        "maya-s-apartment", "brooklyn-bridge-park", "warehouse", "ferry-terminal",
+        "maya-s-apartment",
+        "brooklyn-bridge-park",
+        "warehouse",
+        "ferry-terminal",
     }
 
 
@@ -207,7 +255,8 @@ def test_an_unknown_place_is_reported_not_guessed():
 def test_an_alias_pointing_off_the_book_is_an_error():
     with pytest.raises(breakdown.BreakdownError):
         breakdown.resolve_locations(
-            _records(), locations=LOCATIONS,
+            _records(),
+            locations=LOCATIONS,
             aliases={"FERRY TERMINAL / RIVER DOCK": "not-a-real-location"},
         )
 
@@ -237,9 +286,9 @@ def test_a_margin_scene_number_does_not_break_the_heading():
     # inside the verbatim slugline: "1   INT. ...". The heading must still fold, and the
     # number stays the script's own, not synthesised. Caught by the live tier against
     # real Gemini, pinned here so it cannot regress offline.
-    agent = FakeAgent((
-        RawScene("1   INT. MAYA'S APARTMENT - NIGHT", ("MAYA",), "1", 8, 0.95),
-    ))
+    agent = FakeAgent(
+        (RawScene("1   INT. MAYA'S APARTMENT - NIGHT", ("MAYA",), "1", 8, 0.95),)
+    )
     (record,) = breakdown.parse(DOCUMENT, media="text", agent=agent)
     assert (record.int_ext, record.day_night) == (IntExt.INT, DayNight.NIGHT)
     assert record.location_ref == "MAYA'S APARTMENT"
@@ -248,6 +297,7 @@ def test_a_margin_scene_number_does_not_break_the_heading():
     assert record.status is CandidateStatus.CANDIDATE
 
 
+@pytest.mark.req("BRK-001")
 def test_unknown_media_is_rejected():
     with pytest.raises(breakdown.BreakdownError):
         breakdown.parse(DOCUMENT, media="docx", agent=FakeAgent())
@@ -260,22 +310,25 @@ def test_the_breakdown_feeds_a_solvable_board():
     located = breakdown.resolve_locations(records, locations=LOCATIONS, aliases=ALIASES)
     casted = breakdown.resolve_cast(located.records_ready_for_solver, roster=ROSTER)
     ready = casted.records_ready_for_solver
-    assert ready, "nothing resolved; the board would be built on an incomplete breakdown"
+    assert ready, (
+        "nothing resolved; the board would be built on an incomplete breakdown"
+    )
 
     # Only reviewed, fully-resolved day/night records become work: the solver has no
     # twilight window, so a dusk scene is scheduled by hand, and a CONTINUOUS heading
     # needs its time of day resolved first (DAY-010).
     schedulable = [
-        r for r in ready
+        r
+        for r in ready
         if r.status is CandidateStatus.CANDIDATE
         and r.day_night in (DayNight.DAY, DayNight.NIGHT)
     ]
     work = tuple(breakdown.activate(r).to_work_item() for r in schedulable)
     assert work
 
-    calendar = ProductionCalendar(tuple(
-        dt.date(2026, 9, 14) + dt.timedelta(days=i) for i in range(5)
-    ))
+    calendar = ProductionCalendar(
+        tuple(dt.date(2026, 9, 14) + dt.timedelta(days=i) for i in range(5))
+    )
     problem = ScheduleProblem(
         problem_id="UC-01",
         production_calendar=calendar,
