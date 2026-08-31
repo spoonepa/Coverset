@@ -38,6 +38,23 @@ type Board = {
 type Production = { id: string; title: string };
 type ScreenplayAsset = { id: string; filename: string };
 
+function textExcerpt(text: string): string {
+    return text
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 240);
+}
+
+function errorMessage(payload: unknown, fallback: string): string {
+    if (payload && typeof payload === "object") {
+        const shaped = payload as { detail?: unknown; error?: unknown };
+        if (typeof shaped.detail === "string") return shaped.detail;
+        if (typeof shaped.error === "string") return shaped.error;
+    }
+    return fallback;
+}
+
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
     const response = await fetch(url, {
         ...init,
@@ -50,9 +67,21 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
                   },
     });
     const text = await response.text();
-    const payload = text ? JSON.parse(text) : {};
+    const fallback = `${response.status} ${response.statusText}`;
+    if (!text) {
+        if (!response.ok) throw new Error(fallback);
+        return {} as T;
+    }
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+        const excerpt = textExcerpt(text);
+        throw new Error(excerpt ? `${fallback}: ${excerpt}` : fallback);
+    }
+
+    const payload: unknown = JSON.parse(text);
     if (!response.ok) {
-        throw new Error(payload.detail ?? payload.error ?? response.statusText);
+        throw new Error(errorMessage(payload, fallback));
     }
     return payload as T;
 }
