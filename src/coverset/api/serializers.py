@@ -71,42 +71,50 @@ def scene_from_json(data: dict[str, Any]) -> SceneRecord:
         flags=flags_from_json(data.get("flags")),
         source_page_range=str(data.get("source_page_range", "")),
         confidence=data.get("confidence"),
-        status=CandidateStatus(str(data.get("status", CandidateStatus.CANDIDATE.value))),
+        status=CandidateStatus(
+            str(data.get("status", CandidateStatus.CANDIDATE.value))
+        ),
         number_synthesized=bool(data.get("number_synthesized", False)),
     )
 
 
 def roster_from_models(rows: list[CastMemberModel]) -> Roster:
-    return Roster(tuple(
-        CastMember(row.cast_id, row.performer, row.character, is_minor=row.is_minor)
-        for row in rows
-    ))
+    return Roster(
+        tuple(
+            CastMember(row.cast_id, row.performer, row.character, is_minor=row.is_minor)
+            for row in rows
+        )
+    )
 
 
 def locations_from_models(rows: list[LocationModel]) -> LocationBook:
-    return LocationBook(tuple(
-        Location(
-            row.name,
-            row.city,
-            row.state,
-            id=row.location_id,
-            latitude=row.latitude,
-            longitude=row.longitude,
-            timezone=(
-                row.timezone
-                if row.latitude is not None and row.longitude is not None
-                else None
-            ),
+    return LocationBook(
+        tuple(
+            Location(
+                row.name,
+                row.city,
+                row.state,
+                id=row.location_id,
+                latitude=row.latitude,
+                longitude=row.longitude,
+                timezone=(
+                    row.timezone
+                    if row.latitude is not None and row.longitude is not None
+                    else None
+                ),
+            )
+            for row in rows
         )
-        for row in rows
-    ))
+    )
 
 
 def aliases_from_models(rows: list[LocationAliasModel]) -> dict[str, str]:
     return {row.alias: row.location_id for row in rows}
 
 
-def default_calendar(start: dt.date | None = None, *, days: int = 5) -> ProductionCalendar:
+def default_calendar(
+    start: dt.date | None = None, *, days: int = 5
+) -> ProductionCalendar:
     start = start or dt.date(2026, 9, 14)
     return ProductionCalendar(tuple(start + dt.timedelta(days=i) for i in range(days)))
 
@@ -139,14 +147,18 @@ def board_to_json(board: Board) -> dict[str, Any]:
         "shoot_day_count": board.shoot_day_count,
         "objective_breakdown": asdict(board.objective_breakdown),
         "validation_summary": board.validation_result.summary(),
-        "assignments": [assignment_to_json(assignment) for assignment in board.assignments],
+        "assignments": [
+            assignment_to_json(assignment) for assignment in board.assignments
+        ],
         "days": [
             {
                 "date": day.date.isoformat(),
                 "call_time": day.call_time.isoformat() if day.call_time else None,
                 "wrap_time": day.wrap_time.isoformat() if day.wrap_time else None,
                 "company_moves": day.company_moves,
-                "assignments": [assignment_to_json(assignment) for assignment in day.assignments],
+                "assignments": [
+                    assignment_to_json(assignment) for assignment in day.assignments
+                ],
             }
             for day in board.days
         ],

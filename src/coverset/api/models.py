@@ -10,7 +10,18 @@ from __future__ import annotations
 import datetime as dt
 import uuid
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -31,7 +42,9 @@ class ProductionModel(Base):
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     title: Mapped[str] = mapped_column(String(240), nullable=False)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
     cast_members: Mapped[list[CastMemberModel]] = relationship(
         back_populates="production", cascade="all, delete-orphan"
@@ -84,12 +97,16 @@ class LocationAliasModel(Base):
     alias: Mapped[str] = mapped_column(String(240), nullable=False)
     location_id: Mapped[str] = mapped_column(String(120), nullable=False)
 
-    production: Mapped[ProductionModel] = relationship(back_populates="location_aliases")
+    production: Mapped[ProductionModel] = relationship(
+        back_populates="location_aliases"
+    )
 
 
 class ShootDayModel(Base):
     __tablename__ = "shoot_days"
-    __table_args__ = (UniqueConstraint("production_id", "shoot_date", name="uq_shoot_days_date"),)
+    __table_args__ = (
+        UniqueConstraint("production_id", "shoot_date", name="uq_shoot_days_date"),
+    )
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
@@ -110,7 +127,9 @@ class ConstraintModel(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=False)
     constraint_json: Mapped[dict] = mapped_column(JSON, default=dict)
     provenance_json: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
 
 class ScreenplayAssetModel(Base):
@@ -125,7 +144,9 @@ class ScreenplayAssetModel(Base):
     content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     extraction_metadata: Mapped[dict] = mapped_column(JSON, default=dict)
     extraction_error: Mapped[str] = mapped_column(Text, default="")
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
 
 class BreakdownRunModel(Base):
@@ -139,8 +160,12 @@ class BreakdownRunModel(Base):
     error: Mapped[str] = mapped_column(Text, default="")
     unresolved_locations: Mapped[list[str]] = mapped_column(JSON, default=list)
     unresolved_cast: Mapped[list[str]] = mapped_column(JSON, default=list)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    completed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    completed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class SceneCandidateModel(Base):
@@ -148,7 +173,9 @@ class SceneCandidateModel(Base):
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
-    breakdown_run_id: Mapped[str] = mapped_column(ForeignKey("breakdown_runs.id"), index=True)
+    breakdown_run_id: Mapped[str] = mapped_column(
+        ForeignKey("breakdown_runs.id"), index=True
+    )
     scene_id: Mapped[str] = mapped_column(String(120), nullable=False)
     scene_number: Mapped[str] = mapped_column(String(40), nullable=False)
     status: Mapped[str] = mapped_column(String(40), nullable=False)
@@ -159,8 +186,12 @@ class SceneCandidateModel(Base):
     proposal_scene_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     scene_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     active_scene_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    reviewed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    reviewed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class ScheduleRunModel(Base):
@@ -173,8 +204,12 @@ class ScheduleRunModel(Base):
     input_hash: Mapped[str] = mapped_column(String(64), default="")
     board_id: Mapped[str | None] = mapped_column(String(48), nullable=True)
     diagnostics: Mapped[list[str]] = mapped_column(JSON, default=list)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    completed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    completed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class BoardModel(Base):
@@ -182,22 +217,30 @@ class BoardModel(Base):
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
-    schedule_run_id: Mapped[str] = mapped_column(ForeignKey("schedule_runs.id"), index=True)
+    schedule_run_id: Mapped[str] = mapped_column(
+        ForeignKey("schedule_runs.id"), index=True
+    )
     solver_status: Mapped[str] = mapped_column(String(40), nullable=False)
     stripboard: Mapped[str] = mapped_column(Text, nullable=False)
     result_json: Mapped[dict] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
 
 class AuditEventModel(Base):
     __tablename__ = "audit_events"
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
-    production_id: Mapped[str | None] = mapped_column(ForeignKey("productions.id"), nullable=True)
+    production_id: Mapped[str | None] = mapped_column(
+        ForeignKey("productions.id"), nullable=True
+    )
     event_type: Mapped[str] = mapped_column(String(120), nullable=False)
     actor: Mapped[str] = mapped_column(String(120), default="system")
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
 
 
 class JobModel(Base):
@@ -209,5 +252,9 @@ class JobModel(Base):
     status: Mapped[str] = mapped_column(String(40), default="queued")
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     error: Mapped[str] = mapped_column(Text, default="")
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )

@@ -102,19 +102,25 @@ async function mockApi(page: Page) {
       return route.fulfill(json(production));
     }
     if (path === "/productions/prod_1" && method === "GET") {
-      return route.fulfill(json({
-        ...production,
-        cast_count: cast.length,
-        location_count: locations.length,
-        shoot_day_count: calendar.length,
-      }));
+      return route.fulfill(
+        json({
+          ...production,
+          cast_count: cast.length,
+          location_count: locations.length,
+          shoot_day_count: calendar.length,
+        }),
+      );
     }
     if (path === "/productions/prod_1/cast" && method === "GET") {
       return route.fulfill(json(cast));
     }
     if (path === "/productions/prod_1/cast" && method === "POST") {
       const payload = request.postDataJSON() as Record<string, unknown>;
-      cast.push({ id: `cast_${cast.length}`, production_id: "prod_1", ...payload });
+      cast.push({
+        id: `cast_${cast.length}`,
+        production_id: "prod_1",
+        ...payload,
+      });
       return route.fulfill(json(cast[cast.length - 1]));
     }
     if (path === "/productions/prod_1/locations" && method === "GET") {
@@ -122,70 +128,135 @@ async function mockApi(page: Page) {
     }
     if (path === "/productions/prod_1/locations" && method === "POST") {
       const payload = request.postDataJSON() as Record<string, unknown>;
-      locations.push({ id: `loc_${locations.length}`, production_id: "prod_1", ...payload });
+      locations.push({
+        id: `loc_${locations.length}`,
+        production_id: "prod_1",
+        ...payload,
+      });
       return route.fulfill(json(locations[locations.length - 1]));
     }
     if (path === "/productions/prod_1/calendar" && method === "GET") {
-      return route.fulfill(json({ production_id: "prod_1", shoot_dates: calendar }));
+      return route.fulfill(
+        json({ production_id: "prod_1", shoot_dates: calendar }),
+      );
     }
     if (path === "/productions/prod_1/calendar" && method === "PUT") {
       const payload = request.postDataJSON() as { shoot_dates: string[] };
       calendar = payload.shoot_dates;
-      return route.fulfill(json({ production_id: "prod_1", shoot_dates: calendar }));
+      return route.fulfill(
+        json({ production_id: "prod_1", shoot_dates: calendar }),
+      );
     }
     if (path === "/productions/prod_1/screenplays" && method === "POST") {
-      return route.fulfill(json({ id: "asset_1", filename: "fixture.txt", normalized_text_uri: "file://normalized", extraction_error: "" }));
+      return route.fulfill(
+        json({
+          id: "asset_1",
+          filename: "fixture.txt",
+          normalized_text_uri: "file://normalized",
+          extraction_error: "",
+        }),
+      );
     }
     if (path === "/productions/prod_1/breakdowns" && method === "POST") {
       candidates = [{ ...readyCandidate }, { ...blockedCandidate }];
-      return route.fulfill(json({
-        id: "brk_1",
-        production_id: "prod_1",
-        screenplay_asset_id: "asset_1",
-        status: "complete",
-        agent_mode: "fixture",
-        error: "",
-        unresolved_locations: ["UNKNOWN PIER"],
-        unresolved_cast: ["DEV"],
-        candidates,
-      }));
+      return route.fulfill(
+        json({
+          id: "brk_1",
+          production_id: "prod_1",
+          screenplay_asset_id: "asset_1",
+          status: "complete",
+          agent_mode: "fixture",
+          error: "",
+          unresolved_locations: ["UNKNOWN PIER"],
+          unresolved_cast: ["DEV"],
+          candidates,
+        }),
+      );
     }
     if (path === "/scene-candidates/scene_ready" && method === "PATCH") {
       const payload = request.postDataJSON() as Partial<Candidate>;
-      candidates = candidates.map((candidate) => candidate.id === "scene_ready" ? {
-        ...candidate,
-        ...payload,
-        cast_ids: payload.cast_ids ?? candidate.cast_ids,
-        schedulable: true,
-        resolution_errors: [],
-      } : candidate);
+      candidates = candidates.map((candidate) =>
+        candidate.id === "scene_ready"
+          ? {
+              ...candidate,
+              ...payload,
+              cast_ids: payload.cast_ids ?? candidate.cast_ids,
+              schedulable: true,
+              resolution_errors: [],
+            }
+          : candidate,
+      );
       return route.fulfill(json(candidates[0]));
     }
     if (path === "/scene-candidates/scene_ready/review" && method === "PATCH") {
-      candidates = candidates.map((candidate) => candidate.id === "scene_ready" ? { ...candidate, accepted: true, status: "active" } : candidate);
+      candidates = candidates.map((candidate) =>
+        candidate.id === "scene_ready"
+          ? { ...candidate, accepted: true, status: "active" }
+          : candidate,
+      );
       return route.fulfill(json(candidates[0]));
     }
-    if (path === "/breakdowns/brk_1/candidates/batch-accept" && method === "POST") {
-      candidates = candidates.map((candidate) => candidate.schedulable ? { ...candidate, accepted: true, status: "active" } : candidate);
-      return route.fulfill(json({ accepted: ["scene_ready"], skipped: { scene_blocked: ["unresolved location: UNKNOWN PIER"] }, candidates }));
+    if (
+      path === "/breakdowns/brk_1/candidates/batch-accept" &&
+      method === "POST"
+    ) {
+      candidates = candidates.map((candidate) =>
+        candidate.schedulable
+          ? { ...candidate, accepted: true, status: "active" }
+          : candidate,
+      );
+      return route.fulfill(
+        json({
+          accepted: ["scene_ready"],
+          skipped: { scene_blocked: ["unresolved location: UNKNOWN PIER"] },
+          candidates,
+        }),
+      );
     }
     if (path === "/productions/prod_1/boards/solve" && method === "POST") {
-      return route.fulfill(json({ id: "sched_1", status: "optimal", board_id: "board_1", error: "" }));
+      return route.fulfill(
+        json({
+          id: "sched_1",
+          status: "optimal",
+          board_id: "board_1",
+          error: "",
+        }),
+      );
     }
     if (path === "/boards/board_1" && method === "GET") {
-      return route.fulfill(json({
-        id: "board_1",
-        solver_status: "optimal",
-        stripboard: "STRIPBOARD\\n1. W-BRK-001",
-        result: { days: [{ date: "2026-09-14", assignments: [{ work_id: "W-BRK-001", location_id: "maya-s-apartment", shoot_day: "2026-09-14", sequence: 0 }] }] },
-      }));
+      return route.fulfill(
+        json({
+          id: "board_1",
+          solver_status: "optimal",
+          stripboard: "STRIPBOARD\\n1. W-BRK-001",
+          result: {
+            days: [
+              {
+                date: "2026-09-14",
+                assignments: [
+                  {
+                    work_id: "W-BRK-001",
+                    location_id: "maya-s-apartment",
+                    shoot_day: "2026-09-14",
+                    sequence: 0,
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      );
     }
 
-    return route.fulfill(json({ detail: `Unhandled mock ${method} ${path}` }, 500));
+    return route.fulfill(
+      json({ detail: `Unhandled mock ${method} ${path}` }, 500),
+    );
   });
 }
 
-test("production setup, candidate edit, accept, and solve flow", async ({ page }) => {
+test("production setup, candidate edit, accept, and solve flow", async ({
+  page,
+}) => {
   await mockApi(page);
   await page.goto("/");
 
@@ -206,13 +277,21 @@ test("production setup, candidate edit, accept, and solve flow", async ({ page }
     buffer: Buffer.from("INT. MAYA'S APARTMENT - NIGHT"),
   });
   await page.getByRole("button", { name: "Upload and break down" }).click();
-  await expect(page.getByText("Breakdown complete. Review candidates before solving.")).toBeVisible();
+  await expect(
+    page.getByText("Breakdown complete. Review candidates before solving."),
+  ).toBeVisible();
   await expect(page.getByText("unresolved cast cue: DEV")).toBeVisible();
-  await expect(page.getByText("unresolved location: UNKNOWN PIER")).toBeVisible();
+  await expect(
+    page.getByText("unresolved location: UNKNOWN PIER"),
+  ).toBeVisible();
 
-  const readyCard = page.getByRole("article").filter({ hasText: "INT. MAYA'S APARTMENT" });
+  const readyCard = page
+    .getByRole("article")
+    .filter({ hasText: "INT. MAYA'S APARTMENT" });
   await readyCard.getByText("Edit candidate").click();
-  await readyCard.getByLabel("Cast IDs, comma-separated").fill("cast-maya, cast-dev");
+  await readyCard
+    .getByLabel("Cast IDs, comma-separated")
+    .fill("cast-maya, cast-dev");
   await readyCard.getByRole("button", { name: "Save edit" }).click();
   await expect(page.getByText("Candidate resolved.")).toBeVisible();
 
@@ -224,6 +303,8 @@ test("production setup, candidate edit, accept, and solve flow", async ({ page }
 
   await page.getByRole("button", { name: "Solve accepted" }).click();
   await expect(page.getByText("Accepted scenes solved.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Board: optimal" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Board: optimal" }),
+  ).toBeVisible();
   await expect(page.getByText("W-BRK-001 @ maya-s-apartment")).toBeVisible();
 });

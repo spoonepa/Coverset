@@ -40,7 +40,9 @@ _initialized = False
 _init_lock = Lock()
 
 
-def init_db(engine: Engine | None = None, *, use_migrations: bool | None = None) -> None:
+def init_db(
+    engine: Engine | None = None, *, use_migrations: bool | None = None
+) -> None:
     """Initialize the database schema once for the current process.
 
     Tests and ad-hoc SQLite databases use SQLAlchemy metadata directly. Long-lived
@@ -55,7 +57,11 @@ def init_db(engine: Engine | None = None, *, use_migrations: bool | None = None)
     with _init_lock:
         if _initialized:
             return
-        migrate = use_migrations if use_migrations is not None else not target.url.drivername.startswith("sqlite")
+        migrate = (
+            use_migrations
+            if use_migrations is not None
+            else not target.url.drivername.startswith("sqlite")
+        )
         if migrate:
             run_migrations()
         else:

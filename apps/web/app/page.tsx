@@ -202,13 +202,18 @@ function CandidateEditor({
 }: {
     candidate: Candidate;
     onSave: (candidateId: string, patch: CandidatePatch) => Promise<void>;
-    onReview: (candidateId: string, decision: "accept" | "reject") => Promise<void>;
+    onReview: (
+        candidateId: string,
+        decision: "accept" | "reject",
+    ) => Promise<void>;
 }) {
     const [sceneNumber, setSceneNumber] = useState(candidate.scene_number);
     const [slugline, setSlugline] = useState(candidate.slugline);
     const [locationRef, setLocationRef] = useState(candidate.location_ref);
     const [castIds, setCastIds] = useState(candidate.cast_ids.join(", "));
-    const [pageEighths, setPageEighths] = useState(String(candidate.page_eighths));
+    const [pageEighths, setPageEighths] = useState(
+        String(candidate.page_eighths),
+    );
     const [intExt, setIntExt] = useState(candidate.int_ext);
     const [dayNight, setDayNight] = useState(candidate.day_night);
     const [stunts, setStunts] = useState(Boolean(candidate.flags.stunts));
@@ -221,7 +226,10 @@ function CandidateEditor({
             slugline,
             location_ref: locationRef,
             cast_ids: splitList(castIds),
-            page_eighths: parsePositiveInteger(pageEighths, candidate.page_eighths),
+            page_eighths: parsePositiveInteger(
+                pageEighths,
+                candidate.page_eighths,
+            ),
             int_ext: intExt,
             day_night: dayNight,
             flags: { stunts, minors, vfx },
@@ -241,9 +249,13 @@ function CandidateEditor({
                 )}
             </div>
             <small>
-                {candidate.int_ext}/{candidate.day_night} · {candidate.location_ref} ·
-                cast: {candidate.cast_ids.join(", ") || "-"} · flags: {flagText(candidate.flags)}
-                {candidate.source_page_range ? ` · source: ${candidate.source_page_range}` : ""}
+                {candidate.int_ext}/{candidate.day_night} ·{" "}
+                {candidate.location_ref} · cast:{" "}
+                {candidate.cast_ids.join(", ") || "-"} · flags:{" "}
+                {flagText(candidate.flags)}
+                {candidate.source_page_range
+                    ? ` · source: ${candidate.source_page_range}`
+                    : ""}
                 {candidate.number_synthesized ? " · synthesized number" : ""}
             </small>
             {candidate.resolution_errors.length > 0 && (
@@ -258,15 +270,28 @@ function CandidateEditor({
                 <div className="candidateForm">
                     <label>
                         Scene #
-                        <input value={sceneNumber} onChange={(event) => setSceneNumber(event.target.value)} />
+                        <input
+                            value={sceneNumber}
+                            onChange={(event) =>
+                                setSceneNumber(event.target.value)
+                            }
+                        />
                     </label>
                     <label className="wide">
                         Slugline
-                        <input value={slugline} onChange={(event) => setSlugline(event.target.value)} />
+                        <input
+                            value={slugline}
+                            onChange={(event) =>
+                                setSlugline(event.target.value)
+                            }
+                        />
                     </label>
                     <label>
                         INT/EXT
-                        <select value={intExt} onChange={(event) => setIntExt(event.target.value)}>
+                        <select
+                            value={intExt}
+                            onChange={(event) => setIntExt(event.target.value)}
+                        >
                             <option value="int">int</option>
                             <option value="ext">ext</option>
                             <option value="int_ext">int/ext</option>
@@ -275,7 +300,12 @@ function CandidateEditor({
                     </label>
                     <label>
                         Day/night
-                        <select value={dayNight} onChange={(event) => setDayNight(event.target.value)}>
+                        <select
+                            value={dayNight}
+                            onChange={(event) =>
+                                setDayNight(event.target.value)
+                            }
+                        >
                             <option value="day">day</option>
                             <option value="night">night</option>
                             <option value="dawn">dawn</option>
@@ -285,22 +315,65 @@ function CandidateEditor({
                     </label>
                     <label>
                         Location ID
-                        <input value={locationRef} onChange={(event) => setLocationRef(event.target.value)} />
+                        <input
+                            value={locationRef}
+                            onChange={(event) =>
+                                setLocationRef(event.target.value)
+                            }
+                        />
                     </label>
                     <label>
                         Page eighths
-                        <input value={pageEighths} onChange={(event) => setPageEighths(event.target.value)} inputMode="numeric" />
+                        <input
+                            value={pageEighths}
+                            onChange={(event) =>
+                                setPageEighths(event.target.value)
+                            }
+                            inputMode="numeric"
+                        />
                     </label>
                     <label className="wide">
                         Cast IDs, comma-separated
-                        <input value={castIds} onChange={(event) => setCastIds(event.target.value)} />
+                        <input
+                            value={castIds}
+                            onChange={(event) => setCastIds(event.target.value)}
+                        />
                     </label>
                     <div className="checks wide">
-                        <label><input type="checkbox" checked={stunts} onChange={(event) => setStunts(event.target.checked)} /> Stunts</label>
-                        <label><input type="checkbox" checked={minors} onChange={(event) => setMinors(event.target.checked)} /> Minors</label>
-                        <label><input type="checkbox" checked={vfx} onChange={(event) => setVfx(event.target.checked)} /> VFX</label>
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={stunts}
+                                onChange={(event) =>
+                                    setStunts(event.target.checked)
+                                }
+                            />{" "}
+                            Stunts
+                        </label>
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={minors}
+                                onChange={(event) =>
+                                    setMinors(event.target.checked)
+                                }
+                            />{" "}
+                            Minors
+                        </label>
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={vfx}
+                                onChange={(event) =>
+                                    setVfx(event.target.checked)
+                                }
+                            />{" "}
+                            VFX
+                        </label>
                     </div>
-                    <button type="button" onClick={save}>Save edit</button>
+                    <button type="button" onClick={save}>
+                        Save edit
+                    </button>
                 </div>
             </details>
             <div className="actions">
@@ -332,9 +405,25 @@ export default function Home() {
     const [production, setProduction] = useState<Production | null>(null);
     const [castMembers, setCastMembers] = useState<CastMember[]>([]);
     const [locations, setLocations] = useState<LocationRow[]>([]);
-    const [shootDates, setShootDates] = useState("2026-09-14\n2026-09-15\n2026-09-16");
-    const [castForm, setCastForm] = useState({ cast_id: "cast-maya", performer: "", character: "MAYA", is_minor: false });
-    const [locationForm, setLocationForm] = useState({ location_id: "maya-s-apartment", name: "Maya's Apartment", city: "Brooklyn", state: "NY", latitude: "", longitude: "", timezone: "America/New_York", aliases: "" });
+    const [shootDates, setShootDates] = useState(
+        "2026-09-14\n2026-09-15\n2026-09-16",
+    );
+    const [castForm, setCastForm] = useState({
+        cast_id: "cast-maya",
+        performer: "",
+        character: "MAYA",
+        is_minor: false,
+    });
+    const [locationForm, setLocationForm] = useState({
+        location_id: "maya-s-apartment",
+        name: "Maya's Apartment",
+        city: "Brooklyn",
+        state: "NY",
+        latitude: "",
+        longitude: "",
+        timezone: "America/New_York",
+        aliases: "",
+    });
     const [asset, setAsset] = useState<ScreenplayAsset | null>(null);
     const [breakdown, setBreakdown] = useState<BreakdownRun | null>(null);
     const [filter, setFilter] = useState<CandidateFilter>("all");
@@ -351,21 +440,40 @@ export default function Home() {
     }, []);
 
     const acceptedCount = useMemo(
-        () => breakdown?.candidates.filter((candidate) => candidate.accepted).length ?? 0,
+        () =>
+            breakdown?.candidates.filter((candidate) => candidate.accepted)
+                .length ?? 0,
         [breakdown],
     );
 
     const readyCount = useMemo(
-        () => breakdown?.candidates.filter((candidate) => candidate.schedulable && !candidate.accepted && !candidate.rejected).length ?? 0,
+        () =>
+            breakdown?.candidates.filter(
+                (candidate) =>
+                    candidate.schedulable &&
+                    !candidate.accepted &&
+                    !candidate.rejected,
+            ).length ?? 0,
         [breakdown],
     );
 
     const visibleCandidates = useMemo(() => {
         const candidates = breakdown?.candidates ?? [];
-        if (filter === "ready") return candidates.filter((candidate) => candidate.schedulable && !candidate.accepted && !candidate.rejected);
-        if (filter === "blocked") return candidates.filter((candidate) => !candidate.schedulable && !candidate.rejected);
-        if (filter === "accepted") return candidates.filter((candidate) => candidate.accepted);
-        if (filter === "rejected") return candidates.filter((candidate) => candidate.rejected);
+        if (filter === "ready")
+            return candidates.filter(
+                (candidate) =>
+                    candidate.schedulable &&
+                    !candidate.accepted &&
+                    !candidate.rejected,
+            );
+        if (filter === "blocked")
+            return candidates.filter(
+                (candidate) => !candidate.schedulable && !candidate.rejected,
+            );
+        if (filter === "accepted")
+            return candidates.filter((candidate) => candidate.accepted);
+        if (filter === "rejected")
+            return candidates.filter((candidate) => candidate.rejected);
         return candidates;
     }, [breakdown, filter]);
 
@@ -385,12 +493,21 @@ export default function Home() {
     async function refreshSetup(productionId: string) {
         setError("");
         try {
-            const [loadedProduction, loadedCast, loadedLocations, calendar] = await Promise.all([
-                jsonFetch<Production>(`/api/coverset/productions/${productionId}`),
-                jsonFetch<CastMember[]>(`/api/coverset/productions/${productionId}/cast`),
-                jsonFetch<LocationRow[]>(`/api/coverset/productions/${productionId}/locations`),
-                jsonFetch<{ shoot_dates: string[] }>(`/api/coverset/productions/${productionId}/calendar`),
-            ]);
+            const [loadedProduction, loadedCast, loadedLocations, calendar] =
+                await Promise.all([
+                    jsonFetch<Production>(
+                        `/api/coverset/productions/${productionId}`,
+                    ),
+                    jsonFetch<CastMember[]>(
+                        `/api/coverset/productions/${productionId}/cast`,
+                    ),
+                    jsonFetch<LocationRow[]>(
+                        `/api/coverset/productions/${productionId}/locations`,
+                    ),
+                    jsonFetch<{ shoot_dates: string[] }>(
+                        `/api/coverset/productions/${productionId}/calendar`,
+                    ),
+                ]);
             setProduction(loadedProduction);
             setTitle(loadedProduction.title);
             setCastMembers(loadedCast);
@@ -412,12 +529,19 @@ export default function Home() {
         setBoard(null);
         setBreakdown(null);
         setAsset(null);
-        setStatus(seedDemo ? "Creating production with demo setup..." : "Creating empty production...");
+        setStatus(
+            seedDemo
+                ? "Creating production with demo setup..."
+                : "Creating empty production...",
+        );
         try {
-            const createdProduction = await jsonFetch<Production>("/api/coverset/productions", {
-                method: "POST",
-                body: JSON.stringify({ title, seed_demo_data: seedDemo }),
-            });
+            const createdProduction = await jsonFetch<Production>(
+                "/api/coverset/productions",
+                {
+                    method: "POST",
+                    body: JSON.stringify({ title, seed_demo_data: seedDemo }),
+                },
+            );
             window.localStorage.setItem(STORAGE_KEY, createdProduction.id);
             await refreshSetup(createdProduction.id);
             setStatus("Production setup ready.");
@@ -431,10 +555,13 @@ export default function Home() {
         if (!production) return;
         setError("");
         try {
-            await jsonFetch<CastMember>(`/api/coverset/productions/${production.id}/cast`, {
-                method: "POST",
-                body: JSON.stringify(castForm),
-            });
+            await jsonFetch<CastMember>(
+                `/api/coverset/productions/${production.id}/cast`,
+                {
+                    method: "POST",
+                    body: JSON.stringify(castForm),
+                },
+            );
             await refreshSetup(production.id);
             setStatus("Cast member saved.");
         } catch (err) {
@@ -451,16 +578,23 @@ export default function Home() {
             name: locationForm.name,
             city: locationForm.city,
             state: locationForm.state,
-            latitude: locationForm.latitude ? Number(locationForm.latitude) : null,
-            longitude: locationForm.longitude ? Number(locationForm.longitude) : null,
+            latitude: locationForm.latitude
+                ? Number(locationForm.latitude)
+                : null,
+            longitude: locationForm.longitude
+                ? Number(locationForm.longitude)
+                : null,
             timezone: locationForm.timezone,
             aliases: splitList(locationForm.aliases),
         };
         try {
-            await jsonFetch<LocationRow>(`/api/coverset/productions/${production.id}/locations`, {
-                method: "POST",
-                body: JSON.stringify(payload),
-            });
+            await jsonFetch<LocationRow>(
+                `/api/coverset/productions/${production.id}/locations`,
+                {
+                    method: "POST",
+                    body: JSON.stringify(payload),
+                },
+            );
             await refreshSetup(production.id);
             setStatus("Location saved.");
         } catch (err) {
@@ -473,10 +607,15 @@ export default function Home() {
         if (!production) return;
         setError("");
         try {
-            await jsonFetch(`/api/coverset/productions/${production.id}/calendar`, {
-                method: "PUT",
-                body: JSON.stringify({ shoot_dates: shootDates.split(/\s+/).filter(Boolean) }),
-            });
+            await jsonFetch(
+                `/api/coverset/productions/${production.id}/calendar`,
+                {
+                    method: "PUT",
+                    body: JSON.stringify({
+                        shoot_dates: shootDates.split(/\s+/).filter(Boolean),
+                    }),
+                },
+            );
             await refreshSetup(production.id);
             setStatus("Shooting calendar saved.");
         } catch (err) {
@@ -490,7 +629,9 @@ export default function Home() {
         setStatus("Running fixture demo through API, scheduler, and DB...");
         setBoard(null);
         try {
-            const demoBoard = await jsonFetch<Board>("/api/coverset/demo/run", { method: "POST" });
+            const demoBoard = await jsonFetch<Board>("/api/coverset/demo/run", {
+                method: "POST",
+            });
             setBoard(demoBoard);
             setStatus("Fixture demo solved.");
         } catch (err) {
@@ -511,10 +652,16 @@ export default function Home() {
         try {
             if (!currentProduction) {
                 setStatus("Creating production before upload...");
-                currentProduction = await jsonFetch<Production>("/api/coverset/productions", {
-                    method: "POST",
-                    body: JSON.stringify({ title, seed_demo_data: seedDemo }),
-                });
+                currentProduction = await jsonFetch<Production>(
+                    "/api/coverset/productions",
+                    {
+                        method: "POST",
+                        body: JSON.stringify({
+                            title,
+                            seed_demo_data: seedDemo,
+                        }),
+                    },
+                );
                 window.localStorage.setItem(STORAGE_KEY, currentProduction.id);
                 setProduction(currentProduction);
                 await refreshSetup(currentProduction.id);
@@ -529,10 +676,14 @@ export default function Home() {
             );
             setAsset(uploadedAsset);
             if (uploadedAsset.extraction_error) {
-                throw new Error(`Screenplay extraction failed: ${uploadedAsset.extraction_error}`);
+                throw new Error(
+                    `Screenplay extraction failed: ${uploadedAsset.extraction_error}`,
+                );
             }
 
-            setStatus(`Running ${agentMode} breakdown. Candidates will require review.`);
+            setStatus(
+                `Running ${agentMode} breakdown. Candidates will require review.`,
+            );
             const breakdownRun = await jsonFetch<BreakdownRun>(
                 `/api/coverset/productions/${currentProduction.id}/breakdowns`,
                 {
@@ -546,7 +697,9 @@ export default function Home() {
             );
             setBreakdown(breakdownRun);
             if (breakdownRun.status !== "complete") {
-                throw new Error(breakdownRun.error || `Breakdown ${breakdownRun.status}`);
+                throw new Error(
+                    breakdownRun.error || `Breakdown ${breakdownRun.status}`,
+                );
             }
             setStatus("Breakdown complete. Review candidates before solving.");
         } catch (err) {
@@ -558,19 +711,29 @@ export default function Home() {
     async function saveCandidate(candidateId: string, patch: CandidatePatch) {
         setError("");
         try {
-            const updated = await jsonFetch<Candidate>(`/api/coverset/scene-candidates/${candidateId}`, {
-                method: "PATCH",
-                body: JSON.stringify(patch),
-            });
+            const updated = await jsonFetch<Candidate>(
+                `/api/coverset/scene-candidates/${candidateId}`,
+                {
+                    method: "PATCH",
+                    body: JSON.stringify(patch),
+                },
+            );
             replaceCandidate(updated);
-            setStatus(updated.schedulable ? "Candidate resolved." : "Candidate saved with blockers.");
+            setStatus(
+                updated.schedulable
+                    ? "Candidate resolved."
+                    : "Candidate saved with blockers.",
+            );
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setStatus("Candidate edit failed.");
         }
     }
 
-    async function reviewCandidate(candidateId: string, decision: "accept" | "reject") {
+    async function reviewCandidate(
+        candidateId: string,
+        decision: "accept" | "reject",
+    ) {
         setError("");
         try {
             const updated = await jsonFetch<Candidate>(
@@ -578,7 +741,11 @@ export default function Home() {
                 { method: "PATCH", body: JSON.stringify({ decision }) },
             );
             replaceCandidate(updated);
-            setStatus(decision === "accept" ? "Candidate accepted." : "Candidate rejected.");
+            setStatus(
+                decision === "accept"
+                    ? "Candidate accepted."
+                    : "Candidate rejected.",
+            );
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setStatus("Review decision failed.");
@@ -594,7 +761,9 @@ export default function Home() {
                 { method: "POST" },
             );
             setBreakdown({ ...breakdown, candidates: result.candidates });
-            setStatus(`Accepted ${result.accepted.length}; skipped ${Object.keys(result.skipped).length}.`);
+            setStatus(
+                `Accepted ${result.accepted.length}; skipped ${Object.keys(result.skipped).length}.`,
+            );
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setStatus("Batch accept failed.");
@@ -609,13 +778,20 @@ export default function Home() {
             setStatus("Solving board with deterministic scheduler...");
             const scheduleRun = await jsonFetch<ScheduleRun>(
                 `/api/coverset/productions/${production.id}/boards/solve`,
-                { method: "POST", body: JSON.stringify({ accepted_only: true }) },
+                {
+                    method: "POST",
+                    body: JSON.stringify({ accepted_only: true }),
+                },
             );
             setSchedule(scheduleRun);
             if (!scheduleRun.board_id) {
-                throw new Error(scheduleRun.error || `Schedule ${scheduleRun.status}`);
+                throw new Error(
+                    scheduleRun.error || `Schedule ${scheduleRun.status}`,
+                );
             }
-            const solvedBoard = await jsonFetch<Board>(`/api/coverset/boards/${scheduleRun.board_id}`);
+            const solvedBoard = await jsonFetch<Board>(
+                `/api/coverset/boards/${scheduleRun.board_id}`,
+            );
             setBoard(solvedBoard);
             setStatus("Accepted scenes solved.");
         } catch (err) {
@@ -630,8 +806,9 @@ export default function Home() {
                 <p className="eyebrow">Coverset implementation</p>
                 <h1>Screenplay to reviewed, deterministic stripboard.</h1>
                 <p>
-                    Gemini proposes candidate scenes, production facts resolve them, explicit
-                    review accepts them, and the deterministic scheduler remains the deciding authority.
+                    Gemini proposes candidate scenes, production facts resolve
+                    them, explicit review accepts them, and the deterministic
+                    scheduler remains the deciding authority.
                 </p>
             </section>
 
@@ -643,23 +820,41 @@ export default function Home() {
             <section className="panel grid">
                 <div>
                     <h2>Fast smoke</h2>
-                    <p>Runs the authored fixture through the API, database, and scheduler.</p>
-                    <button type="button" onClick={runFixtureDemo}>Run fixture demo</button>
+                    <p>
+                        Runs the authored fixture through the API, database, and
+                        scheduler.
+                    </p>
+                    <button type="button" onClick={runFixtureDemo}>
+                        Run fixture demo
+                    </button>
                 </div>
                 <div>
                     <h2>Production</h2>
                     <label>
                         Title
-                        <input value={title} onChange={(event) => setTitle(event.target.value)} />
+                        <input
+                            value={title}
+                            onChange={(event) => setTitle(event.target.value)}
+                        />
                     </label>
                     <label className="inline">
-                        <input type="checkbox" checked={seedDemo} onChange={(event) => setSeedDemo(event.target.checked)} />
+                        <input
+                            type="checkbox"
+                            checked={seedDemo}
+                            onChange={(event) =>
+                                setSeedDemo(event.target.checked)
+                            }
+                        />
                         Seed Ferry Job demo cast, locations, and dates
                     </label>
-                    <button type="button" onClick={createProduction}>Create / reset production</button>
+                    <button type="button" onClick={createProduction}>
+                        Create / reset production
+                    </button>
                     {production && (
                         <p className="muted">
-                            Active: {production.title} · {production.cast_count} cast · {production.location_count} locations · {production.shoot_day_count} shoot days
+                            Active: {production.title} · {production.cast_count}{" "}
+                            cast · {production.location_count} locations ·{" "}
+                            {production.shoot_day_count} shoot days
                         </p>
                     )}
                 </div>
@@ -671,37 +866,191 @@ export default function Home() {
                     <div className="grid three">
                         <div>
                             <h3>Cast</h3>
-                            <label>Cast ID<input value={castForm.cast_id} onChange={(event) => setCastForm({ ...castForm, cast_id: event.target.value })} /></label>
-                            <label>Performer<input value={castForm.performer} onChange={(event) => setCastForm({ ...castForm, performer: event.target.value })} /></label>
-                            <label>Character<input value={castForm.character} onChange={(event) => setCastForm({ ...castForm, character: event.target.value })} /></label>
-                            <label className="inline"><input type="checkbox" checked={castForm.is_minor} onChange={(event) => setCastForm({ ...castForm, is_minor: event.target.checked })} /> Minor performer</label>
-                            <button type="button" onClick={addCastMember}>Add cast</button>
+                            <label>
+                                Cast ID
+                                <input
+                                    value={castForm.cast_id}
+                                    onChange={(event) =>
+                                        setCastForm({
+                                            ...castForm,
+                                            cast_id: event.target.value,
+                                        })
+                                    }
+                                />
+                            </label>
+                            <label>
+                                Performer
+                                <input
+                                    value={castForm.performer}
+                                    onChange={(event) =>
+                                        setCastForm({
+                                            ...castForm,
+                                            performer: event.target.value,
+                                        })
+                                    }
+                                />
+                            </label>
+                            <label>
+                                Character
+                                <input
+                                    value={castForm.character}
+                                    onChange={(event) =>
+                                        setCastForm({
+                                            ...castForm,
+                                            character: event.target.value,
+                                        })
+                                    }
+                                />
+                            </label>
+                            <label className="inline">
+                                <input
+                                    type="checkbox"
+                                    checked={castForm.is_minor}
+                                    onChange={(event) =>
+                                        setCastForm({
+                                            ...castForm,
+                                            is_minor: event.target.checked,
+                                        })
+                                    }
+                                />{" "}
+                                Minor performer
+                            </label>
+                            <button type="button" onClick={addCastMember}>
+                                Add cast
+                            </button>
                             <ul className="compactList">
-                                {castMembers.map((member) => <li key={member.id}>{member.cast_id} — {member.character}</li>)}
+                                {castMembers.map((member) => (
+                                    <li key={member.id}>
+                                        {member.cast_id} — {member.character}
+                                    </li>
+                                ))}
                             </ul>
                         </div>
                         <div>
                             <h3>Locations</h3>
-                            <label>Location ID<input value={locationForm.location_id} onChange={(event) => setLocationForm({ ...locationForm, location_id: event.target.value })} /></label>
-                            <label>Name<input value={locationForm.name} onChange={(event) => setLocationForm({ ...locationForm, name: event.target.value })} /></label>
-                            <label>City<input value={locationForm.city} onChange={(event) => setLocationForm({ ...locationForm, city: event.target.value })} /></label>
-                            <label>State<input value={locationForm.state} onChange={(event) => setLocationForm({ ...locationForm, state: event.target.value })} /></label>
-                            <label>Latitude<input value={locationForm.latitude} onChange={(event) => setLocationForm({ ...locationForm, latitude: event.target.value })} /></label>
-                            <label>Longitude<input value={locationForm.longitude} onChange={(event) => setLocationForm({ ...locationForm, longitude: event.target.value })} /></label>
-                            <label>Timezone<input value={locationForm.timezone} onChange={(event) => setLocationForm({ ...locationForm, timezone: event.target.value })} /></label>
-                            <label>Aliases<input value={locationForm.aliases} onChange={(event) => setLocationForm({ ...locationForm, aliases: event.target.value })} placeholder="FERRY TERMINAL / RIVER DOCK" /></label>
-                            <button type="button" onClick={addLocation}>Add location</button>
+                            <label>
+                                Location ID
+                                <input
+                                    value={locationForm.location_id}
+                                    onChange={(event) =>
+                                        setLocationForm({
+                                            ...locationForm,
+                                            location_id: event.target.value,
+                                        })
+                                    }
+                                />
+                            </label>
+                            <label>
+                                Name
+                                <input
+                                    value={locationForm.name}
+                                    onChange={(event) =>
+                                        setLocationForm({
+                                            ...locationForm,
+                                            name: event.target.value,
+                                        })
+                                    }
+                                />
+                            </label>
+                            <label>
+                                City
+                                <input
+                                    value={locationForm.city}
+                                    onChange={(event) =>
+                                        setLocationForm({
+                                            ...locationForm,
+                                            city: event.target.value,
+                                        })
+                                    }
+                                />
+                            </label>
+                            <label>
+                                State
+                                <input
+                                    value={locationForm.state}
+                                    onChange={(event) =>
+                                        setLocationForm({
+                                            ...locationForm,
+                                            state: event.target.value,
+                                        })
+                                    }
+                                />
+                            </label>
+                            <label>
+                                Latitude
+                                <input
+                                    value={locationForm.latitude}
+                                    onChange={(event) =>
+                                        setLocationForm({
+                                            ...locationForm,
+                                            latitude: event.target.value,
+                                        })
+                                    }
+                                />
+                            </label>
+                            <label>
+                                Longitude
+                                <input
+                                    value={locationForm.longitude}
+                                    onChange={(event) =>
+                                        setLocationForm({
+                                            ...locationForm,
+                                            longitude: event.target.value,
+                                        })
+                                    }
+                                />
+                            </label>
+                            <label>
+                                Timezone
+                                <input
+                                    value={locationForm.timezone}
+                                    onChange={(event) =>
+                                        setLocationForm({
+                                            ...locationForm,
+                                            timezone: event.target.value,
+                                        })
+                                    }
+                                />
+                            </label>
+                            <label>
+                                Aliases
+                                <input
+                                    value={locationForm.aliases}
+                                    onChange={(event) =>
+                                        setLocationForm({
+                                            ...locationForm,
+                                            aliases: event.target.value,
+                                        })
+                                    }
+                                    placeholder="FERRY TERMINAL / RIVER DOCK"
+                                />
+                            </label>
+                            <button type="button" onClick={addLocation}>
+                                Add location
+                            </button>
                             <ul className="compactList">
-                                {locations.map((location) => <li key={location.id}>{location.location_id} — {location.name}</li>)}
+                                {locations.map((location) => (
+                                    <li key={location.id}>
+                                        {location.location_id} — {location.name}
+                                    </li>
+                                ))}
                             </ul>
                         </div>
                         <div>
                             <h3>Shoot dates</h3>
                             <label>
                                 One ISO date per line
-                                <textarea value={shootDates} onChange={(event) => setShootDates(event.target.value)} rows={8} />
+                                <textarea
+                                    value={shootDates}
+                                    onChange={(event) =>
+                                        setShootDates(event.target.value)
+                                    }
+                                    rows={8}
+                                />
                             </label>
-                            <button type="button" onClick={saveCalendar}>Save calendar</button>
+                            <button type="button" onClick={saveCalendar}>
+                                Save calendar
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -712,29 +1061,59 @@ export default function Home() {
                     <h2>Screenplay intake</h2>
                     <label>
                         Breakdown mode
-                        <select value={agentMode} onChange={(event) => setAgentMode(event.target.value as AgentMode)}>
+                        <select
+                            value={agentMode}
+                            onChange={(event) =>
+                                setAgentMode(event.target.value as AgentMode)
+                            }
+                        >
                             <option value="gemini">Gemini live</option>
                             <option value="fixture">Fixture smoke</option>
                         </select>
                     </label>
                     <label>
                         PDF or text screenplay
-                        <input type="file" accept=".pdf,.txt,.fountain,text/plain,application/pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+                        <input
+                            type="file"
+                            accept=".pdf,.txt,.fountain,text/plain,application/pdf"
+                            onChange={(event) =>
+                                setFile(event.target.files?.[0] ?? null)
+                            }
+                        />
                     </label>
-                    <button type="button" onClick={uploadAndBreakDown}>Upload and break down</button>
+                    <button type="button" onClick={uploadAndBreakDown}>
+                        Upload and break down
+                    </button>
                 </div>
                 <div>
                     <h2>Review summary</h2>
-                    {asset && <p>Asset: {asset.filename} {asset.normalized_text_uri ? "· normalized text stored" : ""}</p>}
+                    {asset && (
+                        <p>
+                            Asset: {asset.filename}{" "}
+                            {asset.normalized_text_uri
+                                ? "· normalized text stored"
+                                : ""}
+                        </p>
+                    )}
                     {breakdown ? (
                         <div className="meta">
-                            <span>{breakdown.candidates.length} candidates</span>
+                            <span>
+                                {breakdown.candidates.length} candidates
+                            </span>
                             <span>{acceptedCount} accepted</span>
                             <span>{readyCount} ready</span>
-                            <span>{breakdown.unresolved_locations.length} unresolved locations</span>
-                            <span>{breakdown.unresolved_cast.length} unresolved cast cues</span>
+                            <span>
+                                {breakdown.unresolved_locations.length}{" "}
+                                unresolved locations
+                            </span>
+                            <span>
+                                {breakdown.unresolved_cast.length} unresolved
+                                cast cues
+                            </span>
                         </div>
-                    ) : <p className="muted">No breakdown yet.</p>}
+                    ) : (
+                        <p className="muted">No breakdown yet.</p>
+                    )}
                 </div>
             </section>
 
@@ -743,15 +1122,30 @@ export default function Home() {
                     <div className="sectionHeader">
                         <h2>Candidate review</h2>
                         <div className="actions">
-                            <select value={filter} onChange={(event) => setFilter(event.target.value as CandidateFilter)}>
+                            <select
+                                value={filter}
+                                onChange={(event) =>
+                                    setFilter(
+                                        event.target.value as CandidateFilter,
+                                    )
+                                }
+                            >
                                 <option value="all">All</option>
                                 <option value="ready">Ready</option>
                                 <option value="blocked">Blocked</option>
                                 <option value="accepted">Accepted</option>
                                 <option value="rejected">Rejected</option>
                             </select>
-                            <button type="button" onClick={batchAcceptReady}>Batch accept ready</button>
-                            <button type="button" onClick={solveAccepted} disabled={acceptedCount === 0}>Solve accepted</button>
+                            <button type="button" onClick={batchAcceptReady}>
+                                Batch accept ready
+                            </button>
+                            <button
+                                type="button"
+                                onClick={solveAccepted}
+                                disabled={acceptedCount === 0}
+                            >
+                                Solve accepted
+                            </button>
                         </div>
                     </div>
                     <div className="sceneList">
@@ -767,7 +1161,11 @@ export default function Home() {
                 </section>
             )}
 
-            {schedule && <section className="panel meta"><span>Schedule run: {schedule.status}</span></section>}
+            {schedule && (
+                <section className="panel meta">
+                    <span>Schedule run: {schedule.status}</span>
+                </section>
+            )}
 
             {board && (
                 <section className="panel board">
@@ -778,7 +1176,13 @@ export default function Home() {
                                 <div className="dayCard" key={day.date}>
                                     <h3>{day.date}</h3>
                                     {day.assignments.map((assignment) => (
-                                        <p key={`${day.date}-${assignment.sequence}`}>{assignment.sequence + 1}. {assignment.work_id} @ {assignment.location_id}</p>
+                                        <p
+                                            key={`${day.date}-${assignment.sequence}`}
+                                        >
+                                            {assignment.sequence + 1}.{" "}
+                                            {assignment.work_id} @{" "}
+                                            {assignment.location_id}
+                                        </p>
                                     ))}
                                 </div>
                             ))}

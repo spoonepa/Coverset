@@ -152,14 +152,19 @@ def add_cast_endpoint(
     )
 
 
-@app.get("/productions/{production_id}/locations", response_model=list[LocationResponse])
+@app.get(
+    "/productions/{production_id}/locations", response_model=list[LocationResponse]
+)
 def list_locations_endpoint(
     production_id: str,
     session: Annotated[Session, Depends(get_session)],
 ) -> list[LocationResponse]:
     get_production(session, production_id)
     aliases = list_aliases(session, production_id)
-    return [_location_response(row, aliases) for row in list_locations(session, production_id)]
+    return [
+        _location_response(row, aliases)
+        for row in list_locations(session, production_id)
+    ]
 
 
 @app.post("/productions/{production_id}/locations", response_model=LocationResponse)
@@ -266,7 +271,9 @@ def update_candidate_endpoint(
     )
 
 
-@app.patch("/scene-candidates/{candidate_id}/review", response_model=SceneCandidateResponse)
+@app.patch(
+    "/scene-candidates/{candidate_id}/review", response_model=SceneCandidateResponse
+)
 def review_candidate_endpoint(
     candidate_id: str,
     payload: CandidateReviewRequest,
@@ -381,7 +388,9 @@ def _location_response(
         latitude=row.latitude,
         longitude=row.longitude,
         timezone=row.timezone,
-        aliases=[alias.alias for alias in aliases if alias.location_id == row.location_id],
+        aliases=[
+            alias.alias for alias in aliases if alias.location_id == row.location_id
+        ],
     )
 
 

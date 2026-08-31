@@ -206,7 +206,9 @@ def test_production_setup_api_builds_scheduler_ready_state(
             },
         ]
         for payload in locations:
-            response = client.post(f"/productions/{production_id}/locations", json=payload)
+            response = client.post(
+                f"/productions/{production_id}/locations", json=payload
+            )
             assert response.status_code == 200, response.text
         invalid = client.post(
             f"/productions/{production_id}/locations",
@@ -312,19 +314,25 @@ def test_candidate_edit_clears_blockers_before_explicit_accept(
             "/productions", json={"title": "Review", "seed_demo_data": False}
         )
         production_id = created.json()["id"]
-        assert client.post(
-            f"/productions/{production_id}/cast",
-            json={"cast_id": "cast-maya", "performer": "A", "character": "MAYA"},
-        ).status_code == 200
-        assert client.post(
-            f"/productions/{production_id}/locations",
-            json={
-                "location_id": "maya-s-apartment",
-                "name": "Maya's Apartment",
-                "city": "Brooklyn",
-                "state": "NY",
-            },
-        ).status_code == 200
+        assert (
+            client.post(
+                f"/productions/{production_id}/cast",
+                json={"cast_id": "cast-maya", "performer": "A", "character": "MAYA"},
+            ).status_code
+            == 200
+        )
+        assert (
+            client.post(
+                f"/productions/{production_id}/locations",
+                json={
+                    "location_id": "maya-s-apartment",
+                    "name": "Maya's Apartment",
+                    "city": "Brooklyn",
+                    "state": "NY",
+                },
+            ).status_code
+            == 200
+        )
 
         settings = Settings(upload_root=tmp_path, agent_mode="fixture")
         storage = ObjectStorage(settings)
@@ -352,10 +360,13 @@ def test_candidate_edit_clears_blockers_before_explicit_accept(
         assert blocked.status_code == 400
         assert "unresolved cast cue: DEV" in blocked.text
 
-        assert client.post(
-            f"/productions/{production_id}/cast",
-            json={"cast_id": "cast-dev", "performer": "B", "character": "DEV"},
-        ).status_code == 200
+        assert (
+            client.post(
+                f"/productions/{production_id}/cast",
+                json={"cast_id": "cast-dev", "performer": "B", "character": "DEV"},
+            ).status_code
+            == 200
+        )
         edited = client.patch(
             f"/scene-candidates/{first.id}",
             json={"cast_ids": ["cast-maya", "cast-dev"]},

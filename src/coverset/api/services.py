@@ -5,8 +5,8 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import re
-from io import BytesIO
 from dataclasses import replace
+from io import BytesIO
 from typing import Any, Protocol
 
 from sqlalchemy import delete, select
@@ -63,9 +63,13 @@ class HasExtract(Protocol):
 
 ANSWER_KEY = (
     RawScene("INT. MAYA'S APARTMENT - NIGHT", ("MAYA", "DEV"), "1", 8, 0.95),
-    RawScene("EXT. BROOKLYN BRIDGE PARK - DAY", ("MAYA", "DEV"), "2", 6, 0.92, stunt=True),
+    RawScene(
+        "EXT. BROOKLYN BRIDGE PARK - DAY", ("MAYA", "DEV"), "2", 6, 0.92, stunt=True
+    ),
     RawScene("INT. WAREHOUSE - CONTINUOUS", ("RUTH",), None, 3, 0.88),
-    RawScene("EXT. FERRY TERMINAL / RIVER DOCK - DUSK", ("MAYA",), None, 4, 0.82, vfx=True),
+    RawScene(
+        "EXT. FERRY TERMINAL / RIVER DOCK - DUSK", ("MAYA",), None, 4, 0.82, vfx=True
+    ),
     RawScene("INT. MAYA'S APARTMENT - DAY", ("MAYA", "KID"), "3", 3, 0.70, minors=True),
 )
 
@@ -87,7 +91,9 @@ def _agent_for_mode(mode: str, *, settings: Settings) -> HasExtract:
     raise ServiceError(f"unsupported breakdown agent mode: {mode}")
 
 
-def create_production(session: Session, *, title: str, seed_demo_data: bool = True) -> ProductionModel:
+def create_production(
+    session: Session, *, title: str, seed_demo_data: bool = True
+) -> ProductionModel:
     production = ProductionModel(id=new_id("prod"), title=title)
     session.add(production)
     session.flush()
@@ -105,48 +111,87 @@ def seed_demo_entities(session: Session, production_id: str) -> None:
         return
     cast = (
         CastMemberModel(
-            id=new_id("castrow"), production_id=production_id, cast_id="cast-maya",
-            performer="A. Idowu", character="MAYA",
+            id=new_id("castrow"),
+            production_id=production_id,
+            cast_id="cast-maya",
+            performer="A. Idowu",
+            character="MAYA",
         ),
         CastMemberModel(
-            id=new_id("castrow"), production_id=production_id, cast_id="cast-dev",
-            performer="B. Whitfield", character="DEV",
+            id=new_id("castrow"),
+            production_id=production_id,
+            cast_id="cast-dev",
+            performer="B. Whitfield",
+            character="DEV",
         ),
         CastMemberModel(
-            id=new_id("castrow"), production_id=production_id, cast_id="cast-ruth",
-            performer="C. Okonkwo", character="RUTH",
+            id=new_id("castrow"),
+            production_id=production_id,
+            cast_id="cast-ruth",
+            performer="C. Okonkwo",
+            character="RUTH",
         ),
         CastMemberModel(
-            id=new_id("castrow"), production_id=production_id, cast_id="cast-kid",
-            performer="D. Alvarez", character="KID", is_minor=True,
+            id=new_id("castrow"),
+            production_id=production_id,
+            cast_id="cast-kid",
+            performer="D. Alvarez",
+            character="KID",
+            is_minor=True,
         ),
     )
     locations = (
         LocationModel(
-            id=new_id("locrow"), production_id=production_id, location_id="maya-s-apartment",
-            name="Maya's Apartment", city="Brooklyn", state="NY",
-            latitude=40.700, longitude=-73.990, timezone="America/New_York",
+            id=new_id("locrow"),
+            production_id=production_id,
+            location_id="maya-s-apartment",
+            name="Maya's Apartment",
+            city="Brooklyn",
+            state="NY",
+            latitude=40.700,
+            longitude=-73.990,
+            timezone="America/New_York",
         ),
         LocationModel(
-            id=new_id("locrow"), production_id=production_id, location_id="brooklyn-bridge-park",
-            name="Brooklyn Bridge Park", city="Brooklyn", state="NY",
-            latitude=40.7002, longitude=-73.9967, timezone="America/New_York",
+            id=new_id("locrow"),
+            production_id=production_id,
+            location_id="brooklyn-bridge-park",
+            name="Brooklyn Bridge Park",
+            city="Brooklyn",
+            state="NY",
+            latitude=40.7002,
+            longitude=-73.9967,
+            timezone="America/New_York",
         ),
         LocationModel(
-            id=new_id("locrow"), production_id=production_id, location_id="warehouse",
-            name="Warehouse", city="Queens", state="NY",
-            latitude=40.742, longitude=-73.938, timezone="America/New_York",
+            id=new_id("locrow"),
+            production_id=production_id,
+            location_id="warehouse",
+            name="Warehouse",
+            city="Queens",
+            state="NY",
+            latitude=40.742,
+            longitude=-73.938,
+            timezone="America/New_York",
         ),
         LocationModel(
-            id=new_id("locrow"), production_id=production_id, location_id="ferry-terminal",
-            name="Ferry Terminal", city="Manhattan", state="NY",
-            latitude=40.701, longitude=-74.013, timezone="America/New_York",
+            id=new_id("locrow"),
+            production_id=production_id,
+            location_id="ferry-terminal",
+            name="Ferry Terminal",
+            city="Manhattan",
+            state="NY",
+            latitude=40.701,
+            longitude=-74.013,
+            timezone="America/New_York",
         ),
     )
     aliases = (
         LocationAliasModel(
-            id=new_id("alias"), production_id=production_id,
-            alias="FERRY TERMINAL / RIVER DOCK", location_id="ferry-terminal",
+            id=new_id("alias"),
+            production_id=production_id,
+            alias="FERRY TERMINAL / RIVER DOCK",
+            location_id="ferry-terminal",
         ),
     )
     shoot_days = tuple(
@@ -175,21 +220,31 @@ def get_production(session: Session, production_id: str) -> ProductionModel:
 
 
 def list_cast(session: Session, production_id: str) -> list[CastMemberModel]:
-    return list(session.scalars(
-        select(CastMemberModel).where(CastMemberModel.production_id == production_id)
-    ))
+    return list(
+        session.scalars(
+            select(CastMemberModel).where(
+                CastMemberModel.production_id == production_id
+            )
+        )
+    )
 
 
 def list_locations(session: Session, production_id: str) -> list[LocationModel]:
-    return list(session.scalars(
-        select(LocationModel).where(LocationModel.production_id == production_id)
-    ))
+    return list(
+        session.scalars(
+            select(LocationModel).where(LocationModel.production_id == production_id)
+        )
+    )
 
 
 def list_aliases(session: Session, production_id: str) -> list[LocationAliasModel]:
-    return list(session.scalars(
-        select(LocationAliasModel).where(LocationAliasModel.production_id == production_id)
-    ))
+    return list(
+        session.scalars(
+            select(LocationAliasModel).where(
+                LocationAliasModel.production_id == production_id
+            )
+        )
+    )
 
 
 def add_cast_member(
@@ -240,7 +295,9 @@ def add_location(
     get_production(session, production_id)
     normalized_id = _stable_id(location_id)
     if _location_id_exists(session, production_id, normalized_id):
-        raise ServiceError(f"location id already exists: {normalized_id}", status_code=409)
+        raise ServiceError(
+            f"location id already exists: {normalized_id}", status_code=409
+        )
     if latitude is not None and not -90 <= latitude <= 90:
         raise ServiceError("latitude must be between -90 and 90")
     if longitude is not None and not -180 <= longitude <= 180:
@@ -325,21 +382,27 @@ def _production_calendar(session: Session, production_id: str) -> ProductionCale
 
 
 def _cast_id_exists(session: Session, production_id: str, cast_id: str) -> bool:
-    return session.scalars(
-        select(CastMemberModel).where(
-            CastMemberModel.production_id == production_id,
-            CastMemberModel.cast_id == cast_id,
-        )
-    ).first() is not None
+    return (
+        session.scalars(
+            select(CastMemberModel).where(
+                CastMemberModel.production_id == production_id,
+                CastMemberModel.cast_id == cast_id,
+            )
+        ).first()
+        is not None
+    )
 
 
 def _location_id_exists(session: Session, production_id: str, location_id: str) -> bool:
-    return session.scalars(
-        select(LocationModel).where(
-            LocationModel.production_id == production_id,
-            LocationModel.location_id == location_id,
-        )
-    ).first() is not None
+    return (
+        session.scalars(
+            select(LocationModel).where(
+                LocationModel.production_id == production_id,
+                LocationModel.location_id == location_id,
+            )
+        ).first()
+        is not None
+    )
 
 
 def _stable_id(value: str) -> str:
@@ -423,7 +486,11 @@ def _extract_screenplay_text(
 ) -> tuple[str | None, dict[str, Any], str]:
     if media == "text":
         try:
-            return content.decode("utf-8"), {"strategy": "utf-8", "source": filename}, ""
+            return (
+                content.decode("utf-8"),
+                {"strategy": "utf-8", "source": filename},
+                "",
+            )
         except UnicodeDecodeError as exc:
             return None, {"strategy": "utf-8", "source": filename}, str(exc)
     if media == "pdf":
@@ -434,7 +501,11 @@ def _extract_screenplay_text(
             pages = [page.extract_text() or "" for page in reader.pages]
             text = "\n\n".join(page for page in pages if page.strip())
             if not text.strip():
-                return None, {"strategy": "pypdf", "pages": len(reader.pages)}, "PDF contained no extractable text"
+                return (
+                    None,
+                    {"strategy": "pypdf", "pages": len(reader.pages)},
+                    "PDF contained no extractable text",
+                )
             return text, {"strategy": "pypdf", "pages": len(reader.pages)}, ""
         except Exception as exc:  # noqa: BLE001 - user-facing ingestion boundary
             return None, {"strategy": "pypdf", "source": filename}, str(exc)
@@ -462,18 +533,25 @@ def run_breakdown(
     get_production(session, production_id)
     asset = session.get(ScreenplayAssetModel, screenplay_asset_id)
     if asset is None or asset.production_id != production_id:
-        raise ServiceError(f"screenplay asset not found: {screenplay_asset_id}", status_code=404)
+        raise ServiceError(
+            f"screenplay asset not found: {screenplay_asset_id}", status_code=404
+        )
 
     run = BreakdownRunModel(
-        id=new_id("brk"), production_id=production_id, screenplay_asset_id=asset.id,
-        status="running", agent_mode=mode,
+        id=new_id("brk"),
+        production_id=production_id,
+        screenplay_asset_id=asset.id,
+        status="running",
+        agent_mode=mode,
     )
     session.add(run)
     session.commit()
 
     try:
         if asset.extraction_error:
-            raise ServiceError(f"screenplay extraction failed: {asset.extraction_error}")
+            raise ServiceError(
+                f"screenplay extraction failed: {asset.extraction_error}"
+            )
         store = storage or ObjectStorage(resolved_settings)
         content_uri = asset.normalized_text_uri or asset.storage_uri
         content = store.get(content_uri)
@@ -486,9 +564,13 @@ def run_breakdown(
         locations = locations_from_models(list_locations(session, production_id))
         roster = roster_from_models(list_cast(session, production_id))
         aliases = aliases_from_models(list_aliases(session, production_id))
-        located = breakdown.resolve_locations(records, locations=locations, aliases=aliases)
+        located = breakdown.resolve_locations(
+            records, locations=locations, aliases=aliases
+        )
         casted = breakdown.resolve_cast(located.records, roster=roster)
-        loc_errors = {scene_id: place for scene_id, place in located.unresolved_by_scene}
+        loc_errors = {
+            scene_id: place for scene_id, place in located.unresolved_by_scene
+        }
         cast_errors = {scene_id: cues for scene_id, cues in casted.unresolved_by_scene}
 
         for record in casted.records:
@@ -497,32 +579,46 @@ def run_breakdown(
             accepted = bool(auto_accept_schedulable and schedulable)
             active_scene = breakdown.activate(record) if accepted else None
             scene_snapshot = scene_to_json(record)
-            session.add(SceneCandidateModel(
-                id=new_id("scene"),
-                production_id=production_id,
-                breakdown_run_id=run.id,
-                scene_id=record.scene_id,
-                scene_number=record.scene_number,
-                status=record.status.value,
-                accepted=accepted,
-                rejected=False,
-                schedulable=schedulable,
-                resolution_errors=errors,
-                proposal_scene_json=scene_snapshot,
-                scene_json=scene_snapshot,
-                active_scene_json=scene_to_json(active_scene) if active_scene else None,
-                reviewed_at=utcnow() if accepted else None,
-            ))
+            session.add(
+                SceneCandidateModel(
+                    id=new_id("scene"),
+                    production_id=production_id,
+                    breakdown_run_id=run.id,
+                    scene_id=record.scene_id,
+                    scene_number=record.scene_number,
+                    status=record.status.value,
+                    accepted=accepted,
+                    rejected=False,
+                    schedulable=schedulable,
+                    resolution_errors=errors,
+                    proposal_scene_json=scene_snapshot,
+                    scene_json=scene_snapshot,
+                    active_scene_json=scene_to_json(active_scene)
+                    if active_scene
+                    else None,
+                    reviewed_at=utcnow() if accepted else None,
+                )
+            )
         run.status = "complete"
         run.unresolved_locations = list(located.unresolved)
         run.unresolved_cast = list(casted.unresolved)
         run.completed_at = utcnow()
-        audit(session, production_id, "breakdown.completed", {"run_id": run.id, "agent_mode": mode})
+        audit(
+            session,
+            production_id,
+            "breakdown.completed",
+            {"run_id": run.id, "agent_mode": mode},
+        )
     except Exception as exc:  # noqa: BLE001 - boundary records failures durably
         run.status = "failed"
         run.error = str(exc)
         run.completed_at = utcnow()
-        audit(session, production_id, "breakdown.failed", {"run_id": run.id, "error": str(exc)})
+        audit(
+            session,
+            production_id,
+            "breakdown.failed",
+            {"run_id": run.id, "error": str(exc)},
+        )
     session.commit()
     return run
 
@@ -554,7 +650,9 @@ def _candidate_can_be_scheduled(record: SceneRecord, errors: list[str]) -> bool:
     )
 
 
-def review_candidate(session: Session, *, candidate_id: str, decision: str) -> SceneCandidateModel:
+def review_candidate(
+    session: Session, *, candidate_id: str, decision: str
+) -> SceneCandidateModel:
     candidate = _get_candidate(session, candidate_id)
     if decision == "reject":
         candidate.rejected = True
@@ -562,7 +660,12 @@ def review_candidate(session: Session, *, candidate_id: str, decision: str) -> S
         candidate.status = CandidateStatus.REJECTED.value
         candidate.active_scene_json = None
         candidate.reviewed_at = utcnow()
-        audit(session, candidate.production_id, "scene.rejected", {"candidate_id": candidate.id})
+        audit(
+            session,
+            candidate.production_id,
+            "scene.rejected",
+            {"candidate_id": candidate.id},
+        )
         session.commit()
         return candidate
     if decision != "accept":
@@ -572,7 +675,9 @@ def review_candidate(session: Session, *, candidate_id: str, decision: str) -> S
             "candidate cannot be accepted for scheduling until it is fully resolved: "
             + "; ".join(candidate.resolution_errors)
         )
-    record = replace(scene_from_json(candidate.scene_json), status=CandidateStatus.CANDIDATE)
+    record = replace(
+        scene_from_json(candidate.scene_json), status=CandidateStatus.CANDIDATE
+    )
     active = breakdown.activate(record)
     candidate.accepted = True
     candidate.rejected = False
@@ -580,7 +685,12 @@ def review_candidate(session: Session, *, candidate_id: str, decision: str) -> S
     candidate.scene_json = scene_to_json(record)
     candidate.active_scene_json = scene_to_json(active)
     candidate.reviewed_at = utcnow()
-    audit(session, candidate.production_id, "scene.accepted", {"candidate_id": candidate.id})
+    audit(
+        session,
+        candidate.production_id,
+        "scene.accepted",
+        {"candidate_id": candidate.id},
+    )
     session.commit()
     return candidate
 
@@ -603,7 +713,9 @@ def update_candidate(
         if key in changes and changes[key] is not None:
             current[key] = changes[key]
     if "cast_ids" in changes and changes["cast_ids"] is not None:
-        current["cast_ids"] = [str(c).strip() for c in changes["cast_ids"] if str(c).strip()]
+        current["cast_ids"] = [
+            str(c).strip() for c in changes["cast_ids"] if str(c).strip()
+        ]
     if "flags" in changes and changes["flags"] is not None:
         flags = flags_from_json(changes["flags"])
         current["flags"] = flags_to_json(flags)
@@ -649,9 +761,13 @@ def batch_accept_candidates(
             skipped[candidate.id] = ["candidate is rejected"]
             continue
         if not candidate.schedulable:
-            skipped[candidate.id] = list(candidate.resolution_errors) or ["not schedulable"]
+            skipped[candidate.id] = list(candidate.resolution_errors) or [
+                "not schedulable"
+            ]
             continue
-        record = replace(scene_from_json(candidate.scene_json), status=CandidateStatus.CANDIDATE)
+        record = replace(
+            scene_from_json(candidate.scene_json), status=CandidateStatus.CANDIDATE
+        )
         active = breakdown.activate(record)
         candidate.accepted = True
         candidate.rejected = False
@@ -673,7 +789,9 @@ def batch_accept_candidates(
 def _get_candidate(session: Session, candidate_id: str) -> SceneCandidateModel:
     candidate = session.get(SceneCandidateModel, candidate_id)
     if candidate is None:
-        raise ServiceError(f"scene candidate not found: {candidate_id}", status_code=404)
+        raise ServiceError(
+            f"scene candidate not found: {candidate_id}", status_code=404
+        )
     return candidate
 
 
@@ -683,7 +801,9 @@ def _resolve_candidate_record(
     locations = locations_from_models(list_locations(session, production_id))
     roster = roster_from_models(list_cast(session, production_id))
     aliases = aliases_from_models(list_aliases(session, production_id))
-    located = breakdown.resolve_locations((record,), locations=locations, aliases=aliases)
+    located = breakdown.resolve_locations(
+        (record,), locations=locations, aliases=aliases
+    )
     casted = breakdown.resolve_cast(located.records, roster=roster)
     loc_errors = {scene_id: place for scene_id, place in located.unresolved_by_scene}
     cast_errors = {scene_id: cues for scene_id, cues in casted.unresolved_by_scene}
@@ -695,14 +815,20 @@ def _resolve_candidate_record(
 
 def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
     get_production(session, production_id)
-    run = ScheduleRunModel(id=new_id("sched"), production_id=production_id, status="running")
+    run = ScheduleRunModel(
+        id=new_id("sched"), production_id=production_id, status="running"
+    )
     session.add(run)
     session.commit()
     try:
-        candidates = list(session.scalars(select(SceneCandidateModel).where(
-            SceneCandidateModel.production_id == production_id,
-            SceneCandidateModel.accepted.is_(True),
-        )))
+        candidates = list(
+            session.scalars(
+                select(SceneCandidateModel).where(
+                    SceneCandidateModel.production_id == production_id,
+                    SceneCandidateModel.accepted.is_(True),
+                )
+            )
+        )
         scenes = tuple(scene_from_json(c.active_scene_json or {}) for c in candidates)
         if not scenes:
             raise SolverError("no accepted, schedulable scenes are available to solve")
@@ -740,12 +866,22 @@ def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
         else:
             run.error = str(result.conflict_set or "no viable board")
         run.completed_at = utcnow()
-        audit(session, production_id, "schedule.completed", {"run_id": run.id, "status": run.status})
+        audit(
+            session,
+            production_id,
+            "schedule.completed",
+            {"run_id": run.id, "status": run.status},
+        )
     except Exception as exc:  # noqa: BLE001 - boundary records failures durably
         run.status = "failed"
         run.error = str(exc)
         run.completed_at = utcnow()
-        audit(session, production_id, "schedule.failed", {"run_id": run.id, "error": str(exc)})
+        audit(
+            session,
+            production_id,
+            "schedule.failed",
+            {"run_id": run.id, "error": str(exc)},
+        )
     session.commit()
     return run
 
@@ -766,9 +902,13 @@ def get_breakdown_run(session: Session, run_id: str) -> BreakdownRunModel:
 
 
 def list_candidates_for_run(session: Session, run_id: str) -> list[SceneCandidateModel]:
-    return list(session.scalars(select(SceneCandidateModel).where(
-        SceneCandidateModel.breakdown_run_id == run_id
-    )))
+    return list(
+        session.scalars(
+            select(SceneCandidateModel).where(
+                SceneCandidateModel.breakdown_run_id == run_id
+            )
+        )
+    )
 
 
 def get_schedule_run(session: Session, run_id: str) -> ScheduleRunModel:
@@ -785,14 +925,23 @@ def get_board(session: Session, board_id: str) -> BoardModel:
     return board
 
 
-def audit(session: Session, production_id: str | None, event_type: str, payload: dict) -> None:
-    session.add(AuditEventModel(
-        id=new_id("audit"), production_id=production_id, event_type=event_type, payload=payload
-    ))
+def audit(
+    session: Session, production_id: str | None, event_type: str, payload: dict
+) -> None:
+    session.add(
+        AuditEventModel(
+            id=new_id("audit"),
+            production_id=production_id,
+            event_type=event_type,
+            payload=payload,
+        )
+    )
 
 
 def enqueue_job(session: Session, *, job_type: str, target_id: str) -> JobModel:
-    job = JobModel(id=new_id("job"), job_type=job_type, target_id=target_id, status="queued")
+    job = JobModel(
+        id=new_id("job"), job_type=job_type, target_id=target_id, status="queued"
+    )
     session.add(job)
     session.commit()
     return job

@@ -25,14 +25,18 @@ def upgrade() -> None:
     inspector = inspect(bind)
     tables = set(inspector.get_table_names())
     if "scene_candidates" in tables:
-        columns = {column["name"] for column in inspector.get_columns("scene_candidates")}
+        columns = {
+            column["name"] for column in inspector.get_columns("scene_candidates")
+        }
         if "proposal_scene_json" not in columns:
             op.add_column(
                 "scene_candidates",
                 sa.Column("proposal_scene_json", sa.JSON(), nullable=True),
             )
     if "screenplay_assets" in tables:
-        columns = {column["name"] for column in inspector.get_columns("screenplay_assets")}
+        columns = {
+            column["name"] for column in inspector.get_columns("screenplay_assets")
+        }
         if "normalized_text_uri" not in columns:
             op.add_column(
                 "screenplay_assets",
