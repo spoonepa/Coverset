@@ -66,13 +66,24 @@ def init_db(engine: Engine | None = None, *, use_migrations: bool | None = None)
 def run_migrations(settings: Settings | None = None) -> None:
     if command is None or Config is None:
         raise RuntimeError("Alembic is not installed; cannot initialize service schema")
-    root = Path(__file__).resolve().parents[3]
-    config_path = root / "alembic.ini"
-    if not config_path.exists():
-        raise RuntimeError(f"Alembic config is missing: {config_path}")
+    config_path = _alembic_config_path()
     config = Config(str(config_path))
-    config.set_main_option("sqlalchemy.url", (settings or get_settings()).sqlalchemy_url)
+    config.attributes["sqlalchemy_url"] = (settings or get_settings()).sqlalchemy_url
     command.upgrade(config, "head")
+
+
+def _alembic_config_path() -> Path:
+    candidates = (
+        Path.cwd() / "alembic.ini",
+        Path(__file__).resolve().parents[3] / "alembic.ini",
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise RuntimeError(
+        "Alembic config is missing; looked for "
+        + ", ".join(str(candidate) for candidate in candidates)
+    )
 
 
 def get_session() -> Iterator[Session]:

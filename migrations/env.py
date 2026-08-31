@@ -18,9 +18,12 @@ target_metadata = Base.metadata
 
 
 def _database_url() -> str:
-    value = config.get_main_option("sqlalchemy.url")
-    if value:
+    value = config.attributes.get("sqlalchemy_url")
+    if isinstance(value, str) and value:
         return value
+    configured = config.get_main_option("sqlalchemy.url")
+    if configured:
+        return configured
     return get_settings().sqlalchemy_url
 
 
