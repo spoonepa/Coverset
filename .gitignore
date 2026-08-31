@@ -58,6 +58,17 @@ dmypy.json
 *service_account*.json
 *secret*.json
 
+# ── Frontend / deployment artifacts ───────────────────────────────────────────
+node_modules/
+.next/
+out/
+.vercel/
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/*.tfvars
+!infra/terraform/*.tfvars.example
+
 # ── Bob (AI assistant) local state ────────────────────────────────────────────
 .bob/
 
@@ -68,3 +79,4 @@ Thumbs.db
 # ── Screenplay corpus (downloaded, never committed) ───────────────────────────
 fixtures/corpus/sources.local.toml
 .cache/corpus/
+.coverset-data/

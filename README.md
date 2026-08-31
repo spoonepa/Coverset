@@ -10,7 +10,22 @@ An agentic scheduling partner for first assistant directors.
 
 ## Architecture
 
-<!-- TODO -->
+Coverset keeps advisory agents out of the scheduling decision path:
+
+```text
+Next.js web UI -> FastAPI API -> Postgres/GCS
+                         |
+                         v
+                  deterministic CP-SAT scheduler
+                         ^
+Gemini breakdown -> candidate records
+Parallel Search  -> grounded evidence
+```
+
+See:
+
+- `docs/architecture/system-architecture.md`
+- `docs/architecture/deployment-architecture.md`
 
 ## Setup
 
@@ -34,7 +49,45 @@ uv run python scripts/smoke_grounding.py
 
 ## Demo
 
-<!-- TODO -->
+Run the local API-backed vertical slice with a deterministic fixture agent:
+
+```sh
+uv run uvicorn coverset.api.main:app --reload --port 8080
+curl -X POST http://127.0.0.1:8080/demo/run
+```
+
+Run the web UI locally:
+
+```sh
+cd apps/web
+npm install
+npm run dev
+```
+
+The web app proxies API calls to `COVERSET_API_BASE_URL` (default:
+`http://127.0.0.1:8080`).
+
+## Dev deploy
+
+The dev cloud stack is provisioned with Terraform and images are built by Cloud Build:
+
+```sh
+scripts/deploy_dev.sh
+```
+
+Default target: project `spoonepa`, region `us-central1`, private Cloud Run. The deploy
+script smoke-tests `/healthz` and `/demo/run` with an identity token.
+
+Real Gemini/Parallel keys must live in Secret Manager. Rotate leaked keys first, then run:
+
+```sh
+export GEMINI_API_KEY=...
+export GOOGLE_API_KEY=...
+export PARALLEL_API_KEY=...
+scripts/bootstrap_gcp_secrets.sh
+```
+
+Do not commit `.env`, credentials, or generated `*.tfvars` files.
 
 ## Development
 
@@ -60,7 +113,7 @@ the spec says what must be true.
 ### Verification tiers
 
 | Tier | Command | Proves |
-|---|---|---|
+| --- | --- | --- |
 | Offline | `uv run pytest` | Wiring, shape, invariants. Deterministic, no key. |
 | Live | `uv run pytest -m live` | The external world behaves as assumed. Needs a key. |
 

@@ -1,0 +1,11 @@
+project_id          = "spoonepa"
+region              = "us-central1"
+name_prefix         = "coverset"
+repository_id       = "coverset"
+developer_principal = "user:spoonepa@gmail.com"
+agent_mode          = "fixture"
+
+# These are overwritten by scripts/deploy_dev.sh after Cloud Build publishes images.
+api_image    = "us-docker.pkg.dev/cloudrun/container/hello"
+worker_image = "us-docker.pkg.dev/cloudrun/container/hello"
+web_image    = "us-docker.pkg.dev/cloudrun/container/hello"

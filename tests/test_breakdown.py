@@ -248,6 +248,7 @@ def test_a_margin_scene_number_does_not_break_the_heading():
     assert record.status is CandidateStatus.CANDIDATE
 
 
+@pytest.mark.req("BRK-001")
 def test_unknown_media_is_rejected():
     with pytest.raises(breakdown.BreakdownError):
         breakdown.parse(DOCUMENT, media="docx", agent=FakeAgent())

@@ -1,0 +1,17 @@
+.git
+.venv
+.pytest_cache
+.mypy_cache
+.pyright
+.ruff_cache
+.coverage
+htmlcov
+__pycache__
+*.pyc
+.env
+*.env
+.coverset-data
+apps/web/node_modules
+apps/web/.next
+infra/terraform/.terraform
+infra/terraform/*.tfstate*

@@ -7,7 +7,6 @@
   ],
   "screens": [
     {
-      "key": "01-stripboard-dashboard",
       "title": "Stripboard schedule dashboard",
       "screenId": "ba2bbd1c37d84626b0c2190724ce7818",
       "projectId": "15809028121194640782",
@@ -25,10 +24,10 @@
         "status": 200,
         "path": "docs/ui-sling/01-stripboard-dashboard.png",
         "bytes": 70446
-      }
+      },
+      "slug": "01-stripboard-dashboard"
     },
     {
-      "key": "02-replan-options",
       "title": "Replan alert and option comparison",
       "screenId": "3050744d01dd44ebb553d7f33951e2c4",
       "projectId": "15809028121194640782",
@@ -46,10 +45,10 @@
         "status": 200,
         "path": "docs/ui-sling/02-replan-options.png",
         "bytes": 168310
-      }
+      },
+      "slug": "02-replan-options"
     },
     {
-      "key": "03-grounded-facts",
       "title": "Grounded facts and source provenance",
       "screenId": "dc1ae7596f2745188ca724111ca0386d",
       "projectId": "15809028121194640782",
@@ -67,10 +66,10 @@
         "status": 200,
         "path": "docs/ui-sling/03-grounded-facts.png",
         "bytes": 82268
-      }
+      },
+      "slug": "03-grounded-facts"
     },
     {
-      "key": "04-coverage-pickup",
       "title": "Coverage review and pickup decision",
       "screenId": "30025a7fb3ab4be2a479c6743d3c7d16",
       "projectId": "15809028121194640782",
@@ -88,10 +87,10 @@
         "status": 200,
         "path": "docs/ui-sling/04-coverage-pickup.png",
         "bytes": 56206
-      }
+      },
+      "slug": "04-coverage-pickup"
     },
     {
-      "key": "05-call-sheet",
       "title": "Call sheet preview",
       "screenId": "e44153b20f1941388357c4548e00b2ae",
       "projectId": "15809028121194640782",
@@ -109,10 +108,10 @@
         "status": 200,
         "path": "docs/ui-sling/05-call-sheet.png",
         "bytes": 55582
-      }
+      },
+      "slug": "05-call-sheet"
     },
     {
-      "key": "06-audit-log",
       "title": "Audit log",
       "screenId": "02b7100f3dcd41ae8b40603d7c58553b",
       "projectId": "15809028121194640782",
@@ -130,7 +129,8 @@
         "status": 200,
         "path": "docs/ui-sling/06-audit-log.png",
         "bytes": 77966
-      }
+      },
+      "slug": "06-audit-log"
     }
   ]
 }

@@ -4,7 +4,6 @@
   "sourceManifest": "docs/ui-sling/manifest.json",
   "edits": [
     {
-      "key": "01-stripboard-dashboard",
       "title": "Stripboard schedule dashboard",
       "originalScreenId": "ba2bbd1c37d84626b0c2190724ce7818",
       "screenId": "a54acff921f14c5b87dcdd513138e78e",
@@ -22,10 +21,10 @@
         "status": 200,
         "path": "docs/ui-sling/01-stripboard-dashboard.v2.png",
         "bytes": 70814
-      }
+      },
+      "slug": "01-stripboard-dashboard"
     },
     {
-      "key": "02-replan-options",
       "title": "Replan alert and option comparison",
       "originalScreenId": "3050744d01dd44ebb553d7f33951e2c4",
       "screenId": "3f902e64f7b34ac68519f60ec783c77e",
@@ -43,10 +42,10 @@
         "status": 200,
         "path": "docs/ui-sling/02-replan-options.v2.png",
         "bytes": 163717
-      }
+      },
+      "slug": "02-replan-options"
     },
     {
-      "key": "03-grounded-facts",
       "title": "Grounded facts and source provenance",
       "originalScreenId": "dc1ae7596f2745188ca724111ca0386d",
       "screenId": "45019ab7f3c943f9bfe22ed06fc7afd2",
@@ -64,10 +63,10 @@
         "status": 200,
         "path": "docs/ui-sling/03-grounded-facts.v2.png",
         "bytes": 90381
-      }
+      },
+      "slug": "03-grounded-facts"
     },
     {
-      "key": "04-coverage-pickup",
       "title": "Coverage review and pickup decision",
       "originalScreenId": "30025a7fb3ab4be2a479c6743d3c7d16",
       "screenId": "304c48f463324477b0108fc8353004f3",
@@ -85,10 +84,10 @@
         "status": 200,
         "path": "docs/ui-sling/04-coverage-pickup.v2.png",
         "bytes": 56929
-      }
+      },
+      "slug": "04-coverage-pickup"
     },
     {
-      "key": "05-call-sheet",
       "title": "Call sheet preview",
       "originalScreenId": "e44153b20f1941388357c4548e00b2ae",
       "screenId": "a8f5946eef9642198c33014f83ffc76d",
@@ -106,10 +105,10 @@
         "status": 200,
         "path": "docs/ui-sling/05-call-sheet.v2.png",
         "bytes": 57720
-      }
+      },
+      "slug": "05-call-sheet"
     },
     {
-      "key": "06-audit-log",
       "title": "Audit log",
       "originalScreenId": "02b7100f3dcd41ae8b40603d7c58553b",
       "screenId": "a4da720d7fd8472eac2e0e12beb9c86e",
@@ -127,7 +126,8 @@
         "status": 200,
         "path": "docs/ui-sling/06-audit-log.v2.png",
         "bytes": 80184
-      }
+      },
+      "slug": "06-audit-log"
     }
   ]
 }

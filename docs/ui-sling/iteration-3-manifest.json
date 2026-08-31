@@ -7,7 +7,6 @@
   ],
   "generatedScreens": [
     {
-      "key": "01b-scene-breakdown-review",
       "title": "Scene breakdown / review",
       "screenId": "e4f8f8c8b42846939a826b06e009ed83",
       "promptPath": "docs/ui-sling/01b-scene-breakdown-review.prompt.md",
@@ -30,14 +29,14 @@
         "status": 200,
         "path": "docs/ui-sling/01b-scene-breakdown-review.v1.hires.png",
         "bytes": 586525
-      }
+      },
+      "slug": "01b-scene-breakdown-review"
     }
   ],
   "edits": [
     {
       "title": "02-replan-options",
       "summary": "Replaced weather exception action with Request Weather Waiver.",
-      "key": "02-replan-options",
       "screenId": "3f902e64f7b34ac68519f60ec783c77e",
       "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sX2I5NDI2YjYyMmExODQzZmU4YmM0MDAyNDY2NGY3NWUxEgsSBxCkwrS7kR0YAZIBJAoKcHJvamVjdF9pZBIWQhQxNTgwOTAyODEyMTE5NDY0MDc4Mg&filename=&opi=96797242",
       "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1VA01U14PVl8lU1VwmInnEBgazKCqF2ze8hd3pw-bQd4n3Uhpzx1NnzSsw5qff0sCjowjU-8rkdzvSQkob45ktsx84ymsNZM2DApeCkbAw8_6IHFSYtYZXyCNpSAIA9R8y6abYobLLgvtnYxeMYLpg3dIixaCewm8SgtyU6t8nfZOKHjfii6SFKoQqfpvzho652AK2ofJ8n6noXG6TiQMgJkVJf00xFmMU9ir4Pv4gAKs_55BUiB6qv-4U",
@@ -58,12 +57,12 @@
         "status": 200,
         "path": "docs/ui-sling/02-replan-options.v3.hires.png",
         "bytes": 1422807
-      }
+      },
+      "slug": "02-replan-options"
     },
     {
       "title": "03-grounded-facts",
       "summary": "Replaced City of LA permit DB placeholder with Savannah Film Office permit source.",
-      "key": "03-grounded-facts",
       "screenId": "45019ab7f3c943f9bfe22ed06fc7afd2",
       "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzhmNzYyYjc5ZGVkNzQ0NTNiMzQ5N2U3Y2Q0MjFjMDk5EgsSBxCkwrS7kR0YAZIBJAoKcHJvamVjdF9pZBIWQhQxNTgwOTAyODEyMTE5NDY0MDc4Mg&filename=&opi=96797242",
       "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UvfHaRomZBaA-R9aNppkxJEJ0alhUlRTMM2uRBYJDsZ4OE_hzWsqiyVGuYkrhlJqCYd_y05PgVmr2V4sLO7vdaGLLZ1aVvyGHWwJ5gwQfeDP5xeV-755vGI5xYmockPiqDZ5TAfrOYiWuRf_ONF_ujYypJnXRNrPyhGMnlgGFzgphmF0ALQRQNOMsME0-6ESAp-XlezoHfh_uWBNiv4Eg-4LYm7XJ22bFEGq8DCjuhIXd9on6AsfPlW_Ax",
@@ -84,12 +83,12 @@
         "status": 200,
         "path": "docs/ui-sling/03-grounded-facts.v3.hires.png",
         "bytes": 838405
-      }
+      },
+      "slug": "03-grounded-facts"
     },
     {
       "title": "06-audit-log",
       "summary": "Replaced broken data_extraction icon with supported article icon / non-overlapping extraction marker.",
-      "key": "06-audit-log",
       "screenId": "a4da720d7fd8472eac2e0e12beb9c86e",
       "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzBmOWExM2VhZTY4NTQ2ZjhhNTQ1Y2E5NWQxY2YyN2Q3EgsSBxCkwrS7kR0YAZIBJAoKcHJvamVjdF9pZBIWQhQxNTgwOTAyODEyMTE5NDY0MDc4Mg&filename=&opi=96797242",
       "imageUrl": "https://lh3.googleusercontent.com/aida/AEtjO1Ucr9cDDQj-MqdNa_hR0cHWQGlCWen6WYkXs7iieZNNlnohvlJaUtT9BJL0YpOUSY27C-0x1eOCav5zodXOpNOkJEYlImRCIGp5eGYNAT8TExEFaS2jdiDWV34wF-D67xgPpfbKPpnDRer95gAyL3FCsnXuE0596kjSKnhiL-8-MqMTqGeRHuZxZBgZShFRv_gLIuMCi4JNEYbYIWQV6L5-2M6HzCqlUhOwbIN6m8Fo792cRcV_dy_behg",
@@ -110,39 +109,40 @@
         "status": 200,
         "path": "docs/ui-sling/06-audit-log.v3.hires.png",
         "bytes": 646698
-      }
+      },
+      "slug": "06-audit-log"
     }
   ],
   "hiResExports": [
     {
-      "key": "01-stripboard-dashboard",
       "sourceScreenId": "a54acff921f14c5b87dcdd513138e78e",
       "hiResDownload": {
         "ok": true,
         "status": 200,
         "path": "docs/ui-sling/01-stripboard-dashboard.v2.hires.png",
         "bytes": 613702
-      }
+      },
+      "slug": "01-stripboard-dashboard"
     },
     {
-      "key": "04-coverage-pickup",
       "sourceScreenId": "304c48f463324477b0108fc8353004f3",
       "hiResDownload": {
         "ok": true,
         "status": 200,
         "path": "docs/ui-sling/04-coverage-pickup.v2.hires.png",
         "bytes": 390944
-      }
+      },
+      "slug": "04-coverage-pickup"
     },
     {
-      "key": "05-call-sheet",
       "sourceScreenId": "a8f5946eef9642198c33014f83ffc76d",
       "hiResDownload": {
         "ok": true,
         "status": 200,
         "path": "docs/ui-sling/05-call-sheet.v2.hires.png",
         "bytes": 440015
-      }
+      },
+      "slug": "05-call-sheet"
     }
   ]
 }
