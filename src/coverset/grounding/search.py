@@ -19,10 +19,10 @@ TRACK REQUIREMENT -- do not refactor around this.
 from __future__ import annotations
 
 import datetime as dt
-from typing import Any
+from typing import Any, cast
 
-from parallel import APIError, Parallel
-from parallel.types import ExtractResponse, SearchResult
+from parallel import APIError, Parallel  # type: ignore[import-not-found]
+from parallel.types import ExtractResponse, SearchResult  # type: ignore[import-not-found]
 
 from ..locations import Location
 from .coverage import covers_date
@@ -136,16 +136,19 @@ class SearchGrounder:
         if source_policy := _source_policy(plan):
             settings["source_policy"] = source_policy
 
+        kwargs: dict[str, Any] = {
+            "search_queries": list(plan.queries),
+            "objective": plan.objective,
+            "mode": plan.mode,
+            "max_chars_total": plan.max_chars_total,
+            "client_model": CLIENT_MODEL,
+            "advanced_settings": settings,
+        }
+        if self._session_id:
+            kwargs["session_id"] = self._session_id
+
         try:
-            return self._client.search(
-                search_queries=list(plan.queries),
-                objective=plan.objective,
-                mode=plan.mode,
-                max_chars_total=plan.max_chars_total,
-                client_model=CLIENT_MODEL,
-                advanced_settings=settings,
-                **({"session_id": self._session_id} if self._session_id else {}),
-            )
+            return cast(SearchResult, cast(Any, self._client).search(**kwargs))
         except APIError as exc:
             raise GroundingError(
                 f"Parallel Search failed grounding {kind} for {location.place} "
@@ -162,18 +165,21 @@ class SearchGrounder:
         see it is working from fragments and lower its confidence accordingly.
         """
         targets = sources[: plan.escalate_top_n]
+        kwargs: dict[str, Any] = {
+            "urls": [s.url for s in targets],
+            "objective": plan.objective,
+            "search_queries": list(plan.queries),
+            "max_chars_total": plan.max_chars_total,
+            "client_model": CLIENT_MODEL,
+            "advanced_settings": {
+                "full_content": {"max_chars_per_result": plan.max_chars_total}
+            },
+        }
+        if self._session_id:
+            kwargs["session_id"] = self._session_id
+
         try:
-            response: ExtractResponse = self._client.extract(
-                urls=[s.url for s in targets],
-                objective=plan.objective,
-                search_queries=list(plan.queries),
-                max_chars_total=plan.max_chars_total,
-                client_model=CLIENT_MODEL,
-                advanced_settings={
-                    "full_content": {"max_chars_per_result": plan.max_chars_total}
-                },
-                **({"session_id": self._session_id} if self._session_id else {}),
-            )
+            response = cast(ExtractResponse, cast(Any, self._client).extract(**kwargs))
         except APIError:
             return sources, False
 

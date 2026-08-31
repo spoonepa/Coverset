@@ -14,7 +14,8 @@ from __future__ import annotations
 import datetime as dt
 import json
 import pathlib
-from typing import Any
+from enum import StrEnum
+from typing import Any, TypeVar
 
 from .actors import Actor, Role
 from .constraints import (
@@ -43,6 +44,8 @@ from .people import AvailabilityWindow, Roster
 from .scenes import CandidateStatus, IntExt, SceneRecord
 from .work import DayNight, WorkFlags
 
+EnumT = TypeVar("EnumT", bound=StrEnum)
+
 __all__ = ["FixtureError", "load_constraints", "load_scenes"]
 
 REQUIRED = ("scene_id", "scene_number", "slugline", "int_ext", "day_night",
@@ -58,7 +61,7 @@ class FixtureError(Exception):
         super().__init__(f"{len(problems)} problem(s) in scene fixtures:\n  {body}")
 
 
-def _enum(value: Any, kind: type, field: str, where: str, problems: list[str]):
+def _enum(value: Any, kind: type[EnumT], field: str, where: str, problems: list[str]) -> EnumT | None:
     try:
         return kind(value)
     except ValueError:
@@ -139,6 +142,9 @@ def load_scenes(
         if found:
             problems.extend(found)
             continue
+        assert int_ext is not None
+        assert day_night is not None
+        assert status is not None
 
         raw_flags = raw.get("flags") or {}
         try:
@@ -188,7 +194,11 @@ def _hours(value: Any, field: str, where: str, problems: list[str]) -> float | N
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         problems.append(f"{where}: {field} must be a number of hours, got {value!r}")
         return None
-    return float(value)
+    try:
+        return float(value)
+    except (OverflowError, TypeError, ValueError):
+        problems.append(f"{where}: {field} must be a finite number of hours, got {value!r}")
+        return None
 
 
 def _text(raw: dict[str, Any], field: str, where: str, problems: list[str]) -> str | None:

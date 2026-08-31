@@ -38,6 +38,13 @@ SHOOT_DATE = dt.date.today() + dt.timedelta(days=6)
 RULE = "=" * 78
 
 
+def _format_window(window: tuple[dt.datetime, dt.datetime] | None) -> str:
+    if window is None:
+        return "unavailable"
+    start, end = window
+    return f"{start:%H:%M} - {end:%H:%M}"
+
+
 def show_daylight() -> None:
     print(f"\n{RULE}\nDAYLIGHT  (computed -- no network)\n{RULE}")
     w = daylight_window(LOCATION, SHOOT_DATE)
@@ -46,8 +53,8 @@ def show_daylight() -> None:
     print(f"  sunrise    : {w.sunrise:%H:%M %Z}")
     print(f"  solar noon : {w.solar_noon:%H:%M %Z}")
     print(f"  sunset     : {w.sunset:%H:%M %Z}")
-    print(f"  golden hr  : {w.golden_hour[0]:%H:%M} - {w.golden_hour[1]:%H:%M}")
-    print(f"  magic hr   : {w.magic_hour[0]:%H:%M} - {w.magic_hour[1]:%H:%M}")
+    print(f"  golden hr  : {_format_window(w.golden_hour)}")
+    print(f"  magic hr   : {_format_window(w.magic_hour)}")
     print(f"  day length : {w.day_length}")
     print(f"\n  -> exterior DAY scenes bounded to {w.sunrise:%H:%M}-{w.sunset:%H:%M}")
 

@@ -145,6 +145,8 @@ def render(problem: ScheduleProblem, result: SolveResult) -> str:
         return "\n".join(out)
 
     board = result.board
+    if board is None:
+        raise RuntimeError("solver reported viable boards without returning a board")
     out += [
         stripboard(board, work_items=problem.work_items,
                    locations=problem.locations, roster=problem.roster),
@@ -163,7 +165,8 @@ def render(problem: ScheduleProblem, result: SolveResult) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    description = (__doc__ or "UC-00 demo").splitlines()[0]
+    parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--fixtures", type=pathlib.Path, default=FIXTURES,
                         help="directory holding scenes.json and constraints.json")
     parser.add_argument("--seed", type=int, default=0,
