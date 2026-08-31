@@ -12,7 +12,7 @@ API credentials were supplied via environment for generation and are not stored 
 ## Screens
 
 | Screen | Final HTML | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | Stripboard dashboard | `01-stripboard-dashboard.v4.html` | Main First AD board view |
 | Scene breakdown / review | `02-scene-breakdown-review.v4.html` | Gemini candidate records and activation |
 | Replan options | `03-replan-options.v4.html` | Weather-triggered replan comparison |
@@ -76,7 +76,7 @@ screens had satisfied were missing. Rows below cite the requirement they check.
 ## Requirement coverage
 
 | ID | Requirement | Screen | Evidence |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | OUT-003 | Stripboard lists days, ordered work, scene ids, locations, day/night, cast, call/wrap | 01 | Day header carries `call → wrap (Nh)`; every strip carries its own window. |
 | SOL-006 | A shoot day is a day shoot or a night shoot | 01 | Day 8 is all night work and says so; Day 9 is all day work. No day mixes the two. |
 | SOL-005 | Company moves are counted and priced | 01 | Every move between two locations is banner'd and numbered `n of n`; header total matches. |
@@ -94,6 +94,9 @@ screens had satisfied were missing. Rows below cite the requirement they check.
 | GRD-013 | Grounded values record query, timestamp, response id, hash, mode, units, validator | 04 | All present on the weather card; permit card carries span, id, hash, mode. |
 | GRD-014 | Conflicting authoritative values cannot bind | 04 | Conflict card binds nothing and escalates. |
 | SCN-001 | SceneRecord fields and vocabularies | 02 | Slugline, flags, page eighths, source span, confidence; time-of-day offers only `DayNight` members. |
+| BRK-012 | The same document parses to stable structural fields | 02 | Breakdown guardrail states the same document is parsed twice and scene list, INT/EXT and DAY/NIGHT must match. |
+| BRK-013 | Slugline locations resolve to `LocationBook` ids or stay unresolved | 02 | Location guardrail says unresolved locations block board generation and nearest-match guessing is forbidden. |
+| BRK-014 | Supplied and synthesised scene numbers are distinguished | 02 | Scene-number provenance states supplied script numbers stay verbatim and synthesised numbers are labelled. |
 | CON-004 | A candidate record cannot reach the solver | 02 | `Accept Scene Record` disabled while discrepancies stand; the scene under review is not on the board. |
 | REV-001 / REV-003 | Findings are advisory; only a human decides | 05 | `Gemini can flag this; only a human can decide it.` above a separate Director panel. |
 | PIK-002 / AUD-004 | Pickups trace to a named decision and finding | 05 | Authorisation trace names decision `RD-0142` and finding `GF-2291`. |
@@ -128,7 +131,8 @@ Against the generated screens, keyed to what they violated:
   and a dark day, so the calendar visibly skips a day the index does not.
 - **02** — `MORNING` removed as a scene time and as a selectable option. The record
   under review is now a scene the board has not placed. `Set Piece` replaced with
-  slugline plus typed flags. Rejected candidate renumbered off a scheduled scene.
+  slugline plus typed flags. Rejected candidate renumbered off a scheduled scene. Added
+  parse-stability, LocationBook/no-nearest-match, and scene-number provenance guardrails.
 - **03** — Locked history claimed Day 8, which is being shot; split into D1–D7 immutable
   and D8 in progress. Scene ids normalised. Added version lineage and snapshot per option.
   Weather banner now names the date, not just the day index.
@@ -158,7 +162,7 @@ Against the generated screens, keyed to what they violated:
 Every use case in `SPEC.md` now has a screen:
 
 | Use case | Screen |
-|---|---|
+| --- | --- |
 | UC-00 Build an MVP board from fixtures | 01 |
 | UC-01 Build the initial board from a screenplay | 02 |
 | UC-02 State a constraint in plain English | 09 |

@@ -63,24 +63,64 @@ DAYLIGHT_CLAIMS = [
 # instead of passing a prose checklist.
 REQUIRED = {
     "01-stripboard-dashboard.v4.html": [
-        ("OUT-003", r"call \d{2}:\d{2} &rarr; wrap \d{2}:\d{2}", "day-level call/wrap window"),
+        (
+            "OUT-003",
+            r"call \d{2}:\d{2} &rarr; wrap \d{2}:\d{2}",
+            "day-level call/wrap window",
+        ),
         ("OUT-003", r"\d{2}:\d{2}&ndash;\d{2}:\d{2}", "per-strip call/wrap window"),
         ("AUD-005", r"CONSTRAINT SNAPSHOT", "constraint snapshot hash"),
         ("DAY-001", r"Not retrieved", "daylight stated as computed"),
     ],
     "02-scene-breakdown-review.v4.html": [
-        ("ACT-002", r"Gemini produces candidate records only", "advisory-only boundary"),
-        ("ACT-002", r"Human validation required before solver scheduling",
-         "human validation before anything reaches the solver"),
+        (
+            "ACT-002",
+            r"Gemini produces candidate records only",
+            "advisory-only boundary",
+        ),
+        (
+            "ACT-002",
+            r"Human validation required before solver scheduling",
+            "human validation before anything reaches the solver",
+        ),
         ("CST-009", r"Accept Scene Record", "the accept action"),
-        ("CST-009", r"disabled[^>]*Resolve cast/location discrepancies",
-         "accept disabled while a cast id is unresolved -- an `ID: 5?` that reads as "
-         "accepted is the SARA/SARAH failure with a button on it"),
+        (
+            "CST-009",
+            r"disabled[^>]*Resolve cast/location discrepancies",
+            "accept disabled while a cast id is unresolved -- an `ID: 5?` that reads as "
+            "accepted is the SARA/SARAH failure with a button on it",
+        ),
         ("SCN-001", r"Script v2\.pdf &gt; pg 71", "source span on the record"),
-        ("SCN-001", r"<option>DAY</option>\s*<option>NIGHT</option>",
-         "day/night offered from the DayNight vocabulary"),
-        ("SCN-001", r"<option>DAWN</option>\s*<option>DUSK</option>",
-         "the twilight members the solver refuses rather than silently reclassifies"),
+        (
+            "SCN-001",
+            r"<option>DAY</option>\s*<option>NIGHT</option>",
+            "day/night offered from the DayNight vocabulary",
+        ),
+        (
+            "SCN-001",
+            r"<option>DAWN</option>\s*<option>DUSK</option>",
+            "the twilight members the solver refuses rather than silently reclassifies",
+        ),
+        (
+            "BRK-012",
+            r"Same document parsed twice[^<]*scene list, INT/EXT and DAY/NIGHT must match",
+            "structural parse fields are stable across two parses",
+        ),
+        (
+            "BRK-013",
+            r"LocationBook:\s*resolve slugline place to a location id or keep it unresolved; no\s+nearest-match",
+            "location resolution refuses nearest-match guessing",
+        ),
+        (
+            "BRK-013",
+            r"Unresolved locations block board generation until a LocationBook id is selected",
+            "unresolved locations block scheduling",
+        ),
+        (
+            "BRK-014",
+            r"Scene number provenance:\s*supplied script numbers stay verbatim;\s*synthesised numbers are labelled",
+            "supplied and synthesised scene numbers are distinguished",
+        ),
     ],
     "03-replan-options.v4.html": [
         ("AUD-006", r"parent v4", "schedule version lineage"),
@@ -88,8 +128,16 @@ REQUIRED = {
         ("SOL-004", r"IMMUTABLE", "locked days held immutable"),
     ],
     "04-grounded-facts.v4.html": [
-        ("GRD-003", r"Date Coverage &middot; PASSED", "date coverage proven before binding"),
-        ("GRD-003", r"REFUSED &mdash; NOT BOUND", "refusal when no source covers the date"),
+        (
+            "GRD-003",
+            r"Date Coverage &middot; PASSED",
+            "date coverage proven before binding",
+        ),
+        (
+            "GRD-003",
+            r"REFUSED &mdash; NOT BOUND",
+            "refusal when no source covers the date",
+        ),
         ("GRD-007", r"EXCERPT FALLBACK", "excerpt degradation made visible"),
         ("GRD-013", r"Normalised Value", "normalised value with units"),
         ("GRD-013", r"Extraction Mode", "full-content/excerpt flag"),
@@ -109,10 +157,22 @@ REQUIRED = {
         ("OUT-006", r"Read-only", "recipients receive read-only"),
     ],
     "08-infeasible-conflict.v4.html": [
-        ("SOL-003", r"Irreducible conflicting subset", "irreducible subset, not a generic failure"),
-        ("SOL-003", r"STATUS: INFEASIBLE", "infeasibility distinguished from budget exhaustion"),
+        (
+            "SOL-003",
+            r"Irreducible conflicting subset",
+            "irreducible subset, not a generic failure",
+        ),
+        (
+            "SOL-003",
+            r"STATUS: INFEASIBLE",
+            "infeasibility distinguished from budget exhaustion",
+        ),
         ("SOL-011", r"RELAXABLE", "at least one relaxable constraint named"),
-        ("SOL-011", r"Re-solved with all four relaxed", "subset checked against a wholly relaxed solve"),
+        (
+            "SOL-011",
+            r"Re-solved with all four relaxed",
+            "subset checked against a wholly relaxed solve",
+        ),
         ("AUD-002", r"SOURCE URL", "url provenance"),
         ("AUD-002", r"ALGORITHM", "algorithm provenance"),
         ("AUD-002", r"HUMAN RULE", "human-rule provenance"),
@@ -122,10 +182,18 @@ REQUIRED = {
         ("CON-001", r"Candidate constraints", "plain English yields candidates"),
         ("CON-002", r"A candidate is inert", "candidates do not reach the solver"),
         ("CON-005", r"AWAITING ACTIVATION", "activation is a separate human act"),
-        ("CON-009", r"CANNOT BE TYPED YET", "weather policy needs human classification"),
+        (
+            "CON-009",
+            r"CANNOT BE TYPED YET",
+            "weather policy needs human classification",
+        ),
         ("CST-001", r"no such cast id", "near-miss cast name refused, not corrected"),
         ("GRD-004", r"exempt from date coverage", "standing rule exemption"),
-        ("ACT-002", r"It does not decide, activate, schedule, or ground", "advisory boundary"),
+        (
+            "ACT-002",
+            r"It does not decide, activate, schedule, or ground",
+            "advisory boundary",
+        ),
     ],
     "10-lock-day-actuals.v4.html": [
         ("LCK-001", r"Actual", "actuals recorded against plan"),
@@ -133,22 +201,42 @@ REQUIRED = {
         ("LCK-003", r"PART-SHOT", "part-shot work survives the lock"),
         ("ACT-006", r"may not rule on coverage", "Script Supervisor authority bounded"),
         ("REV-008", r"Raise a finding", "a human may raise a finding directly"),
-        ("REV-001", r"It accepts nothing, rejects nothing", "the finding stays advisory"),
+        (
+            "REV-001",
+            r"It accepts nothing, rejects nothing",
+            "the finding stays advisory",
+        ),
     ],
     "11-cost-approval.v4.html": [
-        ("PIK-010", r"pending_cost_approval", "board pending until approval is recorded"),
+        (
+            "PIK-010",
+            r"pending_cost_approval",
+            "board pending until approval is recorded",
+        ),
         ("ACT-005", r"UPM / Line Producer", "approval authority named"),
         ("ACT-008", r"CostApproval will record", "approval artifact fields"),
         ("OUT-005", r"What changes, in production terms", "diff in production terms"),
         ("OUT-005", r"Cast holding days", "holding delta"),
         ("OUT-005", r"Company moves", "company move delta"),
         ("SOL-005", r"declared weights", "priced under the declared weight set"),
-        ("AUD-004", r"No automated step in this chain created shoot work", "authorisation trace"),
+        (
+            "AUD-004",
+            r"No automated step in this chain created shoot work",
+            "authorisation trace",
+        ),
     ],
     "07-audit-log.v4.html": [
         ("AUD-005", r"snapshot [0-9a-f]{12}", "snapshot hash on the ledger"),
-        ("ACT-009", r"Prior version v4, new version", "board selection records both versions"),
-        ("SOL-007", r"re-measured off the finished board", "objective checked against the board"),
+        (
+            "ACT-009",
+            r"Prior version v4, new version",
+            "board selection records both versions",
+        ),
+        (
+            "SOL-007",
+            r"re-measured off the finished board",
+            "objective checked against the board",
+        ),
     ],
 }
 
@@ -157,11 +245,14 @@ REQUIRED = {
 # the ones worth catching are wrong in a way that reads as fluent.
 FORBIDDEN = {
     "11-cost-approval.v4.html": [
-        ("PIK-010", r"not schedulable|infeasible|no valid schedule",
-         "solver-infeasibility vocabulary on an approval gate. A board pending cost "
-         "approval is perfectly schedulable and merely unapproved; saying it cannot be "
-         "scheduled tells a UPM the arithmetic failed when what is actually needed is "
-         "their signature"),
+        (
+            "PIK-010",
+            r"not schedulable|infeasible|no valid schedule",
+            "solver-infeasibility vocabulary on an approval gate. A board pending cost "
+            "approval is perfectly schedulable and merely unapproved; saying it cannot be "
+            "scheduled tells a UPM the arithmetic failed when what is actually needed is "
+            "their signature",
+        ),
     ],
 }
 
@@ -172,8 +263,9 @@ VALID_DAY_NIGHT = {m.value.upper() for m in DayNight} | {"UNKNOWN"}
 BAD_DAY_NIGHT = re.compile(
     r"(?:- |>)(MORNING|LATER|EVENING|AFTERNOON|DUSK/DAWN)(?:<|\b)", re.IGNORECASE
 )
-SLUGLINE = re.compile(r"\b((?:INT|EXT)\.[^<]{0,60}?-\s*(?:DAY|NIGHT|DAWN|DUSK))", re.IGNORECASE)
-
+SLUGLINE = re.compile(
+    r"\b((?:INT|EXT)\.[^<]{0,60}?-\s*(?:DAY|NIGHT|DAWN|DUSK))", re.IGNORECASE
+)
 
 
 def _scene_times(body: str) -> list[tuple[str, str]]:
@@ -209,6 +301,15 @@ def _text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _searchable_bodies(body: str) -> tuple[str, str, str]:
+    """Raw and rendered search surfaces, both stable across HTML formatting."""
+    raw_single_line = re.sub(r"\s+", " ", body)
+    rendered = re.sub(r"<(script|style)\b.*?</\1>", " ", body, flags=re.S)
+    rendered = html.unescape(re.sub(r"<[^>]+>", " ", rendered))
+    rendered_single_line = re.sub(r"\s+", " ", rendered)
+    return body, raw_single_line, rendered_single_line
+
+
 def check() -> list[str]:
     problems: list[str] = []
 
@@ -229,16 +330,18 @@ def check() -> list[str]:
                 f"{name}: {kind} for {date} is {computed} computed, screen claims {claimed}"
             )
         elif claimed not in _text(path):
-            problems.append(f"{name}: {kind} {claimed} for {date} is no longer on the screen")
+            problems.append(
+                f"{name}: {kind} {claimed} for {date} is no longer on the screen"
+            )
 
     for name, rules in REQUIRED.items():
         path = UI / name
         if not path.exists():
             problems.append(f"{name}: missing")
             continue
-        body = _text(path)
+        bodies = _searchable_bodies(_text(path))
         for req_id, pattern, what in rules:
-            if not re.search(pattern, body):
+            if not any(re.search(pattern, body, re.S) for body in bodies):
                 problems.append(f"{name}: {req_id} not evidenced -- no {what}")
 
     for name, rules in FORBIDDEN.items():
@@ -274,14 +377,18 @@ def check() -> list[str]:
         distinct = {when for when, _ in seen}
         if len(distinct) > 1:
             where = "; ".join(f"{f} says {w}" for w, f in sorted(seen))
-            problems.append(f"scene {scene} is both {' and '.join(sorted(distinct))} -- {where}")
+            problems.append(
+                f"scene {scene} is both {' and '.join(sorted(distinct))} -- {where}"
+            )
 
     counters = {}
     for path in sorted(UI.glob("*.v4.html")):
         for total in re.findall(r"Day \d+ of (\d+)", _text(path)):
             counters.setdefault(total, []).append(path.name)
     if len(counters) > 1:
-        detail = "; ".join(f"{n} days: {', '.join(sorted(set(f)))}" for n, f in counters.items())
+        detail = "; ".join(
+            f"{n} days: {', '.join(sorted(set(f)))}" for n, f in counters.items()
+        )
         problems.append(f"schedule length disagrees across screens -- {detail}")
 
     return problems
