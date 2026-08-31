@@ -370,6 +370,14 @@ resource "google_cloud_run_v2_service" "api" {
   deletion_protection = false
   ingress             = "INGRESS_TRAFFIC_ALL"
 
+  lifecycle {
+    # The Cloud Run v2 API returns service-level zero/default scaling fields
+    # that the Google provider repeatedly wants to remove. Ignore that
+    # provider-normalized block so dev plans stay meaningful; revision max
+    # instances remains configured in template.scaling.
+    ignore_changes = [scaling]
+  }
+
   template {
     service_account = google_service_account.api.email
 
@@ -506,6 +514,14 @@ resource "google_cloud_run_v2_service" "worker" {
   deletion_protection = false
   ingress             = "INGRESS_TRAFFIC_ALL"
 
+  lifecycle {
+    # The Cloud Run v2 API returns service-level zero/default scaling fields
+    # that the Google provider repeatedly wants to remove. Ignore that
+    # provider-normalized block so dev plans stay meaningful; revision max
+    # instances remains configured in template.scaling.
+    ignore_changes = [scaling]
+  }
+
   template {
     service_account = google_service_account.worker.email
 
@@ -641,6 +657,14 @@ resource "google_cloud_run_v2_service" "web" {
   location            = var.region
   deletion_protection = false
   ingress             = "INGRESS_TRAFFIC_ALL"
+
+  lifecycle {
+    # The Cloud Run v2 API returns service-level zero/default scaling fields
+    # that the Google provider repeatedly wants to remove. Ignore that
+    # provider-normalized block so dev plans stay meaningful; revision max
+    # instances remains configured in template.scaling.
+    ignore_changes = [scaling]
+  }
 
   template {
     service_account = google_service_account.web.email
