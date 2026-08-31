@@ -18,7 +18,12 @@ import os
 import sys
 
 from coverset.daylight import daylight_window
-from coverset.grounding import DateCoverageError, FactKind, GroundingError, SearchGrounder
+from coverset.grounding import (
+    DateCoverageError,
+    FactKind,
+    GroundingError,
+    SearchGrounder,
+)
 from coverset.locations import Location
 
 try:  # local-dev convenience only; deployed runtimes get real environment variables
@@ -72,15 +77,21 @@ def show_grounded(grounder: SearchGrounder, kind: FactKind) -> bool:
 
     print(f"  search_id  : {ev.search_id}")
     print(f"  escalated  : {ev.escalated}   sources: {len(ev.sources)}")
-    print(f"  mentions {SHOOT_DATE:%b %-d}: {len(ev.covering_urls)} of {len(ev.sources)}")
+    print(
+        f"  mentions {SHOOT_DATE:%b %-d}: {len(ev.covering_urls)} of {len(ev.sources)}"
+    )
     for s in ev.sources[:3]:
         mark = "*" if s.url in ev.covering_urls else " "
         print(f"\n  {mark} {s.url}")
-        print(f"      {(s.title or '(untitled)')[:66]}  published={s.publish_date or 'unknown'}")
+        print(
+            f"      {(s.title or '(untitled)')[:66]}  published={s.publish_date or 'unknown'}"
+        )
         body = " ".join(s.text.split())
         print(f"      {body[:280]}{'...' if len(body) > 280 else ''}")
     if ev.covering_urls:
-        print(f"\n  (* = explicitly mentions {SHOOT_DATE:%B %-d}; only these may bind a dated value)")
+        print(
+            f"\n  (* = explicitly mentions {SHOOT_DATE:%B %-d}; only these may bind a dated value)"
+        )
     return True
 
 
@@ -88,18 +99,25 @@ def main() -> int:
     if load_dotenv is not None:
         load_dotenv()
 
-    print(f"\n{LOCATION.name} -- {LOCATION.place}    shoot date {SHOOT_DATE:%A, %B %-d, %Y}")
+    print(
+        f"\n{LOCATION.name} -- {LOCATION.place}    shoot date {SHOOT_DATE:%A, %B %-d, %Y}"
+    )
     show_daylight()
 
     if not os.environ.get("PARALLEL_API_KEY"):
-        print("\nPARALLEL_API_KEY is not set -- skipping the grounded facts.", file=sys.stderr)
+        print(
+            "\nPARALLEL_API_KEY is not set -- skipping the grounded facts.",
+            file=sys.stderr,
+        )
         return 2
 
     grounder = SearchGrounder()
     results = [show_grounded(grounder, kind) for kind in FactKind]
 
     print(f"\n{RULE}")
-    print(f"daylight computed; {sum(results)}/{len(results)} grounded fact kinds retrieved.")
+    print(
+        f"daylight computed; {sum(results)}/{len(results)} grounded fact kinds retrieved."
+    )
     return 0 if all(results) else 1
 
 

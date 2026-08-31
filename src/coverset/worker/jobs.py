@@ -21,7 +21,9 @@ def run_once(session: Session) -> int:
     `coverset.solver` inside the API/service layer until Cloud Tasks is wired in.
     """
     job = session.scalars(
-        select(JobModel).where(JobModel.status == "queued").order_by(JobModel.created_at)
+        select(JobModel)
+        .where(JobModel.status == "queued")
+        .order_by(JobModel.created_at)
     ).first()
     if job is None:
         return 0

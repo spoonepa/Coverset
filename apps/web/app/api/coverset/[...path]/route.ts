@@ -1,22 +1,25 @@
-import { GoogleAuth } from 'google-auth-library';
-import type { NextRequest } from 'next/server';
+import { GoogleAuth } from "google-auth-library";
+import type { NextRequest } from "next/server";
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
 type RouteContext = {
   params: Promise<{ path: string[] }> | { path: string[] };
 };
 
-const API_BASE = process.env.COVERSET_API_BASE_URL ?? 'http://127.0.0.1:8080';
-const API_AUDIENCE = process.env.COVERSET_API_AUDIENCE ?? '';
+const API_BASE = process.env.COVERSET_API_BASE_URL ?? "http://127.0.0.1:8080";
+const API_AUDIENCE = process.env.COVERSET_API_AUDIENCE ?? "";
 
 function upstreamUrlFor(path: string, search: string): URL | Response {
   try {
-    const url = new URL(`${API_BASE.replace(/\/$/, '')}/${path}`);
+    const url = new URL(`${API_BASE.replace(/\/$/, "")}/${path}`);
     url.search = search;
     return url;
   } catch {
-    return Response.json({ error: 'Invalid COVERSET_API_BASE_URL' }, { status: 500 });
+    return Response.json(
+      { error: "Invalid COVERSET_API_BASE_URL" },
+      { status: 500 },
+    );
   }
 }
 
@@ -25,19 +28,24 @@ async function authHeaders(url: string): Promise<Record<string, string>> {
   const auth = new GoogleAuth();
   const client = await auth.getIdTokenClient(API_AUDIENCE);
   const headers = await client.getRequestHeaders(url);
-  return Object.fromEntries(Object.entries(headers).map(([key, value]) => [key, String(value)]));
+  return Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => [key, String(value)]),
+  );
 }
 
-async function proxy(request: NextRequest, context: RouteContext): Promise<Response> {
+async function proxy(
+  request: NextRequest,
+  context: RouteContext,
+): Promise<Response> {
   const params = await context.params;
-  const upstreamPath = params.path.map(encodeURIComponent).join('/');
+  const upstreamPath = params.path.map(encodeURIComponent).join("/");
   const upstreamUrl = upstreamUrlFor(upstreamPath, request.nextUrl.search);
   if (upstreamUrl instanceof Response) {
     return upstreamUrl;
   }
 
   const headers = new Headers(request.headers);
-  for (const name of ['host', 'connection', 'content-length']) {
+  for (const name of ["host", "connection", "content-length"]) {
     headers.delete(name);
   }
   const identityHeaders = await authHeaders(upstreamUrl.toString());
@@ -46,17 +54,20 @@ async function proxy(request: NextRequest, context: RouteContext): Promise<Respo
   }
 
   const method = request.method.toUpperCase();
-  const body = method === 'GET' || method === 'HEAD' ? undefined : await request.arrayBuffer();
+  const body =
+    method === "GET" || method === "HEAD"
+      ? undefined
+      : await request.arrayBuffer();
   const upstream = await fetch(upstreamUrl, {
     method,
     headers,
     body,
-    cache: 'no-store',
+    cache: "no-store",
   });
 
   const responseHeaders = new Headers(upstream.headers);
-  responseHeaders.delete('content-encoding');
-  responseHeaders.delete('content-length');
+  responseHeaders.delete("content-encoding");
+  responseHeaders.delete("content-length");
   return new Response(upstream.body, {
     status: upstream.status,
     statusText: upstream.statusText,

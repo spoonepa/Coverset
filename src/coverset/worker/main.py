@@ -27,7 +27,11 @@ app = FastAPI(title="Coverset Worker", version="0.1.0", lifespan=lifespan)
 
 @app.get("/healthz")
 def healthz() -> dict[str, str | bool]:
-    return {"ok": True, "service": "coverset-worker", "environment": settings.environment}
+    return {
+        "ok": True,
+        "service": "coverset-worker",
+        "environment": settings.environment,
+    }
 
 
 @app.get("/readyz")

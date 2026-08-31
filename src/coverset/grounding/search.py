@@ -22,7 +22,10 @@ import datetime as dt
 from typing import Any, cast
 
 from parallel import APIError, Parallel  # type: ignore[import-not-found]
-from parallel.types import ExtractResponse, SearchResult  # type: ignore[import-not-found]
+from parallel.types import (  # type: ignore[import-not-found]
+    ExtractResponse,
+    SearchResult,
+)
 
 from ..locations import Location
 from .coverage import covers_date
@@ -55,7 +58,9 @@ class SearchGrounder:
     unrelated context and degrading results.
     """
 
-    def __init__(self, client: Parallel | None = None, *, session_id: str | None = None) -> None:
+    def __init__(
+        self, client: Parallel | None = None, *, session_id: str | None = None
+    ) -> None:
         self._client = client if client is not None else Parallel()
         self._session_id = session_id
 

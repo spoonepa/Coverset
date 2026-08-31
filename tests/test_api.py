@@ -41,7 +41,9 @@ def db_session() -> Iterator[Session]:
 def test_service_runs_screenplay_to_persisted_board(db_session: Session, tmp_path):
     settings = Settings(upload_root=tmp_path, agent_mode="fixture")
     storage = ObjectStorage(settings)
-    production = create_production(db_session, title="The Ferry Job", seed_demo_data=True)
+    production = create_production(
+        db_session, title="The Ferry Job", seed_demo_data=True
+    )
     asset = upload_screenplay(
         db_session,
         production_id=production.id,

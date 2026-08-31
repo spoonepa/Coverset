@@ -107,7 +107,9 @@ def get_production_endpoint(
     return _production_response(session, get_production(session, production_id))
 
 
-@app.post("/productions/{production_id}/screenplays", response_model=ScreenplayAssetResponse)
+@app.post(
+    "/productions/{production_id}/screenplays", response_model=ScreenplayAssetResponse
+)
 async def upload_screenplay_endpoint(
     production_id: str,
     file: Annotated[UploadFile, File()],
@@ -123,7 +125,9 @@ async def upload_screenplay_endpoint(
     return _asset_response(asset)
 
 
-@app.post("/productions/{production_id}/breakdowns", response_model=BreakdownRunResponse)
+@app.post(
+    "/productions/{production_id}/breakdowns", response_model=BreakdownRunResponse
+)
 def run_breakdown_endpoint(
     production_id: str,
     payload: BreakdownRequest,
@@ -153,12 +157,14 @@ def review_candidate_endpoint(
     payload: CandidateReviewRequest,
     session: Annotated[Session, Depends(get_session)],
 ) -> SceneCandidateResponse:
-    return _candidate_response(review_candidate(
-        session, candidate_id=candidate_id, decision=payload.decision
-    ))
+    return _candidate_response(
+        review_candidate(session, candidate_id=candidate_id, decision=payload.decision)
+    )
 
 
-@app.post("/productions/{production_id}/boards/solve", response_model=ScheduleRunResponse)
+@app.post(
+    "/productions/{production_id}/boards/solve", response_model=ScheduleRunResponse
+)
 def solve_board_endpoint(
     production_id: str,
     _: ScheduleRequest,
@@ -208,7 +214,9 @@ def run_demo_endpoint(
     return _board_response(get_board(session, schedule_run.board_id))
 
 
-def _production_response(session: Session, production: ProductionModel) -> ProductionResponse:
+def _production_response(
+    session: Session, production: ProductionModel
+) -> ProductionResponse:
     return ProductionResponse(
         id=production.id,
         title=production.title,
@@ -251,7 +259,9 @@ def _candidate_response(candidate: SceneCandidateModel) -> SceneCandidateRespons
     )
 
 
-def _breakdown_response(session: Session, run: BreakdownRunModel) -> BreakdownRunResponse:
+def _breakdown_response(
+    session: Session, run: BreakdownRunModel
+) -> BreakdownRunResponse:
     return BreakdownRunResponse(
         id=run.id,
         production_id=run.production_id,
@@ -261,7 +271,9 @@ def _breakdown_response(session: Session, run: BreakdownRunModel) -> BreakdownRu
         error=run.error,
         unresolved_locations=list(run.unresolved_locations),
         unresolved_cast=list(run.unresolved_cast),
-        candidates=[_candidate_response(c) for c in list_candidates_for_run(session, run.id)],
+        candidates=[
+            _candidate_response(c) for c in list_candidates_for_run(session, run.id)
+        ],
     )
 
 

@@ -40,8 +40,16 @@ from .solver import ProductionCalendar, ScheduleProblem, SolveResult, solve
 from .stripboard import explain_assignment, stripboard
 from .work import WorkItem
 
-__all__ = ["CALENDAR", "COMPANY", "FIXTURES", "LOCATIONS", "ROSTER",
-           "build_problem", "main", "render"]
+__all__ = [
+    "CALENDAR",
+    "COMPANY",
+    "FIXTURES",
+    "LOCATIONS",
+    "ROSTER",
+    "build_problem",
+    "main",
+    "render",
+]
 
 FIXTURES = pathlib.Path(__file__).resolve().parents[2] / "fixtures" / "uc00"
 
@@ -50,28 +58,53 @@ FIXTURES = pathlib.Path(__file__).resolve().parents[2] / "fixtures" / "uc00"
 # `st-anns-church` the scene fixture references. The import would catch it, but a
 # fixture set that only works because a slug rule happens to agree is a fixture set
 # waiting to break when someone renames a location.
-LOCATIONS = LocationBook((
-    Location("Brooklyn Bridge Park", "Brooklyn", "NY", id="brooklyn-bridge-park",
-             latitude=40.7002, longitude=-73.9967, timezone="America/New_York"),
-    Location("St. Ann's Church", "Brooklyn", "NY", id="st-anns-church",
-             latitude=40.7025, longitude=-73.9903, timezone="America/New_York"),
-    Location("Silvercup Studios", "Queens", "NY", id="silvercup-studios",
-             latitude=40.7423, longitude=-73.9382, timezone="America/New_York"),
-))
+LOCATIONS = LocationBook(
+    (
+        Location(
+            "Brooklyn Bridge Park",
+            "Brooklyn",
+            "NY",
+            id="brooklyn-bridge-park",
+            latitude=40.7002,
+            longitude=-73.9967,
+            timezone="America/New_York",
+        ),
+        Location(
+            "St. Ann's Church",
+            "Brooklyn",
+            "NY",
+            id="st-anns-church",
+            latitude=40.7025,
+            longitude=-73.9903,
+            timezone="America/New_York",
+        ),
+        Location(
+            "Silvercup Studios",
+            "Queens",
+            "NY",
+            id="silvercup-studios",
+            latitude=40.7423,
+            longitude=-73.9382,
+            timezone="America/New_York",
+        ),
+    )
+)
 
 # Availability lives in the constraint file, not on the `CastMember`. It is a bound on
 # the schedule, so it reaches the solver the way every other bound does -- through a
 # record with provenance, an id, and a place in the snapshot hash.
-ROSTER = Roster((
-    CastMember("SARAH", "S. Idowu", "MAYA", contracted_days=3),
-    CastMember("TOM", "D. Whitfield", "DEV"),
-    CastMember("NINA", "A. Okonkwo", "RUTH"),
-    CastMember("RAY", "J. Alvarez", "FRANK"),
-))
+ROSTER = Roster(
+    (
+        CastMember("SARAH", "S. Idowu", "MAYA", contracted_days=3),
+        CastMember("TOM", "D. Whitfield", "DEV"),
+        CastMember("NINA", "A. Okonkwo", "RUTH"),
+        CastMember("RAY", "J. Alvarez", "FRANK"),
+    )
+)
 
-CALENDAR = ProductionCalendar(tuple(
-    dt.date(2026, 9, 14) + dt.timedelta(days=i) for i in range(5)
-))
+CALENDAR = ProductionCalendar(
+    tuple(dt.date(2026, 9, 14) + dt.timedelta(days=i) for i in range(5))
+)
 """Monday 14 September to Friday 18 September 2026."""
 
 COMPANY = Company()
@@ -148,8 +181,12 @@ def render(problem: ScheduleProblem, result: SolveResult) -> str:
     if board is None:
         raise RuntimeError("solver reported viable boards without returning a board")
     out += [
-        stripboard(board, work_items=problem.work_items,
-                   locations=problem.locations, roster=problem.roster),
+        stripboard(
+            board,
+            work_items=problem.work_items,
+            locations=problem.locations,
+            roster=problem.roster,
+        ),
         "",
         "WHY THIS STRIP IS WHERE IT IS  (AUD-001)",
         "-" * 78,
@@ -158,21 +195,35 @@ def render(problem: ScheduleProblem, result: SolveResult) -> str:
     # One trace rather than eight. The point is that any strip can be traced, and a
     # wall of eight near-identical traces buries that rather than showing it.
     traced = board.days[0].assignments[0].work_id
-    out.append(explain_assignment(
-        board, traced, constraints=problem.constraints, work_items=problem.work_items
-    ))
+    out.append(
+        explain_assignment(
+            board,
+            traced,
+            constraints=problem.constraints,
+            work_items=problem.work_items,
+        )
+    )
     return "\n".join(out)
 
 
 def main(argv: list[str] | None = None) -> int:
     description = (__doc__ or "UC-00 demo").splitlines()[0]
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("--fixtures", type=pathlib.Path, default=FIXTURES,
-                        help="directory holding scenes.json and constraints.json")
-    parser.add_argument("--seed", type=int, default=0,
-                        help="solver seed; boards are deterministic per seed")
-    parser.add_argument("--out", type=pathlib.Path, default=None,
-                        help="also write the artifact here")
+    parser.add_argument(
+        "--fixtures",
+        type=pathlib.Path,
+        default=FIXTURES,
+        help="directory holding scenes.json and constraints.json",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="solver seed; boards are deterministic per seed",
+    )
+    parser.add_argument(
+        "--out", type=pathlib.Path, default=None, help="also write the artifact here"
+    )
     args = parser.parse_args(argv)
 
     problem = build_problem(args.fixtures)

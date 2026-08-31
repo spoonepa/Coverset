@@ -77,7 +77,7 @@ gcloud builds submit . \
   --substitutions "_REGION=${REGION},_REPOSITORY=${REPOSITORY},_TAG=${TAG}"
 
 echo "== writing generated Terraform image vars =="
-cat > "${GENERATED_TFVARS}" <<EOF
+cat >"${GENERATED_TFVARS}" <<EOF
 project_id          = "${PROJECT_ID}"
 region              = "${REGION}"
 repository_id       = "${REPOSITORY}"
@@ -93,8 +93,8 @@ terraform -chdir="${TF_DIR}" apply -auto-approve -input=false
 
 identity_token() {
   local audience="$1"
-  gcloud auth print-identity-token --audiences="${audience}" 2>/dev/null \
-    || gcloud auth print-identity-token
+  gcloud auth print-identity-token --audiences="${audience}" 2>/dev/null ||
+    gcloud auth print-identity-token
 }
 
 API_URL="$(terraform -chdir="${TF_DIR}" output -raw api_url)"
@@ -107,8 +107,8 @@ echo
 
 echo "== smoke: fixture demo end-to-end =="
 DEMO_OUT="$(mktemp)"
-curl -fsS -X POST -H "Authorization: Bearer ${TOKEN}" "${API_URL}/demo/run" > "${DEMO_OUT}"
-python - <<'PY' "${DEMO_OUT}"
+curl -fsS -X POST -H "Authorization: Bearer ${TOKEN}" "${API_URL}/demo/run" >"${DEMO_OUT}"
+python - "${DEMO_OUT}" <<'PY'
 import json, sys
 payload = json.load(open(sys.argv[1]))
 print('board_id=' + payload['id'])
