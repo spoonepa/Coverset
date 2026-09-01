@@ -1191,8 +1191,37 @@ export default function Home() {
     }
 
     return (
-        <main className="shell">
-            <section className="hero">
+        <div className="appFrame">
+            <aside className="sideRail launchRail" aria-label="Coverset launch sections">
+                <a className="railBrand" href="/" aria-label="Coverset home">
+                    CS
+                </a>
+                <nav className="railNav">
+                    <a href="#demo" title="Fixture demo">
+                        <span className="material-symbols-outlined railIcon" aria-hidden="true">
+                            dashboard
+                        </span>
+                        <span className="railLabel">Fixture demo</span>
+                    </a>
+                    <a href="#manual-setup" title="Manual setup">
+                        <span className="material-symbols-outlined railIcon" aria-hidden="true">
+                            list_alt
+                        </span>
+                        <span className="railLabel">Manual setup</span>
+                    </a>
+                    <a href="#solve" title="Solve">
+                        <span className="material-symbols-outlined railIcon" aria-hidden="true">
+                            rebase_edit
+                        </span>
+                        <span className="railLabel">Solve</span>
+                    </a>
+                </nav>
+                <div className="railFooter" title="Coverset launch">
+                    AD
+                </div>
+            </aside>
+            <main className="routeShell launchShell">
+                <section className="hero">
                 <p className="eyebrow">Coverset operations cockpit</p>
                 <h1>Launch the stripboard command center.</h1>
                 <p>
@@ -1281,7 +1310,7 @@ export default function Home() {
                 </section>
             )}
 
-            <section className="panel grid">
+            <section className="panel grid" id="demo">
                 <div>
                     <h2>Fast smoke</h2>
                     <p>
@@ -1292,7 +1321,7 @@ export default function Home() {
                         Run fixture demo
                     </button>
                 </div>
-                <div>
+                <div id="manual-setup">
                     <h2>Production</h2>
                     <label>
                         Title
@@ -1757,7 +1786,7 @@ export default function Home() {
             )}
 
             {board && (
-                <section className="panel board">
+                <section className="panel board" id="solve">
                     <h2>Board: {board.solver_status}</h2>
                     {board.result.days && (
                         <div className="boardGrid">
@@ -2063,6 +2092,7 @@ export default function Home() {
                     </details>
                 </section>
             )}
-        </main>
+            </main>
+        </div>
     );
 }

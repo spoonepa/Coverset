@@ -489,9 +489,12 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Stripboard dashboard" }),
   ).toBeVisible();
+  await expect(page.locator(".sideRail")).toBeVisible();
+  await expect(page.locator(".stripboardBoard")).toBeVisible();
   await expect(page.getByText("W-BRK-001").first()).toBeVisible();
 
   await page.goto("/productions/prod_1/constraints?boardId=board_1");
+  await expect(page.locator(".constraintWorkbench")).toBeVisible();
   await page
     .getByRole("button", { name: "Translate into inactive proposals" })
     .click();
@@ -502,6 +505,7 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   await expect(page.getByText("active").first()).toBeVisible();
 
   await page.goto("/productions/prod_1/grounding?boardId=board_1");
+  await expect(page.locator(".groundingLedger")).toBeVisible();
   await page.getByRole("button", { name: "Run grounding now" }).click();
   await expect(
     page.getByText("evidence_1 · weather · maya-s-apartment", { exact: true }),
@@ -512,6 +516,7 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   await expect(page.getByText("gval_1", { exact: true })).toBeVisible();
 
   await page.goto("/productions/prod_1/replans?boardId=board_1");
+  await expect(page.locator(".replanBoard")).toBeVisible();
   await page
     .getByRole("button", { name: "Create material monitor replan" })
     .click();
@@ -524,6 +529,7 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   await expect(page.getByText("Selected board board_2.")).toBeVisible();
 
   await page.goto("/productions/prod_1/coverage?boardId=board_1");
+  await expect(page.locator(".coverageWorkbench")).toBeVisible();
   await page.getByRole("button", { name: "Lock first board day" }).click();
   await expect(page.getByText("2026-09-14").first()).toBeVisible();
   await page
@@ -546,11 +552,13 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   ).toBeVisible();
 
   await page.goto("/productions/prod_1/call-sheets?boardId=board_1");
+  await expect(page.locator(".callSheetWorkbench")).toBeVisible();
   await page.getByRole("button", { name: "Generate call sheet" }).click();
   await expect(page.getByText("CALL SHEET CS-20260914-board1")).toBeVisible();
   await expect(page.getByText("Recipients read_only")).toBeVisible();
 
   await page.goto("/productions/prod_1/costs?boardId=board_1");
+  await expect(page.locator(".costWorkbench")).toBeVisible();
   await expect(page.getByText("sdiff_1")).toBeVisible();
   await page.getByRole("button", { name: "Approve as UPM" }).click();
   await expect(
@@ -558,10 +566,12 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   ).toBeVisible();
 
   await page.goto("/productions/prod_1/audit?boardId=board_1");
+  await expect(page.locator(".auditLedger")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
   await expect(page.getByText("board.solved")).toBeVisible();
 
   await page.goto("/productions/prod_1/infeasible?boardId=board_1");
+  await expect(page.locator(".infeasibleWorkbench")).toBeVisible();
   await expect(
     page.getByText("No infeasible or failed schedule run is available"),
   ).toBeVisible();

@@ -37,7 +37,11 @@ body {
   min-height: 100vh;
   color: var(--on-surface);
   background:
-    radial-gradient(circle at top left, rgba(67, 70, 85, 0.28), transparent 34rem),
+    radial-gradient(
+      circle at top left,
+      rgba(67, 70, 85, 0.28),
+      transparent 34rem
+    ),
     var(--background);
   font-size: 14px;
   line-height: 20px;
@@ -460,9 +464,13 @@ summary {
 }
 
 .railIcon {
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   font-size: 21px;
-  font-weight: 800;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+}
+
+.railNav a.active .railIcon,
+.railNav a[aria-current="page"] .railIcon {
+  font-variation-settings: "FILL" 1, "wght" 600, "GRAD" 0, "opsz" 24;
 }
 
 .railLabel {
@@ -672,6 +680,757 @@ summary {
   padding: 14px;
   border: 1px dashed color-mix(in srgb, var(--outline-variant) 72%, transparent);
   border-radius: 8px;
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  direction: ltr;
+  font-feature-settings: "liga";
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+}
+
+.caps {
+  color: var(--on-surface-variant);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.primaryText {
+  color: var(--primary);
+}
+
+.right {
+  text-align: right;
+}
+
+.pill.error {
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 52%, transparent);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+}
+
+.pill.advisory {
+  color: #8e94e8;
+  border-color: color-mix(in srgb, #8e94e8 52%, transparent);
+  background: color-mix(in srgb, #8e94e8 12%, transparent);
+}
+
+.workflowSplit,
+.workflowTri,
+.replanBoard {
+  display: grid;
+  min-height: calc(100vh - 150px);
+  gap: 8px;
+}
+
+.workflowSplit {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.workflowTri {
+  grid-template-columns: 360px minmax(0, 1fr) 320px;
+}
+
+.replanBoard {
+  grid-template-columns: 260px minmax(0, 1fr) 360px;
+}
+
+.workspacePanel,
+.inspectorPanel,
+.historyColumn,
+.auditLedger,
+.auditHeader {
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--surface-container);
+}
+
+.workspacePanel {
+  min-width: 0;
+  padding: 8px;
+  overflow: auto;
+}
+
+.inspectorPanel,
+.historyColumn {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow: auto;
+  background: var(--surface);
+}
+
+.inspectorHeader {
+  margin: -16px -16px 0;
+  padding: 16px;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-lowest);
+}
+
+.inspectorHeader h2,
+.canvasCommandBar h2,
+.commandBanner h2,
+.auditHeader h2,
+.paperHeader h2,
+.costCanvas h2,
+.conflictSet h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.inspectorHeader p:not(.eyebrow),
+.canvasCommandBar p,
+.commandBanner p,
+.auditHeader p,
+.paperHeader p {
+  margin: 4px 0 0;
+  color: var(--on-surface-variant);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.inspectorSection {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.inspectorSection h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.inspectorSection.dashed {
+  padding: 12px;
+  border: 1px dashed var(--outline-variant);
+  border-radius: 8px;
+  background: var(--surface-container-lowest);
+}
+
+.commandBanner,
+.canvasCommandBar,
+.auditHeader,
+.paperHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.commandBanner,
+.canvasCommandBar {
+  margin-bottom: 8px;
+  padding: 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--surface-container-lowest);
+}
+
+.commandBanner.warning {
+  border-color: color-mix(in srgb, var(--warning) 72%, transparent);
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface-container-lowest));
+}
+
+.commandBanner.errorBanner {
+  border-color: color-mix(in srgb, var(--error) 72%, transparent);
+  background: color-mix(in srgb, var(--error) 10%, var(--surface-container-lowest));
+}
+
+.commandMetrics,
+.dataStack,
+.coverageMeta,
+.evidenceGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.commandMetrics {
+  min-width: 300px;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+}
+
+.dataField {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 6px;
+  background: var(--surface-container-lowest);
+}
+
+.dataField span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--outline);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dataField strong {
+  display: block;
+  overflow: hidden;
+  color: var(--on-surface);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.stripboardBoard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stripDay {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--outline-variant);
+  border-radius: 6px;
+  background: var(--surface-container-lowest);
+}
+
+.stripDay.active {
+  border-color: var(--primary-container);
+  box-shadow: inset 4px 0 0 var(--primary);
+}
+
+.stripDayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+}
+
+.dayTitle {
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.dayMeta,
+.dayRule {
+  color: var(--on-surface-variant);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+}
+
+.dayBadges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--on-surface-variant);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+}
+
+.dayRule {
+  padding: 5px 16px;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-lowest);
+}
+
+.stripTable {
+  display: flex;
+  flex-direction: column;
+}
+
+.stripTable .stripRow {
+  grid-template-columns: 46px 54px 68px minmax(180px, 1fr) minmax(130px, 240px) minmax(90px, 130px) 120px 56px;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--outline-variant);
+  border-radius: 0;
+  background: var(--surface-container);
+}
+
+.stripTable .stripRow:hover,
+.candidateRow:hover,
+.auditRow:hover,
+.coverageCard:hover {
+  background: var(--surface-container-high);
+}
+
+.stripSlug,
+.stripLocation {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stripLocation,
+.stripTable small {
+  color: var(--on-surface-variant);
+}
+
+.stripCast {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.stripCast span,
+.chip,
+.sceneNumber {
+  display: inline-flex;
+  min-width: 24px;
+  justify-content: center;
+  border: 1px solid var(--outline-variant);
+  border-radius: 4px;
+  padding: 2px 5px;
+  color: var(--on-surface-variant);
+  background: var(--surface-bright);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.mutedChip {
+  color: var(--outline);
+  background: var(--surface-variant);
+}
+
+.stripDuration {
+  text-align: right;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+.traceLine,
+.miniRecord {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 6px;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface-variant);
+  font-size: 12px;
+}
+
+.traceLine strong,
+.miniRecord strong {
+  color: var(--on-surface);
+}
+
+.traceLine span,
+.miniRecord span {
+  color: var(--outline);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+}
+
+.candidateTable {
+  overflow: hidden;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+}
+
+.candidateHeader,
+.candidateRow,
+.auditLedgerHeader,
+.auditRow,
+.costHeader,
+.costRow {
+  display: grid;
+  gap: 12px;
+  align-items: center;
+}
+
+.candidateHeader,
+.auditLedgerHeader,
+.costHeader {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--outline-variant);
+  color: var(--on-surface-variant);
+  background: var(--surface-container-highest);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.candidateHeader,
+.candidateRow {
+  grid-template-columns: 72px minmax(220px, 1fr) 120px 160px 90px 70px;
+}
+
+.candidateRow {
+  position: relative;
+  padding: 12px;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+}
+
+.candidateRow.accepted {
+  box-shadow: inset 3px 0 0 var(--success);
+}
+
+.candidateRow.blocked {
+  box-shadow: inset 3px 0 0 var(--warning);
+}
+
+.candidateRow.rejected {
+  opacity: 0.68;
+  box-shadow: inset 3px 0 0 var(--error);
+}
+
+.candidateRow small {
+  display: block;
+  color: var(--on-surface-variant);
+}
+
+.warningCell {
+  overflow: hidden;
+  color: var(--warning);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowActions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+}
+
+.rowActions button {
+  margin-top: 0;
+}
+
+.constraintCards,
+.groundingCards,
+.coverageList,
+.optionDeck,
+.conflictSet,
+.paperSections,
+.lockList {
+  display: grid;
+  gap: 8px;
+}
+
+.constraintCard,
+.evidenceCard,
+.coverageCard,
+.optionCard,
+.conflictCard,
+.gridPanel {
+  padding: 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--surface-container);
+}
+
+.constraintCard header,
+.evidenceCard header,
+.coverageCard header,
+.optionCard header,
+.conflictCard header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.constraintCard header > div,
+.evidenceCard header > div,
+.coverageCard header > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.constraintCard h2,
+.evidenceCard h2,
+.coverageCard h3,
+.optionCard h3 {
+  margin: 0;
+  color: var(--on-surface);
+  font-size: 16px;
+}
+
+.quote,
+.evidenceCard blockquote {
+  margin: 10px 0;
+  color: var(--on-surface-variant);
+  font-style: italic;
+}
+
+.activeConstraint {
+  border-color: color-mix(in srgb, var(--success) 36%, var(--outline-variant));
+}
+
+.advisoryCard {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, #8e94e8 48%, transparent);
+  border-radius: 6px;
+  color: #d4d6f4;
+  background: color-mix(in srgb, #1b1c2b 78%, var(--surface-container));
+}
+
+.advisoryCard p {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.evidenceGrid,
+.coverageMeta {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin: 12px 0;
+}
+
+.evidenceCard.weather {
+  border-color: color-mix(in srgb, var(--warning) 36%, var(--outline-variant));
+}
+
+.historyColumn header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--on-surface-variant);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.historyList {
+  display: grid;
+  gap: 6px;
+}
+
+.historyList > div {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 6px;
+  background: var(--surface-container-lowest);
+}
+
+.historyList .locked {
+  opacity: 0.7;
+}
+
+.historyList .current {
+  border-color: var(--primary-container);
+  background: var(--surface-container-high);
+}
+
+.historyList span,
+.historyList small {
+  color: var(--on-surface-variant);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+}
+
+.optionDeck {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-content: start;
+}
+
+.compactDeck {
+  grid-template-columns: 1fr;
+  margin-top: 12px;
+}
+
+.optionCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.optionCard pre {
+  max-height: 180px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 6px;
+  color: var(--on-surface-variant);
+  background: var(--surface-container-lowest);
+  font-size: 12px;
+}
+
+.optionActions {
+  margin-top: auto;
+}
+
+.coverageCard.needsReview {
+  border-left: 3px solid var(--warning);
+}
+
+.coverageCard.validated {
+  border-left: 3px solid var(--success);
+}
+
+.lockActualsPanel {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--warning) 42%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface-container));
+}
+
+.lockActualsPanel h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.checklist {
+  display: grid;
+  gap: 6px;
+  color: var(--success);
+  font-size: 12px;
+}
+
+.stackedButtons {
+  display: grid;
+  gap: 8px;
+}
+
+.stackedButtons button,
+.inspectorPanel > button {
+  width: 100%;
+}
+
+.callSheetPaper {
+  padding: 16px;
+  background: var(--surface-container-lowest);
+}
+
+.paperHeader {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.paperSections pre,
+.callSheetCard pre {
+  max-height: 320px;
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  color: var(--on-surface);
+  background: var(--surface);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+}
+
+.auditHeader {
+  margin-bottom: 8px;
+  padding: 12px;
+}
+
+.auditLedger {
+  overflow: hidden;
+}
+
+.auditLedgerHeader,
+.auditRow {
+  grid-template-columns: 110px 150px 48px minmax(220px, 1fr) 110px;
+}
+
+.auditRow {
+  align-items: start;
+  padding: 12px;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+}
+
+.auditRow p {
+  margin: 2px 0 8px;
+  color: var(--on-surface-variant);
+}
+
+.auditRow .jsonBlock {
+  max-height: 110px;
+}
+
+.costTable {
+  overflow: hidden;
+  margin: 12px 0;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+}
+
+.costHeader,
+.costRow {
+  grid-template-columns: minmax(160px, 1fr) 120px 120px 130px;
+}
+
+.costRow {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+}
+
+.costRow span:not(:first-child) {
+  text-align: right;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+}
+
+.authorizationTrace {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  background: var(--surface-container-lowest);
+}
+
+.conflictCanvas {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.conflictCard header {
+  justify-content: flex-start;
+}
+
+@media (max-width: 1180px) {
+  .workflowSplit,
+  .workflowTri,
+  .replanBoard {
+    grid-template-columns: 1fr;
+  }
+
+  .inspectorPanel,
+  .historyColumn {
+    max-height: none;
+  }
 }
 
 @media (max-width: 760px) {
