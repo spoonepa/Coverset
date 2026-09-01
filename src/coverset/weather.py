@@ -68,7 +68,9 @@ class ForecastRisk:
         if self.issued_at.tzinfo is None:
             raise ValueError("weather risk issued_at must be timezone-aware")
         if not 0.0 <= self.probability <= 1.0:
-            raise ValueError(f"weather probability must be in [0, 1], got {self.probability}")
+            raise ValueError(
+                f"weather probability must be in [0, 1], got {self.probability}"
+            )
         if not self.condition.strip():
             raise ValueError("weather risk must name the condition")
         if not self.source_url.strip():
@@ -109,9 +111,13 @@ class WeatherPolicy:
             if not 0.0 <= value <= 1.0:
                 raise ValueError(f"{label} must be in [0, 1], got {value}")
         if self.soft_probability > self.waivable_probability:
-            raise ValueError("soft probability threshold cannot exceed waivable threshold")
+            raise ValueError(
+                "soft probability threshold cannot exceed waivable threshold"
+            )
         if self.waivable_probability > self.hard_probability:
-            raise ValueError("waivable probability threshold cannot exceed hard threshold")
+            raise ValueError(
+                "waivable probability threshold cannot exceed hard threshold"
+            )
 
 
 def forecast_risk_from_evidence(
@@ -139,7 +145,9 @@ def forecast_risk_from_evidence(
         else ForecastClassification.CLIMATOLOGY
     )
     tier = _confidence_tier(classification, probability, horizon_days, near_term_days)
-    source = source_url or (evidence.covering_urls[0] if evidence.covering_urls else evidence.primary.url)
+    source = source_url or (
+        evidence.covering_urls[0] if evidence.covering_urls else evidence.primary.url
+    )
     quote = source_quote or _quote_for_source(evidence, source)
     value = bind_grounded_value(
         evidence,
@@ -217,7 +225,9 @@ def weather_constraint_from_risk(
         created_by="coverset.weather",
         validated_against="coverset.weather.WeatherPolicy",
         active=active and mapped is not Policy.INFORMATIONAL,
-        activated_at=dt.datetime.now(dt.UTC) if active and mapped is not Policy.INFORMATIONAL else None,
+        activated_at=dt.datetime.now(dt.UTC)
+        if active and mapped is not Policy.INFORMATIONAL
+        else None,
     )
 
 

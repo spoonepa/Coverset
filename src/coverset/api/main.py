@@ -34,13 +34,13 @@ from .models import (  # type: ignore[import-not-found]
     LocationModel,
     LockedDayModel,
     MonitorChangeEventModel,
-    MonitorFindingModel,
     MonitoredSourceModel,
+    MonitorFindingModel,
     PickupTaskModel,
     ProductionModel,
     ReplanRequestModel,
-    ScheduleDiffModel,
     SceneCandidateModel,
+    ScheduleDiffModel,
     ScheduleRunModel,
     ScreenplayAssetModel,
 )
@@ -85,12 +85,12 @@ from .schemas import (  # type: ignore[import-not-found]
     LockDayRequest,
     LockedDayResponse,
     MonitorChangeEventResponse,
+    MonitoredSourceCreate,
+    MonitoredSourceResponse,
     MonitorFindingDecisionRequest,
     MonitorFindingDecisionResponse,
     MonitorFindingResponse,
     MonitorJobRequest,
-    MonitoredSourceCreate,
-    MonitoredSourceResponse,
     PickupConfirmRequest,
     PickupDecisionRequest,
     PickupReplanRequest,
@@ -107,6 +107,7 @@ from .schemas import (  # type: ignore[import-not-found]
 )
 from .services import (  # type: ignore[import-not-found]
     ServiceError,
+    accept_constraint_proposal,
     activate_constraint,
     add_cast_member,
     add_location,
@@ -118,7 +119,6 @@ from .services import (  # type: ignore[import-not-found]
     board_export_csv,
     board_export_json,
     call_sheet_export_json,
-    accept_constraint_proposal,
     confirm_pickup_task,
     create_constraint,
     create_pickup_replan,
@@ -161,8 +161,8 @@ from .services import (  # type: ignore[import-not-found]
     raise_coverage_finding,
     record_coverage_item,
     record_grounded_value,
-    reject_constraint_proposal,
     register_monitored_source,
+    reject_constraint_proposal,
     request_pickup_from_finding,
     review_candidate,
     run_breakdown,
@@ -836,7 +836,10 @@ def list_schedule_diffs_endpoint(
     production_id: str,
     session: Annotated[Session, Depends(get_session)],
 ) -> list[ScheduleDiffResponse]:
-    return [_schedule_diff_response(row) for row in list_schedule_diffs(session, production_id)]
+    return [
+        _schedule_diff_response(row)
+        for row in list_schedule_diffs(session, production_id)
+    ]
 
 
 @app.post(
@@ -911,7 +914,9 @@ def record_coverage_item_endpoint(
     )
 
 
-@app.post("/coverage-items/{coverage_item_id}/shot", response_model=CoverageItemResponse)
+@app.post(
+    "/coverage-items/{coverage_item_id}/shot", response_model=CoverageItemResponse
+)
 def mark_coverage_item_shot_endpoint(
     coverage_item_id: str,
     payload: CoverageShotUpdate,
@@ -1222,7 +1227,9 @@ def _grounding_response(row: GroundingEvidenceModel) -> GroundingEvidenceRespons
     )
 
 
-def _constraint_proposal_response(row: ConstraintProposalModel) -> ConstraintProposalResponse:
+def _constraint_proposal_response(
+    row: ConstraintProposalModel,
+) -> ConstraintProposalResponse:
     return ConstraintProposalResponse(
         id=row.id,
         production_id=row.production_id,
@@ -1306,7 +1313,9 @@ def _monitored_source_response(row: MonitoredSourceModel) -> MonitoredSourceResp
     )
 
 
-def _monitor_change_event_response(row: MonitorChangeEventModel) -> MonitorChangeEventResponse:
+def _monitor_change_event_response(
+    row: MonitorChangeEventModel,
+) -> MonitorChangeEventResponse:
     return MonitorChangeEventResponse(
         id=row.id,
         production_id=row.production_id,

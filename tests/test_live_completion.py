@@ -10,7 +10,9 @@ pytestmark = pytest.mark.live
 @pytest.mark.req("TRK-003", "MON-001", "MON-003", "MON-004")
 def test_live_parallel_monitor_contract_is_opt_in():
     if os.getenv("COVERSET_ENABLE_LIVE_MONITOR_TEST") != "1":
-        pytest.skip("set COVERSET_ENABLE_LIVE_MONITOR_TEST=1 to create/check a live monitor")
+        pytest.skip(
+            "set COVERSET_ENABLE_LIVE_MONITOR_TEST=1 to create/check a live monitor"
+        )
     if not os.getenv("PARALLEL_API_KEY"):
         pytest.skip("PARALLEL_API_KEY is required for live Parallel Monitor checks")
 
@@ -23,7 +25,9 @@ def test_live_parallel_monitor_contract_is_opt_in():
 @pytest.mark.req("WEA-001", "WEA-002", "GRD-010")
 def test_live_weather_completion_contract_is_opt_in():
     if os.getenv("COVERSET_ENABLE_LIVE_WEATHER_TEST") != "1":
-        pytest.skip("set COVERSET_ENABLE_LIVE_WEATHER_TEST=1 to run live weather grounding")
+        pytest.skip(
+            "set COVERSET_ENABLE_LIVE_WEATHER_TEST=1 to run live weather grounding"
+        )
     if not os.getenv("PARALLEL_API_KEY"):
         pytest.skip("PARALLEL_API_KEY is required for live weather grounding")
 
@@ -39,5 +43,7 @@ def test_live_weather_completion_contract_is_opt_in():
         longitude=-73.9967,
         timezone="America/New_York",
     )
-    evidence = SearchGrounder().ground(FactKind.WEATHER, location, __import__("datetime").date.today())
+    evidence = SearchGrounder().ground(
+        FactKind.WEATHER, location, __import__("datetime").date.today()
+    )
     assert evidence.source_urls

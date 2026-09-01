@@ -964,7 +964,9 @@ def accept_constraint_proposal(
 
     proposal = session.get(ConstraintProposalModel, proposal_id)
     if proposal is None:
-        raise ServiceError(f"constraint proposal not found: {proposal_id}", status_code=404)
+        raise ServiceError(
+            f"constraint proposal not found: {proposal_id}", status_code=404
+        )
     if proposal.accepted_constraint_id:
         row = session.get(ConstraintModel, proposal.accepted_constraint_id)
         if row is not None:
@@ -1007,7 +1009,9 @@ def reject_constraint_proposal(
 
     proposal = session.get(ConstraintProposalModel, proposal_id)
     if proposal is None:
-        raise ServiceError(f"constraint proposal not found: {proposal_id}", status_code=404)
+        raise ServiceError(
+            f"constraint proposal not found: {proposal_id}", status_code=404
+        )
     actor = _actor_for_decision(actor_name, actor_role)
     proposal.status = "rejected"
     proposal.accepted_by_name = actor.name
@@ -1065,7 +1069,9 @@ def record_grounded_value(
         )
     except GroundingError as exc:
         raise ServiceError(str(exc)) from exc
-    _raise_on_grounded_value_conflict(session, evidence_row, grounded.normalized_value, units)
+    _raise_on_grounded_value_conflict(
+        session, evidence_row, grounded.normalized_value, units
+    )
     row = GroundedValueModel(
         id=grounded.id,
         production_id=evidence_row.production_id,
@@ -1097,7 +1103,9 @@ def record_grounded_value(
     return row
 
 
-def _evidence_domain_from_row(session: Session, row: GroundingEvidenceModel) -> Evidence:
+def _evidence_domain_from_row(
+    session: Session, row: GroundingEvidenceModel
+) -> Evidence:
     from .constraints_io import evidence_from_json
 
     data = dict(row.evidence_json or {})
@@ -1116,7 +1124,9 @@ def _evidence_domain_from_row(session: Session, row: GroundingEvidenceModel) -> 
     try:
         retrieved_at = dt.datetime.fromisoformat(raw_retrieved)
     except ValueError as exc:
-        raise ServiceError(f"invalid evidence retrieval timestamp: {raw_retrieved}") from exc
+        raise ServiceError(
+            f"invalid evidence retrieval timestamp: {raw_retrieved}"
+        ) from exc
     return Evidence(
         kind=FactKind(row.fact_kind),
         location=Location(
@@ -1157,7 +1167,10 @@ def _raise_on_grounded_value_conflict(
     )
     for row in existing:
         validator = dict(row.validator_result_json or {})
-        if validator.get("passed", True) and row.normalized_value_json != normalized_value:
+        if (
+            validator.get("passed", True)
+            and row.normalized_value_json != normalized_value
+        ):
             raise ServiceError(
                 "conflicting grounded values for the same fact/date/location",
                 status_code=409,
@@ -1182,19 +1195,30 @@ def _constraint_activation_validation(
             errors.append("grounded constraint evidence was not found")
         else:
             target_date = _date_from_payload(evidence_payload.get("date"))
-            covering_urls = {str(url) for url in evidence_payload.get("covering_urls", [])}
+            covering_urls = {
+                str(url) for url in evidence_payload.get("covering_urls", [])
+            }
             if record.family in (Family.WEATHER, Family.PERMIT):
-                if target_date is None or not _constraint_expression_covers(record, target_date):
+                if target_date is None or not _constraint_expression_covers(
+                    record, target_date
+                ):
                     errors.append(
                         f"{record.family} expression does not cover evidence target date"
                     )
                 if record.family is Family.WEATHER and not source_urls & covering_urls:
-                    errors.append("weather constraint source does not cover target date")
+                    errors.append(
+                        "weather constraint source does not cover target date"
+                    )
             if record.family is Family.PERMIT:
-                if payload is not None and not str(payload.get("timezone") or "").strip():
+                if (
+                    payload is not None
+                    and not str(payload.get("timezone") or "").strip()
+                ):
                     errors.append("permit constraint requires a local IANA timezone")
                 if not all(_looks_authoritative_permit_url(url) for url in source_urls):
-                    errors.append("permit constraint requires authoritative source URLs")
+                    errors.append(
+                        "permit constraint requires authoritative source URLs"
+                    )
     return {
         "passed": not errors,
         "errors": errors,
@@ -1202,15 +1226,19 @@ def _constraint_activation_validation(
     }
 
 
-def _constraint_expression_covers(record: ConstraintRecord, target_date: dt.date) -> bool:
+def _constraint_expression_covers(
+    record: ConstraintRecord, target_date: dt.date
+) -> bool:
     expression = record.expression
     expression_name = expression.__class__.__name__
     if expression_name == "BlackoutDates":
         return target_date in set(getattr(expression, "dates", ()))
     if expression_name == "DateWindows":
-        return any(window.covers(target_date) for window in getattr(expression, "windows", ()))
+        return any(
+            window.covers(target_date) for window in getattr(expression, "windows", ())
+        )
     if expression_name == "PinnedDay":
-        return getattr(expression, "day") == target_date
+        return expression.day == target_date
     return True
 
 
@@ -1252,7 +1280,8 @@ def create_constraint(
     )
     if record.active and not validation["passed"]:
         raise ServiceError(
-            "constraint failed activation validation: " + "; ".join(validation["errors"])
+            "constraint failed activation validation: "
+            + "; ".join(validation["errors"])
         )
     snapshot = constraint_to_json(record)
     snapshot["activation_validation"] = validation
@@ -1265,7 +1294,9 @@ def create_constraint(
         snapshot["accepted_by"] = {
             "name": str(payload.get("actor_name") or "Developer"),
             "role": str(payload.get("actor_role") or "first_ad"),
-            "accepted_at": record.activated_at.isoformat() if record.activated_at else "",
+            "accepted_at": record.activated_at.isoformat()
+            if record.activated_at
+            else "",
         }
     row = ConstraintModel(
         id=new_id("con"),
@@ -1311,7 +1342,8 @@ def activate_constraint(
     )
     if active and not validation["passed"]:
         raise ServiceError(
-            "constraint failed activation validation: " + "; ".join(validation["errors"])
+            "constraint failed activation validation: "
+            + "; ".join(validation["errors"])
         )
     record = replace(current, active=active, activated_at=utcnow() if active else None)
     row.active = active
@@ -1321,7 +1353,9 @@ def activate_constraint(
         row.constraint_json["accepted_by"] = {
             "name": actor.name,
             "role": actor.role.value,
-            "accepted_at": record.activated_at.isoformat() if record.activated_at else "",
+            "accepted_at": record.activated_at.isoformat()
+            if record.activated_at
+            else "",
         }
     row.provenance_json = dict(row.constraint_json.get("source", {}))
     audit(
@@ -1644,7 +1678,11 @@ def process_monitor_change(
     new_fingerprint = str(payload.get("new_fingerprint") or "")
     material = bool(payload.get("material", old_fingerprint != new_fingerprint))
     target_date = _date_from_payload(payload.get("target_date"))
-    if material and target_date is not None and _date_is_locked(session, board.production_id, target_date):
+    if (
+        material
+        and target_date is not None
+        and _date_is_locked(session, board.production_id, target_date)
+    ):
         event = MonitorChangeEventModel(
             id=new_id("mevt"),
             production_id=production_id,
@@ -1672,7 +1710,9 @@ def process_monitor_change(
     finding_payload = {
         **payload,
         "board_id": board_id,
-        "source_url": str(payload.get("source_url") or getattr(source, "source_url", "")),
+        "source_url": str(
+            payload.get("source_url") or getattr(source, "source_url", "")
+        ),
         "fact_kind": str(payload.get("fact_kind") or getattr(source, "fact_kind", "")),
         "old_fingerprint": old_fingerprint,
         "new_fingerprint": new_fingerprint,
@@ -1730,7 +1770,10 @@ def _date_from_payload(value: Any) -> dt.date | None:
 
 
 def _date_is_locked(session: Session, production_id: str, target_date: dt.date) -> bool:
-    return any(row.shoot_date == target_date for row in list_locked_days(session, production_id))
+    return any(
+        row.shoot_date == target_date
+        for row in list_locked_days(session, production_id)
+    )
 
 
 def _request_replan_for_finding(
@@ -1975,7 +2018,9 @@ def generate_replan_options(
 
     replan = session.get(ReplanRequestModel, replan_request_id)
     if replan is None:
-        raise ServiceError(f"replan request not found: {replan_request_id}", status_code=404)
+        raise ServiceError(
+            f"replan request not found: {replan_request_id}", status_code=404
+        )
     existing = list(
         session.scalars(
             select(ScheduleDiffModel)
@@ -2187,7 +2232,9 @@ def mark_coverage_item_shot(
 
     row = session.get(CoverageItemModel, coverage_item_id)
     if row is None:
-        raise ServiceError(f"coverage item not found: {coverage_item_id}", status_code=404)
+        raise ServiceError(
+            f"coverage item not found: {coverage_item_id}", status_code=404
+        )
     row.status = "shot"
     row.shot_json = dict(shot or {})
     row.updated_at = utcnow()
@@ -2215,7 +2262,9 @@ def raise_coverage_finding(
 
     item = session.get(CoverageItemModel, coverage_item_id)
     if item is None:
-        raise ServiceError(f"coverage item not found: {coverage_item_id}", status_code=404)
+        raise ServiceError(
+            f"coverage item not found: {coverage_item_id}", status_code=404
+        )
     actor = _actor_for_decision(actor_name, actor_role, capability="raise_finding")
     if item.status != "shot":
         raise ServiceError("coverage item must be shot before it can be flagged")
@@ -2273,7 +2322,9 @@ def request_pickup_from_finding(
     if existing is not None:
         return existing
     if finding.status != "open":
-        raise ServiceError(f"coverage finding is already {finding.status}", status_code=409)
+        raise ServiceError(
+            f"coverage finding is already {finding.status}", status_code=409
+        )
     task = PickupTaskModel(
         id=new_id("ptask"),
         production_id=finding.production_id,
@@ -2401,8 +2452,17 @@ def create_pickup_replan(
 
 def _validated_pickup_spec(task: Any, pickup_spec: dict[str, Any]) -> dict[str, Any]:
     spec = dict(pickup_spec)
-    required = ("scene_id", "coverage_type", "location_id", "cast_ids", "duration_minutes", "priority")
-    missing = [field_name for field_name in required if spec.get(field_name) in (None, "", [])]
+    required = (
+        "scene_id",
+        "coverage_type",
+        "location_id",
+        "cast_ids",
+        "duration_minutes",
+        "priority",
+    )
+    missing = [
+        field_name for field_name in required if spec.get(field_name) in (None, "", [])
+    ]
     if missing:
         raise ServiceError("pickup spec missing required fields: " + ", ".join(missing))
     try:
@@ -2706,7 +2766,9 @@ def _resolve_candidate_record(
     return resolved, errors, schedulable
 
 
-def run_scheduler(session: Session, *, production_id: str, seed: int = 0) -> ScheduleRunModel:
+def run_scheduler(
+    session: Session, *, production_id: str, seed: int = 0
+) -> ScheduleRunModel:
     get_production(session, production_id)
     run = ScheduleRunModel(
         id=new_id("sched"), production_id=production_id, status="running"
@@ -2761,7 +2823,9 @@ def run_scheduler(session: Session, *, production_id: str, seed: int = 0) -> Sch
             if violations := _locked_day_immutability_violations(
                 session, production_id, result_json
             ):
-                raise SolverError("locked day immutability violation: " + "; ".join(violations))
+                raise SolverError(
+                    "locked day immutability violation: " + "; ".join(violations)
+                )
             persisted = BoardModel(
                 id=new_id("board"),
                 production_id=production_id,
@@ -2872,7 +2936,9 @@ def _locked_day_immutability_violations(
                 continue
             strip = by_work.get(work_id)
             if strip is None:
-                violations.append(f"{work_id} was deleted from locked day {locked_day.shoot_date}")
+                violations.append(
+                    f"{work_id} was deleted from locked day {locked_day.shoot_date}"
+                )
                 continue
             expected = {
                 "shoot_day": locked_day.shoot_date.isoformat(),
@@ -2906,7 +2972,9 @@ def _pickup_work_items(session: Session, production_id: str) -> tuple[Any, ...]:
     for row in rows:
         spec = dict(row.pickup_spec_json or {})
         try:
-            duration = int(spec.get("estimated_duration_minutes") or spec["duration_minutes"])
+            duration = int(
+                spec.get("estimated_duration_minutes") or spec["duration_minutes"]
+            )
             day_night = DayNight(str(spec.get("day_night") or "day"))
         except (KeyError, TypeError, ValueError) as exc:
             raise ServiceError(f"invalid pickup task spec for {row.id}: {exc}") from exc

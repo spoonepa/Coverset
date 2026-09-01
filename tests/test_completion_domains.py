@@ -88,7 +88,9 @@ def test_plain_english_constraints_translate_to_inactive_typed_candidates():
 
 @pytest.mark.req("GRD-012", "GRD-013", "GRD-014", "GRD-015", "CON-003", "AUD-003")
 def test_grounded_values_record_exact_quote_date_coverage_and_conflicts():
-    evidence = _evidence(full_content="# Forecast\nSeptember 14, 2026: precipitation probability 85%.")
+    evidence = _evidence(
+        full_content="# Forecast\nSeptember 14, 2026: precipitation probability 85%."
+    )
     value = bind_grounded_value(
         evidence,
         value_id="gval-1",
@@ -192,7 +194,11 @@ def test_schedule_diff_reports_production_disruption_terms():
                 "kind": "scene",
             }
         ],
-        "objective_breakdown": {"company_moves": 0, "holding_days": 0, "overtime_hours": 0},
+        "objective_breakdown": {
+            "company_moves": 0,
+            "holding_days": 0,
+            "overtime_hours": 0,
+        },
     }
     revised = {
         "days": [{"date": "2026-09-14"}, {"date": "2026-09-15"}],
@@ -216,7 +222,11 @@ def test_schedule_diff_reports_production_disruption_terms():
                 "kind": "pickup",
             },
         ],
-        "objective_breakdown": {"company_moves": 1, "holding_days": 2, "overtime_hours": 1.5},
+        "objective_breakdown": {
+            "company_moves": 1,
+            "holding_days": 2,
+            "overtime_hours": 1.5,
+        },
     }
 
     diff = build_schedule_diff(

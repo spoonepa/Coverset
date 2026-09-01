@@ -11,8 +11,8 @@ from coverset.constraints import (
     BlackoutDates,
     ConstraintRecord,
     DateWindows,
-    DerivedFrom,
     DaylightBound,
+    DerivedFrom,
     Expression,
     Family,
     GroundedSource,
@@ -251,7 +251,9 @@ def _source_from_payload(
     if evidence_id:
         source_urls = tuple(
             str(url)
-            for url in (evidence or {}).get("source_urls", payload.get("source_urls", ()))
+            for url in (evidence or {}).get(
+                "source_urls", payload.get("source_urls", ())
+            )
         )
         derived_from = str(
             payload.get("derived_from")

@@ -86,7 +86,10 @@ def build_schedule_diff(
             "planned_call_time",
             "planned_wrap_time",
         )
-        if any(base_strip.get(field_name) != revised_strip.get(field_name) for field_name in call_fields):
+        if any(
+            base_strip.get(field_name) != revised_strip.get(field_name)
+            for field_name in call_fields
+        ):
             changed_calls.append(
                 {
                     "work_id": work_id,
@@ -169,7 +172,9 @@ def render_schedule_diff_text(diff: ScheduleDiff) -> str:
 
 
 def _day_ids(board: dict[str, Any]) -> set[str]:
-    return {str(day.get("date") or "") for day in board.get("days", []) if day.get("date")}
+    return {
+        str(day.get("date") or "") for day in board.get("days", []) if day.get("date")
+    }
 
 
 def _strips_by_work(board: dict[str, Any]) -> dict[str, dict[str, Any]]:

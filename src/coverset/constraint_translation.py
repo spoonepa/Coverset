@@ -137,7 +137,9 @@ def _payload_from_sentence(
     ):
         return _blackout_payload(
             constraint_id,
-            Family.PERMIT if "permit" in lowered or "denied" in lowered else Family.LOCATION,
+            Family.PERMIT
+            if "permit" in lowered or "denied" in lowered
+            else Family.LOCATION,
             SubjectKind.LOCATION,
             match.group("id"),
             match.group("date"),
@@ -155,7 +157,9 @@ def _payload_from_sentence(
             match.group("date"),
             created_by,
         )
-    if match := re.search(r"(?:minimum|min)\s+rest\s+(?P<hours>\d+(?:\.\d+)?)", lowered):
+    if match := re.search(
+        r"(?:minimum|min)\s+rest\s+(?P<hours>\d+(?:\.\d+)?)", lowered
+    ):
         return _hours_payload(
             constraint_id,
             Family.TURNAROUND,
@@ -284,9 +288,7 @@ def _hours_payload(
 
 def _sentences(text: str) -> tuple[str, ...]:
     sentences = tuple(
-        part.strip()
-        for part in re.split(r"[\n.;]+", text)
-        if part.strip()
+        part.strip() for part in re.split(r"[\n.;]+", text) if part.strip()
     )
     if not sentences:
         raise ConstraintTranslationError("no constraint text supplied")

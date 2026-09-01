@@ -1059,11 +1059,15 @@ def test_board_and_audit_exports_are_reviewable_and_append_only(
     assert isinstance(sink.rows[-1]["payload"], str)
 
 
-@pytest.mark.req("CON-001", "CON-002", "CON-003", "CON-007", "CON-009", "GRD-012", "AUD-003")
+@pytest.mark.req(
+    "CON-001", "CON-002", "CON-003", "CON-007", "CON-009", "GRD-012", "AUD-003"
+)
 def test_completion_constraint_translation_grounded_values_and_permit_activation(
     db_session: Session, parallel_stub
 ):
-    production = create_production(db_session, title="Completion Constraints", seed_demo_data=True)
+    production = create_production(
+        db_session, title="Completion Constraints", seed_demo_data=True
+    )
 
     def override_session() -> Iterator[Session]:
         yield db_session
@@ -1171,7 +1175,9 @@ def test_completion_constraint_translation_grounded_values_and_permit_activation
         app.dependency_overrides.clear()
 
 
-@pytest.mark.req("MON-001", "MON-002", "MON-003", "MON-004", "OUT-002", "OUT-005", "LCK-004")
+@pytest.mark.req(
+    "MON-001", "MON-002", "MON-003", "MON-004", "OUT-002", "OUT-005", "LCK-004"
+)
 def test_monitor_source_event_creates_replan_options_and_non_material_alerts(
     db_session: Session, tmp_path
 ):
@@ -1287,7 +1293,9 @@ def test_pickup_workflow_requires_confirmed_spec_and_preserves_locked_days(
     production, board = solved_board(db_session, tmp_path)
     locked_day = dt.date.fromisoformat(board.result_json["days"][0]["date"])
     first_strip = next(
-        strip for strip in board.result_json["strips"] if strip["shoot_day"] == locked_day.isoformat()
+        strip
+        for strip in board.result_json["strips"]
+        if strip["shoot_day"] == locked_day.isoformat()
     )
     lock_board_day(
         db_session,
@@ -1393,7 +1401,9 @@ def test_pickup_workflow_requires_confirmed_spec_and_preserves_locked_days(
         assert revised.json()["approval_state"] == "pending_cost_approval"
         locked_work_ids = {
             assignment["work_id"]
-            for assignment in client.get(f"/productions/{production.id}/locks").json()[0]["locked_assignments"]
+            for assignment in client.get(f"/productions/{production.id}/locks").json()[
+                0
+            ]["locked_assignments"]
         }
         locked_day_work_ids = {
             strip["work_id"]

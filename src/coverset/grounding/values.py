@@ -88,7 +88,9 @@ class GroundedValue:
             if not str(getattr(self, field_name)).strip():
                 raise ValueError(f"grounded value must set {field_name}")
         if self.retrieval_timestamp.tzinfo is None:
-            raise ValueError("grounded value retrieval timestamp must be timezone-aware")
+            raise ValueError(
+                "grounded value retrieval timestamp must be timezone-aware"
+            )
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -156,11 +158,15 @@ def bind_grounded_value(
         retrieval_timestamp=evidence.retrieved_at,
         provider_response_id=evidence.search_id,
         content_hash=_content_hash(source),
-        derived_from=DerivedFrom.FULL_CONTENT if source.full_content else DerivedFrom.EXCERPT,
+        derived_from=DerivedFrom.FULL_CONTENT
+        if source.full_content
+        else DerivedFrom.EXCERPT,
         validator_result=validator_result,
         covering_date=covering,
         context_source_urls=tuple(
-            url for url in evidence.source_urls if url != source.url and url not in evidence.covering_urls
+            url
+            for url in evidence.source_urls
+            if url != source.url and url not in evidence.covering_urls
         ),
     )
 
@@ -189,7 +195,9 @@ def _source_for(evidence: Evidence, source_url: str) -> SourceExcerpt:
     for source in evidence.sources:
         if source.url == source_url:
             return source
-    raise GroundingError(f"source URL {source_url!r} is not in evidence {evidence.search_id}")
+    raise GroundingError(
+        f"source URL {source_url!r} is not in evidence {evidence.search_id}"
+    )
 
 
 def _content_hash(source: SourceExcerpt) -> str:

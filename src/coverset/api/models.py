@@ -148,7 +148,9 @@ class ConstraintProposalModel(Base):
     created_by_name: Mapped[str] = mapped_column(String(120), default="Developer")
     accepted_by_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     accepted_by_role: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    accepted_constraint_id: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    accepted_constraint_id: Mapped[str | None] = mapped_column(
+        String(48), nullable=True
+    )
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
@@ -178,7 +180,9 @@ class GroundedValueModel(Base):
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
-    evidence_id: Mapped[str] = mapped_column(ForeignKey("grounding_evidence.id"), index=True)
+    evidence_id: Mapped[str] = mapped_column(
+        ForeignKey("grounding_evidence.id"), index=True
+    )
     fact_kind: Mapped[str] = mapped_column(String(40), nullable=False)
     location_id: Mapped[str] = mapped_column(String(120), nullable=False)
     target_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
@@ -491,7 +495,9 @@ class CoverageFindingModel(Base):
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
-    coverage_item_id: Mapped[str] = mapped_column(ForeignKey("coverage_items.id"), index=True)
+    coverage_item_id: Mapped[str] = mapped_column(
+        ForeignKey("coverage_items.id"), index=True
+    )
     board_id: Mapped[str | None] = mapped_column(ForeignKey("boards.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(40), default="open")
     severity: Mapped[str] = mapped_column(String(40), default="medium")
@@ -506,14 +512,16 @@ class CoverageFindingModel(Base):
 
 class PickupTaskModel(Base):
     __tablename__ = "pickup_tasks"
-    __table_args__ = (
-        UniqueConstraint("finding_id", name="uq_pickup_tasks_finding"),
-    )
+    __table_args__ = (UniqueConstraint("finding_id", name="uq_pickup_tasks_finding"),)
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
-    finding_id: Mapped[str] = mapped_column(ForeignKey("coverage_findings.id"), index=True)
-    coverage_item_id: Mapped[str] = mapped_column(ForeignKey("coverage_items.id"), index=True)
+    finding_id: Mapped[str] = mapped_column(
+        ForeignKey("coverage_findings.id"), index=True
+    )
+    coverage_item_id: Mapped[str] = mapped_column(
+        ForeignKey("coverage_items.id"), index=True
+    )
     board_id: Mapped[str | None] = mapped_column(ForeignKey("boards.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(40), default="requested")
     scene_id: Mapped[str] = mapped_column(String(120), nullable=False)
