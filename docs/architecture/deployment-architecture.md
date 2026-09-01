@@ -60,6 +60,21 @@ PARALLEL_API_KEY=...
 
 Terraform references the Secret Manager secret names and grants Cloud Run service accounts access.
 
+## Terraform state
+
+Terraform state is stored in a GCS backend. Bootstrap or repair the local backend
+configuration with:
+
+```sh
+scripts/bootstrap_terraform_state.sh
+```
+
+By default this creates/uses `gs://coverset-spoonepa-terraform-state` with the prefix
+`coverset/dev`, enables bucket versioning, and writes the gitignored
+`infra/terraform/backend.auto.hcl`. The deploy script runs the same bootstrap in
+`--no-init` mode before Terraform commands, so normal deploys continue to use remote
+state.
+
 ## Database connectivity
 
 Cloud Run connects to Cloud SQL through the Cloud SQL Unix socket mount. Application config builds the SQLAlchemy URL from:
@@ -80,6 +95,23 @@ Each deploy tags images with the current git SHA. A rollback is either:
 
 Database migrations must be forward-compatible during MVP deploys.
 
+## Audit and exports
+
+Cloud SQL is the transactional source of truth. The API exposes board exports as text,
+CSV, and JSON, plus audit exports as CSV/JSON. The `audit_events` BigQuery table is an
+append-only analytics sink populated from explicit export calls; BigQuery is never read
+for interactive product state.
+
+## Operations controls
+
+P4 dev hardening provisions:
+
+- Cloud SQL automated backups at 03:00 UTC with point-in-time recovery and seven retained backups,
+- a log-based Cloud Monitoring metric for API/worker/web Cloud Run error logs,
+- a Cloud Monitoring alert policy over that metric,
+- a monthly budget alert when the deploy script can detect or is given a billing account,
+- lifecycle rules on screenplay and artifact buckets.
+
 ## Cost posture
 
 Dev resources use low-cost settings where practical:
@@ -88,4 +120,4 @@ Dev resources use low-cost settings where practical:
 - small Cloud SQL tier,
 - lifecycle rules on GCS objects,
 - one regional Artifact Registry repository,
-- BigQuery dataset only, no scheduled queries.
+- BigQuery audit table only, no scheduled queries.

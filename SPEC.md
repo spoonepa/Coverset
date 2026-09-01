@@ -525,15 +525,15 @@ No board may be returned as viable unless `status` is `optimal` or `feasible` an
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
 |---|---|---|---|---|---|
-| ACT-001 | Every decision that changes the schedule records the actor who made it and the role they made it under. | domain-model | offline | MVP-2 | Existing actor model exists; board/cost decision records still needed. |
+| ACT-001 | Every decision that changes the schedule records the actor who made it and the role they made it under. | integrated | offline | MVP-2 | Board selection, cost approval, lock, monitor, constraint, and export paths are audited with actor/role metadata. |
 | ACT-002 | An advisory agent cannot be constructed as a deciding actor. Deciding requires a human role. | unit-built | offline | MVP-0 | Existing tests cover advisory names/roles. |
 | ACT-003 | Ruling on coverage requires Director or First AD authority. | unit-built | offline | MVP-3 | Existing review tests cover this. |
-| ACT-004 | Selecting a board among replan options requires First AD authority and creates a `BoardSelection` audit record. | domain-model | offline | MVP-2 | Existing role capability exists; selection record/action missing. |
-| ACT-005 | Any board or pickup path that adds a shoot day remains pending until cost approval is recorded by UPM/Line Producer authority. | domain-model | offline | MVP-3 | Existing UPM capability exists; approval workflow missing. |
+| ACT-004 | Selecting a board among replan options requires First AD authority and creates a `BoardSelection` audit record. | integrated | offline | MVP-2 | API/service tests cover unauthorized attempts and First AD selection records. |
+| ACT-005 | Any board or pickup path that adds a shoot day remains pending until cost approval is recorded by UPM/Line Producer authority. | integrated | offline | MVP-3 | API/service tests cover UPM/Line Producer approval and First AD refusal. |
 | ACT-006 | The Script Supervisor may raise findings and record what was shot, and may not rule on coverage. | unit-built | offline | MVP-3 | Existing tests cover authority. |
-| ACT-007 | The monitor loop may trigger a replan request and may not select among resulting boards. | not-started | offline | POST | Monitor automation post-MVP; manual changed-fact trigger used in MVP-2. |
-| ACT-008 | A `CostApproval` records approver, role, cost delta, added shoot days, approval/rejection, and timestamp. | not-started | offline | MVP-3 | New explicit approval artifact. |
-| ACT-009 | A `BoardSelection` records First AD, selected option, prior schedule version, new schedule version, and timestamp. | not-started | offline | MVP-2 | New explicit selection artifact. |
+| ACT-007 | The monitor loop may trigger a replan request and may not select among resulting boards. | integrated | offline | POST | Cloud Tasks-backed monitor jobs create findings/replan requests; selection still requires First AD authority. |
+| ACT-008 | A `CostApproval` records approver, role, cost delta, added shoot days, approval/rejection, and timestamp. | integrated | offline | MVP-3 | Persisted service/API artifact. |
+| ACT-009 | A `BoardSelection` records First AD, selected option, prior schedule version, new schedule version, and timestamp. | integrated | offline | MVP-2 | Persisted service/API artifact. |
 | ACT-010 | Cast, crew, location owners and permit authorities are recipients or constraint sources, never deciding actors. No `Role` exists for them, so they cannot be constructed as one. | unit-built | offline | MVP-0 | Enforced structurally by the `Role` enum; guards against re-introducing them as users. |
 
 ---
@@ -702,8 +702,8 @@ constraints from grounded values; full Gemini translation is post-MVP.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
 |---|---|---|---|---|---|
-| LCK-001 | A `LockedDayRecord` includes scheduled scenes, actual shot status, date, locations, cast, call/wrap times, call sheet version, recorder, and timestamp. | not-started | offline | MVP-2 | Defines immutability object. |
-| LCK-002 | The solver may reference locked records as constraints but must not mutate, delete, resequence, or reassign them. | not-started | offline | MVP-2 | Same principle as SOL-004, explicit. |
+| LCK-001 | A `LockedDayRecord` includes scheduled scenes, actual shot status, date, locations, cast, call/wrap times, call sheet version, recorder, and timestamp. | integrated | offline | MVP-2 | Persisted from board day snapshots and exposed through API responses. |
+| LCK-002 | The solver may reference locked records as constraints but must not mutate, delete, resequence, or reassign them. | integrated | offline | MVP-2 | Locked records compile into active hard pinned-day constraints for replans. |
 | LCK-003 | Replans start after an explicit cutoff day/time; in-progress or partial days require an explicit lock policy. | not-started | offline | MVP-2 | Avoids accidental rewrite of current day. |
 | LCK-004 | Retroactive fact changes create audit exceptions and future recommendations, not edits to past schedules. | not-started | offline | MVP-2 | Preserves history. |
 
@@ -720,10 +720,10 @@ Monitor to detect changes in mutable source URLs.
 | MON-002 | Replanning returns multiple boards satisfying hard constraints, each with production-readable cost deltas and required approvals stated. | not-started | offline | MVP-2 | Valid boards only. |
 | MON-003 | A monitor page-change event becomes a replan trigger only after Coverset re-extracts the watched fact, normalizes old/new values, and proves a material schedule-relevant change under the fact family's threshold. | not-started | live | POST | Prevents ad/header churn replans. |
 | MON-004 | Non-material page changes do not trigger replanning. Source disappearance, monitor failure, or stale facts emit alerts and cannot silently leave a schedule marked current. | not-started | live | POST | Failure handling. |
-| MON-005 | A `MonitoredSource` records schedule version, evidence/value id, URL, fact kind, affected work IDs, fingerprint, and monitor subscription id. | not-started | offline | POST | Source registry. |
-| MON-006 | A `ChangeEvent` records URL, detected_at, old/new fingerprints, old/new normalized values when available, and materiality result. | not-started | offline | MVP-2 | Can be simulated before real Monitor. |
-| MON-007 | A `ReplanRequest` records trigger event, current board, locked days, affected work IDs, and requester component. | not-started | offline | MVP-2 | Boundary between detect and solve. |
-| MON-008 | Monitor-generated options have no selected board until First AD `BoardSelection` is recorded. | not-started | offline | POST | Authority boundary. |
+| MON-005 | A `MonitoredSource` records schedule version, evidence/value id, URL, fact kind, affected work IDs, fingerprint, and monitor subscription id. | unit-built | offline | POST | Domain record exists; external subscription registry remains post-MVP. |
+| MON-006 | A `ChangeEvent` records URL, detected_at, old/new fingerprints, old/new normalized values when available, and materiality result. | unit-built | offline | MVP-2 | Domain record and monitor-job payload cover simulated changed facts. |
+| MON-007 | A `ReplanRequest` records trigger event, current board, locked days, affected work IDs, and requester component. | integrated | offline | MVP-2 | Accepted monitor findings create persisted replan requests. |
+| MON-008 | Monitor-generated options have no selected board until First AD `BoardSelection` is recorded. | integrated | offline | POST | API/service tests cover no implicit board selection and First AD-only selection. |
 
 ---
 
@@ -740,6 +740,7 @@ schemas are specified now.
 | OUT-004 | `CallSheet` includes day, scenes, locations, cast calls, crew call, wrap estimate, daylight windows, turnaround notes, permit notes, recipients, and schedule version. | not-started | offline | POST | Full call-sheet schema. |
 | OUT-005 | `ScheduleDiff` reports added days, moved scenes, changed call times, added pickups, cast holding delta, company move delta, overtime/turnaround delta, and required approvals. | not-started | offline | MVP-2 | Production-readable delta. |
 | OUT-006 | Recipients receive call sheets read-only and have no scheduling authority by receiving them. | not-started | offline | POST | Actor boundary. |
+| OUT-007 | Board and audit artifacts can be exported as reviewable text/CSV/JSON without mutating audit history. | demo-ready | offline | POST | [cross-cutting] Implemented by private API export endpoints and append-only audit export rows. |
 
 ---
 
@@ -790,7 +791,7 @@ solver-ready pickup work.
 | AUD-003 | Every constraint records whether it was derived from full page content, excerpt, algorithm, fixture, or human input. | domain-model | offline | MVP-1 | Evidence has extraction mode; constraints missing. |
 | AUD-004 | Every pickup task traces to a named human decision. No automated process can create shoot work. | unit-built | offline | MVP-3 | Existing tests. |
 | AUD-005 | Every active board records the constraint snapshot hash used to solve and validate it. | demo-ready | offline | MVP-0 | `ConstraintSet.snapshot_hash`, carried on the board and on its validation report. |
-| AUD-006 | A schedule version records parent version, creation trigger, selected board, selecting actor when applicable, and approval state. | not-started | offline | MVP-2 | Needed for replans. |
+| AUD-006 | A schedule version records parent version, creation trigger, selected board, selecting actor when applicable, and approval state. | integrated | offline | MVP-2 | BoardSelection and CostApproval records capture selected/prior board, run ids, actor, and approval state. |
 | AUD-007 | A live-grounded requirement declares whether live verification is required, exempt, or manual, and traceability reports missing live coverage separately from offline coverage. | not-started | live | MVP-1 | [meta] Strengthens traceability. |
 
 ---
@@ -813,7 +814,18 @@ report and left no symptom but a total nobody had memorised.
 
 ---
 
-## 22. Use cases
+## 22. OPS — Deployment operations
+
+| ID | Requirement | Maturity | Verification | Slice | Notes |
+|---|---|---|---|---|---|
+| OPS-001 | Terraform state is stored in a versioned remote GCS backend and the generated backend config is not committed. | integrated | offline | POST | [cross-cutting] Bootstrap script creates/version-enables the state bucket and writes gitignored backend config. |
+| OPS-002 | Dev infrastructure provisions Cloud SQL backups and a Cloud Run error alert. | integrated | offline | POST | [cross-cutting] Terraform declares PITR backups, a log-based metric, and a Monitoring alert policy. |
+| OPS-003 | Dev deploys provision a monthly budget alert when a billing account is configured or detected. | integrated | offline | POST | [cross-cutting] Terraform budget resource is enabled by deploy-time billing account discovery. |
+| OPS-004 | The commit gate rejects tracked `.env`, generated Terraform config, credential files, and secret-looking API key assignments. | integrated | offline | POST | [cross-cutting] `scripts/check.sh` includes a filename-only secret hygiene gate. |
+
+---
+
+## 23. Use cases
 
 A use case is a journey through requirements, not a requirement. It names the IDs it
 exercises so traceability can report both requirement coverage and journey readiness.

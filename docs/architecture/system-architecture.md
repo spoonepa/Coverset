@@ -37,7 +37,9 @@ Core responsibilities:
 - breakdown run lifecycle,
 - candidate scene review/activation,
 - schedule run lifecycle,
-- board retrieval,
+- board retrieval and text/CSV/JSON export,
+- monitor findings, locked-day records, replan requests, board selection, and cost approvals,
+- audit listing/export plus optional BigQuery audit export,
 - health/smoke checks.
 
 ## Domain library
@@ -81,7 +83,7 @@ Append-only analytics/telemetry:
 
 - agent run timing and model metadata,
 - solver run metrics,
-- audit/event export,
+- explicit audit/event export rows,
 - cost/performance trends.
 
 BigQuery is not the system of record for interactive product state.

@@ -37,3 +37,18 @@ output "bigquery_dataset" {
   description = "BigQuery dataset for analytics/audit export."
   value       = google_bigquery_dataset.analytics.dataset_id
 }
+
+output "bigquery_audit_table" {
+  description = "BigQuery table for append-only audit exports."
+  value       = "${google_bigquery_dataset.analytics.dataset_id}.${google_bigquery_table.audit_events.table_id}"
+}
+
+output "terraform_state_bucket" {
+  description = "GCS bucket configured for remote Terraform state."
+  value       = var.terraform_state_bucket != "" ? var.terraform_state_bucket : "coverset-${var.project_id}-terraform-state"
+}
+
+output "cloud_run_error_alert_policy" {
+  description = "Cloud Monitoring alert policy for Cloud Run error logs."
+  value       = google_monitoring_alert_policy.cloud_run_errors.display_name
+}

@@ -6,7 +6,10 @@ An agentic scheduling partner for first assistant directors.
 
 ## Overview
 
-<!-- TODO -->
+Coverset turns a screenplay into scheduler-ready scene records, lets humans review
+and lock production decisions, then produces deterministic stripboards with CP-SAT.
+Gemini and Parallel supply candidates and evidence; they never select boards,
+approve costs, or mutate locked shoot history.
 
 ## Architecture
 
@@ -82,11 +85,14 @@ uv run python -m coverset.worker.main run-once
 The dev cloud stack is provisioned with Terraform and images are built by Cloud Build:
 
 ```sh
+scripts/bootstrap_terraform_state.sh   # one-time GCS remote state bootstrap/migration
 scripts/deploy_dev.sh
 ```
 
 Default target: project `spoonepa`, region `us-central1`, private Cloud Run. The deploy
-script smoke-tests `/readyz` and `/demo/run` with an identity token.
+script bootstraps the GCS backend config when needed, smoke-tests `/readyz` and
+`/demo/run` with an identity token, and applies the Cloud Build image tags through
+Terraform.
 
 Real Gemini/Parallel keys must live in Secret Manager. Rotate leaked keys first, then run:
 
@@ -97,7 +103,24 @@ export PARALLEL_API_KEY=...
 scripts/bootstrap_gcp_secrets.sh
 ```
 
-Do not commit `.env`, credentials, or generated `*.tfvars` files.
+Do not commit `.env`, credentials, generated `*.tfvars` files, or
+`infra/terraform/backend.auto.hcl`.
+
+## Exports and operations
+
+Useful review artifacts are available from the private API:
+
+```text
+GET  /boards/{board_id}/export?format=text|csv|json
+GET  /productions/{production_id}/audit
+GET  /productions/{production_id}/audit/export?format=csv|json
+POST /productions/{production_id}/audit/bigquery
+```
+
+Cloud SQL remains the system of record. BigQuery receives append-only audit export
+rows for analytics; it is not used as transactional state. The dev Terraform stack
+also provisions Cloud SQL backups, a Cloud Run error log metric/alert, and an
+optional monthly budget alert when a billing account is available.
 
 ## Development
 

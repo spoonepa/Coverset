@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import csv
 import datetime as dt
 import hashlib
+import json
 import re
 from dataclasses import replace
-from io import BytesIO
+from io import BytesIO, StringIO
 from typing import Any, Protocol
 
 import sqlalchemy as sa
@@ -92,6 +94,29 @@ class HasExtract(Protocol):
 
 class HasGround(Protocol):
     def ground(self, kind: FactKind, location: Location, date: dt.date) -> Evidence: ...
+
+
+class HasAuditSink(Protocol):
+    def append_rows(self, rows: list[dict[str, Any]]) -> int: ...
+
+
+def audit(
+    session: Session,
+    production_id: str | None,
+    event_type: str,
+    payload: dict,
+    *,
+    actor: str = "system",
+) -> None:
+    session.add(
+        AuditEventModel(
+            id=new_id("audit"),
+            production_id=production_id,
+            event_type=event_type,
+            actor=actor,
+            payload=payload,
+        )
+    )
 
 
 ANSWER_KEY = (
@@ -1701,22 +1726,196 @@ def get_board(session: Session, board_id: str) -> BoardModel:
     return board
 
 
-def audit(
-    session: Session,
-    production_id: str | None,
-    event_type: str,
-    payload: dict,
-    *,
-    actor: str = "system",
-) -> None:
-    session.add(
-        AuditEventModel(
-            id=new_id("audit"),
-            production_id=production_id,
-            event_type=event_type,
-            actor=actor,
-            payload=payload,
+def list_audit_events(
+    session: Session, production_id: str
+) -> list[AuditEventModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(AuditEventModel)
+            .where(AuditEventModel.production_id == production_id)
+            .order_by(AuditEventModel.created_at, AuditEventModel.id)
         )
+    )
+
+
+def audit_event_to_json(row: AuditEventModel) -> dict[str, Any]:
+    return {
+        "id": row.id,
+        "production_id": row.production_id,
+        "event_type": row.event_type,
+        "actor": row.actor,
+        "payload": dict(row.payload or {}),
+        "created_at": row.created_at.isoformat(),
+    }
+
+
+def board_export_json(board: BoardModel) -> dict[str, Any]:
+    return {
+        "id": board.id,
+        "production_id": board.production_id,
+        "schedule_run_id": board.schedule_run_id,
+        "solver_status": board.solver_status,
+        "stripboard": board.stripboard,
+        "result": dict(board.result_json or {}),
+    }
+
+
+def board_export_csv(board: BoardModel) -> str:
+    output = StringIO()
+    columns = [
+        "shoot_day",
+        "sequence",
+        "work_id",
+        "scene_id",
+        "kind",
+        "day_night",
+        "location_id",
+        "location_name",
+        "cast_ids",
+        "planned_call_time",
+        "planned_wrap_time",
+    ]
+    writer = csv.DictWriter(output, fieldnames=columns)
+    writer.writeheader()
+    for strip in (board.result_json or {}).get("strips", []):
+        location = dict(strip.get("location") or {})
+        writer.writerow(
+            {
+                "shoot_day": strip.get("shoot_day", ""),
+                "sequence": strip.get("sequence", ""),
+                "work_id": strip.get("work_id", ""),
+                "scene_id": strip.get("scene_id", ""),
+                "kind": strip.get("kind", ""),
+                "day_night": strip.get("day_night", ""),
+                "location_id": strip.get("location_id", ""),
+                "location_name": location.get("name", ""),
+                "cast_ids": ";".join(str(cast_id) for cast_id in strip.get("cast_ids", [])),
+                "planned_call_time": strip.get("planned_call_time", ""),
+                "planned_wrap_time": strip.get("planned_wrap_time", ""),
+            }
+        )
+    return output.getvalue()
+
+
+def audit_export_json(rows: list[AuditEventModel]) -> list[dict[str, Any]]:
+    return [audit_event_to_json(row) for row in rows]
+
+
+def audit_export_csv(rows: list[AuditEventModel]) -> str:
+    output = StringIO()
+    columns = ["id", "production_id", "event_type", "actor", "created_at", "payload"]
+    writer = csv.DictWriter(output, fieldnames=columns)
+    writer.writeheader()
+    for row in rows:
+        payload = json.dumps(row.payload or {}, sort_keys=True, separators=(",", ":"))
+        writer.writerow(
+            {
+                "id": row.id,
+                "production_id": row.production_id or "",
+                "event_type": row.event_type,
+                "actor": row.actor,
+                "created_at": row.created_at.isoformat(),
+                "payload": payload,
+            }
+        )
+    return output.getvalue()
+
+
+def bigquery_audit_rows(rows: list[AuditEventModel]) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": row.id,
+            "production_id": row.production_id,
+            "event_type": row.event_type,
+            "actor": row.actor,
+            "payload": json.dumps(row.payload or {}, sort_keys=True),
+            "created_at": row.created_at.isoformat(),
+        }
+        for row in rows
+    ]
+
+
+def export_audit_events_to_sink(
+    session: Session, production_id: str, *, sink: HasAuditSink
+) -> int:
+    rows = bigquery_audit_rows(list_audit_events(session, production_id))
+    return sink.append_rows(rows)
+
+
+class BigQueryAuditSink:
+    def __init__(self, *, project_id: str, dataset: str, table: str) -> None:
+        self.project_id = project_id
+        self.dataset = dataset
+        self.table = table
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.project_id and self.dataset and self.table)
+
+    def append_rows(self, rows: list[dict[str, Any]]) -> int:
+        if not rows:
+            return 0
+        if not self.configured:
+            raise ServiceError("BigQuery audit export is not configured", status_code=503)
+        try:
+            import google.auth  # type: ignore[import-untyped]
+            from google.auth.transport.requests import (  # type: ignore[import-untyped]
+                AuthorizedSession,
+            )
+        except ImportError as exc:  # pragma: no cover - depends on deployed deps
+            raise ServiceError("google-auth is not available for BigQuery export", status_code=503) from exc
+        credentials, _ = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/bigquery.insertdata"]
+        )
+        authed = AuthorizedSession(credentials)
+        table_ref = f"{self.project_id}.{self.dataset}.{self.table}"
+        url = (
+            "https://bigquery.googleapis.com/bigquery/v2/projects/"
+            f"{self.project_id}/datasets/{self.dataset}/tables/{self.table}/insertAll"
+        )
+        response = authed.post(
+            url,
+            json={
+                "kind": "bigquery#tableDataInsertAllRequest",
+                "skipInvalidRows": False,
+                "ignoreUnknownValues": False,
+                "rows": [
+                    {"insertId": row["id"], "json": row}
+                    for row in rows
+                ],
+            },
+            timeout=15,
+        )
+        if response.status_code >= 400:
+            raise ServiceError(
+                f"BigQuery audit export failed for {table_ref}: HTTP {response.status_code}",
+                status_code=502,
+            )
+        errors = response.json().get("insertErrors", [])
+        if errors:
+            raise ServiceError(
+                f"BigQuery audit export rejected {len(errors)} row(s) for {table_ref}",
+                status_code=502,
+            )
+        return len(rows)
+
+
+def export_audit_events_to_bigquery(
+    session: Session,
+    production_id: str,
+    *,
+    settings: Settings | None = None,
+) -> int:
+    active_settings = settings or get_settings()
+    return export_audit_events_to_sink(
+        session,
+        production_id,
+        sink=BigQueryAuditSink(
+            project_id=active_settings.project_id,
+            dataset=active_settings.bigquery_dataset,
+            table=active_settings.bigquery_audit_table,
+        ),
     )
 
 

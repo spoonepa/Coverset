@@ -27,9 +27,11 @@ from coverset.api.services import (  # type: ignore[import-not-found]
     enqueue_breakdown_job,
     enqueue_monitor_job,
     enqueue_schedule_job,
+    export_audit_events_to_sink,
     get_board,
     get_job,
     ground_fact,
+    list_audit_events,
     list_candidates_for_run,
     list_monitor_findings,
     list_replan_requests,
@@ -859,3 +861,68 @@ def test_p3_authority_and_replan_endpoints(db_session: Session, tmp_path):
         assert approved_cost.status_code == 200, approved_cost.text
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.mark.req("OUT-003", "OUT-007", "AUD-006", "ACT-001")
+def test_board_and_audit_exports_are_reviewable_and_append_only(
+    db_session: Session, tmp_path
+):
+    production, board = solved_board(db_session, tmp_path)
+    shoot_day = dt.date.fromisoformat(board.result_json["days"][0]["date"])
+    lock_board_day(
+        db_session,
+        board_id=board.id,
+        shoot_date=shoot_day,
+        call_sheet_version="CS-EXPORT",
+        actor_name="J. Alvarez",
+        actor_role="script_supervisor",
+    )
+    before_exports = list_audit_events(db_session, production.id)
+
+    class MemorySink:
+        def __init__(self) -> None:
+            self.rows: list[dict] = []
+
+        def append_rows(self, rows: list[dict]) -> int:
+            self.rows.extend(rows)
+            return len(rows)
+
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        text_export = client.get(f"/boards/{board.id}/export?format=text")
+        assert text_export.status_code == 200, text_export.text
+        assert "STRIPBOARD" in text_export.text
+        assert text_export.headers["content-disposition"].endswith("-stripboard.txt\"")
+
+        csv_export = client.get(f"/boards/{board.id}/export?format=csv")
+        assert csv_export.status_code == 200, csv_export.text
+        assert "work_id,scene_id" in csv_export.text
+        assert "W-BRK-001" in csv_export.text
+
+        json_export = client.get(f"/boards/{board.id}/export?format=json")
+        assert json_export.status_code == 200, json_export.text
+        assert json_export.json()["id"] == board.id
+
+        audit_json = client.get(f"/productions/{production.id}/audit/export?format=json")
+        assert audit_json.status_code == 200, audit_json.text
+        assert any(row["event_type"] == "day.locked" for row in audit_json.json())
+
+        audit_csv = client.get(f"/productions/{production.id}/audit/export?format=csv")
+        assert audit_csv.status_code == 200, audit_csv.text
+        assert "event_type,actor" in audit_csv.text
+        assert "day.locked" in audit_csv.text
+    finally:
+        app.dependency_overrides.clear()
+
+    after_exports = list_audit_events(db_session, production.id)
+    assert [row.id for row in after_exports] == [row.id for row in before_exports]
+
+    sink = MemorySink()
+    exported = export_audit_events_to_sink(db_session, production.id, sink=sink)
+    assert exported == len(before_exports)
+    assert sink.rows[-1]["event_type"] == "day.locked"
+    assert isinstance(sink.rows[-1]["payload"], str)

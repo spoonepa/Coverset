@@ -14,6 +14,12 @@ AGENT_MODE="${AGENT_MODE:-fixture}"
 PLACEHOLDER_IMAGE="us-docker.pkg.dev/cloudrun/container/hello"
 TF_DIR="infra/terraform"
 GENERATED_TFVARS="${TF_DIR}/dev.auto.tfvars"
+TF_BACKEND_CONFIG="${TF_BACKEND_CONFIG:-${ROOT}/${TF_DIR}/backend.auto.hcl}"
+TF_STATE_BUCKET="${TF_STATE_BUCKET:-coverset-${PROJECT_ID}-terraform-state}"
+BILLING_ACCOUNT_ID="${BILLING_ACCOUNT_ID:-}"
+if [[ -z "${BILLING_ACCOUNT_ID}" ]]; then
+  BILLING_ACCOUNT_ID="$(gcloud billing projects describe "${PROJECT_ID}" --format='value(billingAccountName)' 2>/dev/null | sed 's#^billingAccounts/##' || true)"
+fi
 
 if [[ -z "${PROJECT_ID}" || -z "${ACCOUNT}" ]]; then
   echo "gcloud project/account is not configured" >&2
@@ -21,17 +27,19 @@ if [[ -z "${PROJECT_ID}" || -z "${ACCOUNT}" ]]; then
 fi
 
 echo "== Coverset dev deploy =="
-echo "project=${PROJECT_ID} region=${REGION} tag=${TAG} principal=${DEVELOPER_PRINCIPAL} agent_mode=${AGENT_MODE}"
+echo "project=${PROJECT_ID} region=${REGION} tag=${TAG} principal=${DEVELOPER_PRINCIPAL} agent_mode=${AGENT_MODE} budget=$([[ -n "${BILLING_ACCOUNT_ID}" ]] && echo enabled || echo skipped)"
 
 echo "== enabling required APIs =="
 gcloud services enable \
   aiplatform.googleapis.com \
   artifactregistry.googleapis.com \
   bigquery.googleapis.com \
+  billingbudgets.googleapis.com \
   cloudbuild.googleapis.com \
   cloudtasks.googleapis.com \
   iam.googleapis.com \
   iamcredentials.googleapis.com \
+  monitoring.googleapis.com \
   run.googleapis.com \
   secretmanager.googleapis.com \
   serviceusage.googleapis.com \
@@ -39,8 +47,16 @@ gcloud services enable \
   storage.googleapis.com \
   --project "${PROJECT_ID}" >/dev/null
 
+echo "== terraform state backend =="
+if [[ "${COVERSET_BOOTSTRAP_TF_STATE:-1}" != "0" ]]; then
+  PROJECT_ID="${PROJECT_ID}" REGION="${REGION}" TF_BACKEND_CONFIG="${TF_BACKEND_CONFIG}" TF_STATE_BUCKET="${TF_STATE_BUCKET}" \
+    "${ROOT}/scripts/bootstrap_terraform_state.sh" --no-init
+else
+  echo "skipping backend bootstrap because COVERSET_BOOTSTRAP_TF_STATE=0"
+fi
+
 echo "== terraform init/validate =="
-terraform -chdir="${TF_DIR}" init -input=false
+terraform -chdir="${TF_DIR}" init -input=false -backend-config="${TF_BACKEND_CONFIG}"
 terraform -chdir="${TF_DIR}" validate
 
 API_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/coverset-api:${TAG}"
@@ -57,6 +73,8 @@ else
     -var "repository_id=${REPOSITORY}" \
     -var "developer_principal=${DEVELOPER_PRINCIPAL}" \
     -var "agent_mode=${AGENT_MODE}" \
+    -var "terraform_state_bucket=${TF_STATE_BUCKET}" \
+    -var "billing_account_id=${BILLING_ACCOUNT_ID}" \
     -var "api_image=${PLACEHOLDER_IMAGE}" \
     -var "worker_image=${PLACEHOLDER_IMAGE}" \
     -var "web_image=${PLACEHOLDER_IMAGE}"
@@ -76,11 +94,13 @@ cat >"${GENERATED_TFVARS}" <<EOF
 project_id          = "${PROJECT_ID}"
 region              = "${REGION}"
 repository_id       = "${REPOSITORY}"
-developer_principal = "${DEVELOPER_PRINCIPAL}"
-agent_mode          = "${AGENT_MODE}"
-api_image           = "${API_IMAGE}"
-worker_image        = "${WORKER_IMAGE}"
-web_image           = "${WEB_IMAGE}"
+developer_principal   = "${DEVELOPER_PRINCIPAL}"
+agent_mode            = "${AGENT_MODE}"
+terraform_state_bucket = "${TF_STATE_BUCKET}"
+billing_account_id    = "${BILLING_ACCOUNT_ID}"
+api_image             = "${API_IMAGE}"
+worker_image          = "${WORKER_IMAGE}"
+web_image             = "${WEB_IMAGE}"
 EOF
 
 echo "== terraform apply real images =="

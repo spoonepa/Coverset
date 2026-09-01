@@ -7,10 +7,12 @@ locals {
     "aiplatform.googleapis.com",
     "artifactregistry.googleapis.com",
     "bigquery.googleapis.com",
+    "billingbudgets.googleapis.com",
     "cloudbuild.googleapis.com",
     "cloudtasks.googleapis.com",
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
+    "monitoring.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
     "serviceusage.googleapis.com",
@@ -116,6 +118,57 @@ resource "google_bigquery_dataset" "analytics" {
   depends_on = [google_project_service.required]
 }
 
+resource "google_bigquery_table" "audit_events" {
+  project             = var.project_id
+  dataset_id          = google_bigquery_dataset.analytics.dataset_id
+  table_id            = "audit_events"
+  deletion_protection = false
+
+  description = "Append-only exported Coverset audit events."
+
+  time_partitioning {
+    type  = "DAY"
+    field = "created_at"
+  }
+
+  clustering = ["production_id", "event_type"]
+
+  schema = jsonencode([
+    {
+      name = "id"
+      type = "STRING"
+      mode = "REQUIRED"
+    },
+    {
+      name = "production_id"
+      type = "STRING"
+      mode = "NULLABLE"
+    },
+    {
+      name = "event_type"
+      type = "STRING"
+      mode = "REQUIRED"
+    },
+    {
+      name = "actor"
+      type = "STRING"
+      mode = "REQUIRED"
+    },
+    {
+      name = "payload"
+      type = "JSON"
+      mode = "NULLABLE"
+    },
+    {
+      name = "created_at"
+      type = "TIMESTAMP"
+      mode = "REQUIRED"
+    },
+  ])
+
+  depends_on = [google_bigquery_dataset.analytics]
+}
+
 resource "google_sql_database_instance" "main" {
   project             = var.project_id
   name                = "${var.name_prefix}-dev"
@@ -131,7 +184,15 @@ resource "google_sql_database_instance" "main" {
     disk_size         = 10
 
     backup_configuration {
-      enabled = false
+      enabled                        = true
+      start_time                     = "03:00"
+      point_in_time_recovery_enabled = true
+      transaction_log_retention_days = 7
+
+      backup_retention_settings {
+        retained_backups = 7
+        retention_unit   = "COUNT"
+      }
     }
 
     ip_configuration {
@@ -335,6 +396,20 @@ resource "google_storage_bucket_iam_member" "worker_artifact_writer" {
   member = google_service_account.worker.member
 }
 
+resource "google_bigquery_dataset_iam_member" "api_analytics_writer" {
+  project    = var.project_id
+  dataset_id = google_bigquery_dataset.analytics.dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = google_service_account.api.member
+}
+
+resource "google_bigquery_dataset_iam_member" "worker_analytics_writer" {
+  project    = var.project_id
+  dataset_id = google_bigquery_dataset.analytics.dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = google_service_account.worker.member
+}
+
 resource "google_secret_manager_secret_iam_member" "api_db_secret" {
   project   = var.project_id
   secret_id = google_secret_manager_secret.db_password.secret_id
@@ -489,6 +564,14 @@ resource "google_cloud_run_v2_service" "api" {
       env {
         name  = "COVERSET_ARTIFACT_BUCKET"
         value = google_storage_bucket.artifacts.name
+      }
+      env {
+        name  = "COVERSET_BIGQUERY_DATASET"
+        value = google_bigquery_dataset.analytics.dataset_id
+      }
+      env {
+        name  = "COVERSET_BIGQUERY_AUDIT_TABLE"
+        value = google_bigquery_table.audit_events.table_id
       }
       env {
         name  = "COVERSET_TASK_QUEUE"
@@ -647,6 +730,14 @@ resource "google_cloud_run_v2_service" "worker" {
         value = google_storage_bucket.artifacts.name
       }
       env {
+        name  = "COVERSET_BIGQUERY_DATASET"
+        value = google_bigquery_dataset.analytics.dataset_id
+      }
+      env {
+        name  = "COVERSET_BIGQUERY_AUDIT_TABLE"
+        value = google_bigquery_table.audit_events.table_id
+      }
+      env {
         name = "COVERSET_DB_PASSWORD"
         value_source {
           secret_key_ref {
@@ -798,4 +889,103 @@ resource "google_cloud_run_v2_service_iam_member" "web_invokes_api" {
   name     = google_cloud_run_v2_service.api.name
   role     = "roles/run.invoker"
   member   = google_service_account.web.member
+}
+
+resource "google_logging_metric" "cloud_run_errors" {
+  project = var.project_id
+  name    = "${var.name_prefix}_cloud_run_errors"
+  filter = join(" AND ", [
+    "resource.type=\"cloud_run_revision\"",
+    "resource.labels.service_name=~\"^${var.name_prefix}-(api|worker|web)-dev$\"",
+    "severity>=ERROR",
+  ])
+
+  metric_descriptor {
+    metric_kind  = "DELTA"
+    value_type   = "INT64"
+    unit         = "1"
+    display_name = "Coverset Cloud Run errors"
+
+    labels {
+      key         = "service"
+      value_type  = "STRING"
+      description = "Cloud Run service name."
+    }
+  }
+
+  label_extractors = {
+    service = "EXTRACT(resource.labels.service_name)"
+  }
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_monitoring_alert_policy" "cloud_run_errors" {
+  project      = var.project_id
+  display_name = "Coverset dev Cloud Run errors"
+  combiner     = "OR"
+  enabled      = true
+
+  conditions {
+    display_name = "Cloud Run emitted error logs"
+
+    condition_threshold {
+      filter          = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.cloud_run_errors.name}\" AND resource.type=\"cloud_run_revision\""
+      duration        = "60s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+
+      aggregations {
+        alignment_period     = "60s"
+        per_series_aligner   = "ALIGN_DELTA"
+        cross_series_reducer = "REDUCE_SUM"
+        group_by_fields      = ["metric.label.service"]
+      }
+    }
+  }
+
+  notification_channels = var.notification_channel_ids
+
+  documentation {
+    content   = "Coverset dev Cloud Run services emitted error logs. Check Cloud Run logs for the affected service and revision."
+    mime_type = "text/markdown"
+  }
+
+  depends_on = [google_logging_metric.cloud_run_errors]
+}
+
+resource "google_billing_budget" "dev" {
+  count           = var.billing_account_id == "" ? 0 : 1
+  billing_account = var.billing_account_id
+  display_name    = "Coverset dev monthly budget"
+
+  budget_filter {
+    projects = ["projects/${data.google_project.current.number}"]
+  }
+
+  amount {
+    specified_amount {
+      currency_code = "USD"
+      units         = tostring(var.monthly_budget_amount_usd)
+    }
+  }
+
+  threshold_rules {
+    threshold_percent = 0.5
+  }
+
+  threshold_rules {
+    threshold_percent = 0.9
+  }
+
+  threshold_rules {
+    threshold_percent = 1.0
+  }
+
+  all_updates_rule {
+    monitoring_notification_channels = var.notification_channel_ids
+    disable_default_iam_recipients   = false
+  }
+
+  depends_on = [google_project_service.required]
 }

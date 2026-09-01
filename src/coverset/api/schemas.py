@@ -270,6 +270,21 @@ class BoardResponse(BaseModel):
     result: dict[str, Any]
 
 
+class AuditEventResponse(BaseModel):
+    id: str
+    production_id: str | None = None
+    event_type: str
+    actor: str
+    payload: dict[str, Any] = Field(default_factory=dict)
+    created_at: dt.datetime
+
+
+class AuditBigQueryExportResponse(BaseModel):
+    production_id: str
+    exported_count: int
+    table: str
+
+
 class LockDayRequest(BaseModel):
     shoot_date: dt.date
     call_sheet_version: str = Field(min_length=1, max_length=120)

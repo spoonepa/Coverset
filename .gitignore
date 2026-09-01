@@ -71,6 +71,7 @@ infra/terraform/*.tfstate
 infra/terraform/*.tfstate.*
 infra/terraform/*.tfvars
 !infra/terraform/*.tfvars.example
+infra/terraform/backend.auto.hcl
 
 # ── AI assistant local state ──────────────────────────────────────────────────
 .bob/

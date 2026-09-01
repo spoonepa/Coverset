@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, File, UploadFile
+from fastapi import Depends, FastAPI, File, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from .config import get_settings  # type: ignore[import-not-found]
 from .db import get_session, init_db  # type: ignore[import-not-found]
 from .models import (  # type: ignore[import-not-found]
+    AuditEventModel,
     BoardModel,
     BoardSelectionModel,
     BreakdownRunModel,
@@ -34,6 +36,8 @@ from .models import (  # type: ignore[import-not-found]
     ScreenplayAssetModel,
 )
 from .schemas import (  # type: ignore[import-not-found]
+    AuditBigQueryExportResponse,
+    AuditEventResponse,
     BoardResponse,
     BoardSelectionRequest,
     BoardSelectionResponse,
@@ -75,9 +79,14 @@ from .services import (  # type: ignore[import-not-found]
     ServiceError,
     activate_constraint,
     add_cast_member,
+    audit_event_to_json,
+    audit_export_csv,
+    audit_export_json,
     add_location,
     approve_cost,
     batch_accept_candidates,
+    board_export_csv,
+    board_export_json,
     create_constraint,
     create_production,
     decide_monitor_finding,
@@ -85,6 +94,7 @@ from .services import (  # type: ignore[import-not-found]
     enqueue_grounding_job,
     enqueue_monitor_job,
     enqueue_schedule_job,
+    export_audit_events_to_bigquery,
     get_board,
     get_breakdown_run,
     get_job,
@@ -92,6 +102,7 @@ from .services import (  # type: ignore[import-not-found]
     get_schedule_run,
     ground_fact,
     list_aliases,
+    list_audit_events,
     list_candidates_for_run,
     list_cast,
     list_constraints,
@@ -385,6 +396,50 @@ def list_jobs_endpoint(
     return [_job_response(job) for job in list_jobs(session, production_id)]
 
 
+@app.get("/productions/{production_id}/audit", response_model=list[AuditEventResponse])
+def list_audit_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[AuditEventResponse]:
+    return [_audit_event_response(row) for row in list_audit_events(session, production_id)]
+
+
+@app.get("/productions/{production_id}/audit/export")
+def export_audit_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    format: Literal["json", "csv"] = Query("json"),
+) -> Response:
+    rows = list_audit_events(session, production_id)
+    if format == "csv":
+        return Response(
+            audit_export_csv(rows),
+            media_type="text/csv",
+            headers=_attachment_headers(f"{production_id}-audit.csv"),
+        )
+    return Response(
+        json.dumps(audit_export_json(rows), sort_keys=True),
+        media_type="application/json",
+        headers=_attachment_headers(f"{production_id}-audit.json"),
+    )
+
+
+@app.post(
+    "/productions/{production_id}/audit/bigquery",
+    response_model=AuditBigQueryExportResponse,
+)
+def export_audit_bigquery_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> AuditBigQueryExportResponse:
+    count = export_audit_events_to_bigquery(session, production_id, settings=settings)
+    return AuditBigQueryExportResponse(
+        production_id=production_id,
+        exported_count=count,
+        table=f"{settings.project_id}.{settings.bigquery_dataset}.{settings.bigquery_audit_table}",
+    )
+
+
 @app.get("/jobs/{job_id}", response_model=JobResponse)
 def get_job_endpoint(
     job_id: str,
@@ -642,6 +697,32 @@ def get_board_endpoint(
     return _board_response(get_board(session, board_id))
 
 
+@app.get("/boards/{board_id}/export")
+def export_board_endpoint(
+    board_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    format: Literal["json", "csv", "text"] = Query("json"),
+) -> Response:
+    board = get_board(session, board_id)
+    if format == "text":
+        return Response(
+            board.stripboard,
+            media_type="text/plain",
+            headers=_attachment_headers(f"{board.id}-stripboard.txt"),
+        )
+    if format == "csv":
+        return Response(
+            board_export_csv(board),
+            media_type="text/csv",
+            headers=_attachment_headers(f"{board.id}-strips.csv"),
+        )
+    return Response(
+        json.dumps(board_export_json(board), sort_keys=True),
+        media_type="application/json",
+        headers=_attachment_headers(f"{board.id}.json"),
+    )
+
+
 @app.post("/demo/run", response_model=BoardResponse)
 def run_demo_endpoint(
     session: Annotated[Session, Depends(get_session)],
@@ -730,6 +811,14 @@ def _job_response(job: JobModel) -> JobResponse:
         error=job.error or "",
         result=job.result_json or {},
     )
+
+
+def _attachment_headers(filename: str) -> dict[str, str]:
+    return {"Content-Disposition": f'attachment; filename="{filename}"'}
+
+
+def _audit_event_response(row: AuditEventModel) -> AuditEventResponse:
+    return AuditEventResponse(**audit_event_to_json(row))
 
 
 def _grounding_response(row: GroundingEvidenceModel) -> GroundingEvidenceResponse:

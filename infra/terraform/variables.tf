@@ -68,3 +68,27 @@ variable "max_instances" {
   type        = number
   default     = 2
 }
+
+variable "terraform_state_bucket" {
+  description = "GCS bucket used by the generated backend config for remote Terraform state."
+  type        = string
+  default     = ""
+}
+
+variable "notification_channel_ids" {
+  description = "Monitoring notification channel ids for dev alerts. Empty keeps alerts visible in Cloud Monitoring without external notifications."
+  type        = list(string)
+  default     = []
+}
+
+variable "billing_account_id" {
+  description = "Billing account id used for the optional dev budget alert. Leave empty to skip budget creation."
+  type        = string
+  default     = ""
+}
+
+variable "monthly_budget_amount_usd" {
+  description = "Monthly dev budget amount in USD when billing_account_id is set."
+  type        = number
+  default     = 25
+}
