@@ -40,6 +40,7 @@ class Role(StrEnum):
     DIRECTOR = "director"
     SCRIPT_SUPERVISOR = "script_supervisor"
     UPM = "upm"
+    LINE_PRODUCER = "line_producer"
     SECOND_AD = "second_ad"
 
 
@@ -91,7 +92,7 @@ class Actor:
     @property
     def may_approve_cost(self) -> bool:
         """Authorise work that adds a shoot day."""
-        return self.role in (Role.UPM,)
+        return self.role in (Role.UPM, Role.LINE_PRODUCER)
 
     def require(self, capability: str) -> None:
         """Raise unless this actor holds `capability`, naming the role that does.

@@ -8,6 +8,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
+ActorRole = Literal[
+    "first_ad", "director", "script_supervisor", "upm", "line_producer", "second_ad"
+]
+
+
 class HealthResponse(BaseModel):
     ok: bool = True
     service: str = "coverset-api"
@@ -220,15 +225,15 @@ class ConstraintCreate(BaseModel):
     hours: float | None = None
     evidence_id: str | None = None
     actor_name: str = "Developer"
-    actor_role: Literal[
-        "first_ad", "director", "script_supervisor", "upm", "second_ad"
-    ] = "first_ad"
+    actor_role: ActorRole = "first_ad"
     statement: str = "Production entered constraint"
     active: bool = False
 
 
 class ConstraintActivationRequest(BaseModel):
     active: bool = True
+    actor_name: str = "Developer"
+    actor_role: ActorRole = "first_ad"
 
 
 class ConstraintResponse(BaseModel):
@@ -263,3 +268,116 @@ class BoardResponse(BaseModel):
     solver_status: str
     stripboard: str
     result: dict[str, Any]
+
+
+class LockDayRequest(BaseModel):
+    shoot_date: dt.date
+    call_sheet_version: str = Field(min_length=1, max_length=120)
+    actor_name: str = "Developer"
+    actor_role: ActorRole = "first_ad"
+
+
+class LockedDayResponse(BaseModel):
+    id: str
+    production_id: str
+    board_id: str
+    schedule_run_id: str
+    shoot_date: dt.date
+    locked_assignments: list[dict[str, Any]] = Field(default_factory=list)
+    locations: list[str] = Field(default_factory=list)
+    cast: list[str] = Field(default_factory=list)
+    call_sheet_version: str
+    recorded_by_name: str
+    recorded_by_role: str
+
+
+class MonitorJobRequest(BaseModel):
+    board_id: str
+    source_url: str = Field(min_length=1)
+    fact_kind: Literal["weather", "permit"]
+    old_fingerprint: str = ""
+    new_fingerprint: str = ""
+    old_value: dict[str, Any] = Field(default_factory=dict)
+    new_value: dict[str, Any] = Field(default_factory=dict)
+    material: bool = True
+    message: str = ""
+    affected_work_ids: list[str] = Field(default_factory=list)
+    evidence_id: str | None = None
+
+
+class MonitorFindingResponse(BaseModel):
+    id: str
+    production_id: str
+    board_id: str
+    evidence_id: str | None = None
+    source_url: str
+    fact_kind: str
+    status: str
+    material: bool
+    message: str
+    old_fingerprint: str = ""
+    new_fingerprint: str = ""
+    old_value: dict[str, Any] = Field(default_factory=dict)
+    new_value: dict[str, Any] = Field(default_factory=dict)
+    affected_work_ids: list[str] = Field(default_factory=list)
+    requester_component: str
+    reviewed_by_name: str | None = None
+    reviewed_by_role: str | None = None
+
+
+class MonitorFindingDecisionRequest(BaseModel):
+    decision: Literal["accept", "reject"]
+    actor_name: str = "Developer"
+    actor_role: ActorRole = "first_ad"
+
+
+class ReplanRequestResponse(BaseModel):
+    id: str
+    production_id: str
+    finding_id: str
+    current_board_id: str
+    requester_component: str
+    status: str
+    affected_work_ids: list[str] = Field(default_factory=list)
+    locked_days: list[str] = Field(default_factory=list)
+
+
+class MonitorFindingDecisionResponse(BaseModel):
+    finding: MonitorFindingResponse
+    replan_request: ReplanRequestResponse | None = None
+
+
+class BoardSelectionRequest(BaseModel):
+    prior_board_id: str | None = None
+    actor_name: str = "Developer"
+    actor_role: ActorRole = "first_ad"
+
+
+class BoardSelectionResponse(BaseModel):
+    id: str
+    production_id: str
+    prior_board_id: str | None = None
+    selected_board_id: str
+    prior_schedule_run_id: str | None = None
+    new_schedule_run_id: str
+    actor_name: str
+    actor_role: str
+
+
+class CostApprovalRequest(BaseModel):
+    cost_delta: float = Field(ge=0)
+    added_shoot_days: list[dt.date] = Field(default_factory=list)
+    decision: Literal["approved", "rejected"] = "approved"
+    actor_name: str = "Developer"
+    actor_role: ActorRole = "upm"
+
+
+class CostApprovalResponse(BaseModel):
+    id: str
+    production_id: str
+    board_id: str
+    approver_name: str
+    approver_role: str
+    cost_delta: float
+    added_shoot_days: list[dt.date] = Field(default_factory=list)
+    decision: str

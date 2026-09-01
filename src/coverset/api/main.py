@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Annotated
@@ -15,20 +16,27 @@ from .config import get_settings  # type: ignore[import-not-found]
 from .db import get_session, init_db  # type: ignore[import-not-found]
 from .models import (  # type: ignore[import-not-found]
     BoardModel,
+    BoardSelectionModel,
     BreakdownRunModel,
     CastMemberModel,
     ConstraintModel,
+    CostApprovalModel,
     GroundingEvidenceModel,
     JobModel,
     LocationAliasModel,
     LocationModel,
+    LockedDayModel,
+    MonitorFindingModel,
     ProductionModel,
+    ReplanRequestModel,
     SceneCandidateModel,
     ScheduleRunModel,
     ScreenplayAssetModel,
 )
 from .schemas import (  # type: ignore[import-not-found]
     BoardResponse,
+    BoardSelectionRequest,
+    BoardSelectionResponse,
     BreakdownRequest,
     BreakdownRunResponse,
     CalendarResponse,
@@ -41,14 +49,23 @@ from .schemas import (  # type: ignore[import-not-found]
     ConstraintActivationRequest,
     ConstraintCreate,
     ConstraintResponse,
+    CostApprovalRequest,
+    CostApprovalResponse,
     GroundingEvidenceResponse,
     GroundingRequest,
     HealthResponse,
     JobResponse,
     LocationCreate,
     LocationResponse,
+    LockDayRequest,
+    LockedDayResponse,
+    MonitorFindingDecisionRequest,
+    MonitorFindingDecisionResponse,
+    MonitorFindingResponse,
+    MonitorJobRequest,
     ProductionCreate,
     ProductionResponse,
+    ReplanRequestResponse,
     SceneCandidateResponse,
     ScheduleRequest,
     ScheduleRunResponse,
@@ -59,11 +76,14 @@ from .services import (  # type: ignore[import-not-found]
     activate_constraint,
     add_cast_member,
     add_location,
+    approve_cost,
     batch_accept_candidates,
     create_constraint,
     create_production,
+    decide_monitor_finding,
     enqueue_breakdown_job,
     enqueue_grounding_job,
+    enqueue_monitor_job,
     enqueue_schedule_job,
     get_board,
     get_breakdown_run,
@@ -78,11 +98,16 @@ from .services import (  # type: ignore[import-not-found]
     list_grounding_evidence,
     list_jobs,
     list_locations,
+    list_locked_days,
+    list_monitor_findings,
+    list_replan_requests,
     list_shoot_days,
+    lock_board_day,
     materialize_demo_script,
     review_candidate,
     run_breakdown,
     run_scheduler,
+    select_board,
     set_calendar,
     update_candidate,
     upload_screenplay,
@@ -454,7 +479,139 @@ def activate_constraint_endpoint(
     session: Annotated[Session, Depends(get_session)],
 ) -> ConstraintResponse:
     return _constraint_response(
-        activate_constraint(session, constraint_row_id=constraint_id, active=payload.active)
+        activate_constraint(
+            session,
+            constraint_row_id=constraint_id,
+            active=payload.active,
+            actor_name=payload.actor_name,
+            actor_role=payload.actor_role,
+        )
+    )
+
+
+@app.post("/boards/{board_id}/locks", response_model=LockedDayResponse)
+def lock_board_day_endpoint(
+    board_id: str,
+    payload: LockDayRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> LockedDayResponse:
+    return _locked_day_response(
+        lock_board_day(
+            session,
+            board_id=board_id,
+            shoot_date=payload.shoot_date,
+            call_sheet_version=payload.call_sheet_version,
+            actor_name=payload.actor_name,
+            actor_role=payload.actor_role,
+        )
+    )
+
+
+@app.get("/productions/{production_id}/locks", response_model=list[LockedDayResponse])
+def list_locked_days_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[LockedDayResponse]:
+    return [_locked_day_response(row) for row in list_locked_days(session, production_id)]
+
+
+@app.post("/productions/{production_id}/monitor/jobs", response_model=JobResponse)
+def enqueue_monitor_endpoint(
+    production_id: str,
+    payload: MonitorJobRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> JobResponse:
+    job = enqueue_monitor_job(
+        session,
+        production_id,
+        payload=payload.model_dump(mode="json"),
+    )
+    _dispatch_job_or_raise(job)
+    return _job_response(job)
+
+
+@app.get(
+    "/productions/{production_id}/monitor/findings",
+    response_model=list[MonitorFindingResponse],
+)
+def list_monitor_findings_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[MonitorFindingResponse]:
+    return [
+        _monitor_finding_response(row)
+        for row in list_monitor_findings(session, production_id)
+    ]
+
+
+@app.patch(
+    "/monitor/findings/{finding_id}",
+    response_model=MonitorFindingDecisionResponse,
+)
+def decide_monitor_finding_endpoint(
+    finding_id: str,
+    payload: MonitorFindingDecisionRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> MonitorFindingDecisionResponse:
+    finding, replan = decide_monitor_finding(
+        session,
+        finding_id=finding_id,
+        decision=payload.decision,
+        actor_name=payload.actor_name,
+        actor_role=payload.actor_role,
+    )
+    return MonitorFindingDecisionResponse(
+        finding=_monitor_finding_response(finding),
+        replan_request=_replan_request_response(replan) if replan else None,
+    )
+
+
+@app.get(
+    "/productions/{production_id}/replan-requests",
+    response_model=list[ReplanRequestResponse],
+)
+def list_replan_requests_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[ReplanRequestResponse]:
+    return [
+        _replan_request_response(row) for row in list_replan_requests(session, production_id)
+    ]
+
+
+@app.post("/boards/{board_id}/selection", response_model=BoardSelectionResponse)
+def select_board_endpoint(
+    board_id: str,
+    payload: BoardSelectionRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> BoardSelectionResponse:
+    return _board_selection_response(
+        select_board(
+            session,
+            board_id=board_id,
+            actor_name=payload.actor_name,
+            actor_role=payload.actor_role,
+            prior_board_id=payload.prior_board_id,
+        )
+    )
+
+
+@app.post("/boards/{board_id}/cost-approvals", response_model=CostApprovalResponse)
+def approve_cost_endpoint(
+    board_id: str,
+    payload: CostApprovalRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> CostApprovalResponse:
+    return _cost_approval_response(
+        approve_cost(
+            session,
+            board_id=board_id,
+            actor_name=payload.actor_name,
+            actor_role=payload.actor_role,
+            cost_delta=payload.cost_delta,
+            added_shoot_days=payload.added_shoot_days,
+            decision=payload.decision,
+        )
     )
 
 
@@ -598,6 +755,85 @@ def _constraint_response(row: ConstraintModel) -> ConstraintResponse:
         active=row.active,
         constraint=row.constraint_json or {},
         provenance=row.provenance_json or {},
+    )
+
+
+def _locked_day_response(row: LockedDayModel) -> LockedDayResponse:
+    return LockedDayResponse(
+        id=row.id,
+        production_id=row.production_id,
+        board_id=row.board_id,
+        schedule_run_id=row.schedule_run_id,
+        shoot_date=row.shoot_date,
+        locked_assignments=list(row.locked_assignments_json or []),
+        locations=list(row.locations_json or []),
+        cast=list(row.cast_json or []),
+        call_sheet_version=row.call_sheet_version,
+        recorded_by_name=row.recorded_by_name,
+        recorded_by_role=row.recorded_by_role,
+    )
+
+
+def _monitor_finding_response(row: MonitorFindingModel) -> MonitorFindingResponse:
+    return MonitorFindingResponse(
+        id=row.id,
+        production_id=row.production_id,
+        board_id=row.board_id,
+        evidence_id=row.evidence_id,
+        source_url=row.source_url,
+        fact_kind=row.fact_kind,
+        status=row.status,
+        material=row.material,
+        message=row.message,
+        old_fingerprint=row.old_fingerprint,
+        new_fingerprint=row.new_fingerprint,
+        old_value=row.old_value_json or {},
+        new_value=row.new_value_json or {},
+        affected_work_ids=list(row.affected_work_ids_json or []),
+        requester_component=row.requester_component,
+        reviewed_by_name=row.reviewed_by_name,
+        reviewed_by_role=row.reviewed_by_role,
+    )
+
+
+def _replan_request_response(row: ReplanRequestModel) -> ReplanRequestResponse:
+    return ReplanRequestResponse(
+        id=row.id,
+        production_id=row.production_id,
+        finding_id=row.finding_id,
+        current_board_id=row.current_board_id,
+        requester_component=row.requester_component,
+        status=row.status,
+        affected_work_ids=list(row.affected_work_ids_json or []),
+        locked_days=list(row.locked_days_json or []),
+    )
+
+
+def _board_selection_response(row: BoardSelectionModel) -> BoardSelectionResponse:
+    return BoardSelectionResponse(
+        id=row.id,
+        production_id=row.production_id,
+        prior_board_id=row.prior_board_id,
+        selected_board_id=row.selected_board_id,
+        prior_schedule_run_id=row.prior_schedule_run_id,
+        new_schedule_run_id=row.new_schedule_run_id,
+        actor_name=row.actor_name,
+        actor_role=row.actor_role,
+    )
+
+
+def _cost_approval_response(row: CostApprovalModel) -> CostApprovalResponse:
+    return CostApprovalResponse(
+        id=row.id,
+        production_id=row.production_id,
+        board_id=row.board_id,
+        approver_name=row.approver_name,
+        approver_role=row.approver_role,
+        cost_delta=row.cost_delta,
+        added_shoot_days=[
+            dt.date.fromisoformat(day) for day in row.added_shoot_days_json or []
+        ],
+        decision=row.decision,
     )
 
 

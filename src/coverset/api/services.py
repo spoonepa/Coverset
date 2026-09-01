@@ -13,8 +13,19 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 import coverset.breakdown as breakdown  # type: ignore[import-not-found]
+from coverset.actors import Actor, AuthorityError, Role
 from coverset.breakdown import RawScene  # type: ignore[import-not-found]
-from coverset.constraints import ConstraintError, ConstraintRecord, ConstraintSet
+from coverset.constraints import (
+    ConstraintError,
+    ConstraintRecord,
+    ConstraintSet,
+    Family,
+    HumanSource,
+    PinnedDay,
+    Policy,
+    Subject,
+    SubjectKind,
+)
 from coverset.grounding import Evidence, FactKind, GroundingError, SearchGrounder
 from coverset.locations import Location
 from coverset.scenes import CandidateStatus, SceneRecord
@@ -32,14 +43,19 @@ from .constraints_io import (  # type: ignore[import-not-found]
 from .models import (  # type: ignore[import-not-found]
     AuditEventModel,
     BoardModel,
+    BoardSelectionModel,
     BreakdownRunModel,
     CastMemberModel,
     ConstraintModel,
+    CostApprovalModel,
     GroundingEvidenceModel,
     JobModel,
     LocationAliasModel,
     LocationModel,
+    LockedDayModel,
+    MonitorFindingModel,
     ProductionModel,
+    ReplanRequestModel,
     SceneCandidateModel,
     ScheduleRunModel,
     ScreenplayAssetModel,
@@ -106,6 +122,21 @@ def _agent_for_mode(mode: str, *, settings: Settings) -> HasExtract:
     if mode == "gemini":
         return breakdown.GeminiBreakdown()
     raise ServiceError(f"unsupported breakdown agent mode: {mode}")
+
+
+def _actor_for_decision(
+    name: str,
+    role: str,
+    *,
+    capability: str | None = None,
+) -> Actor:
+    try:
+        actor = Actor(name, Role(role))
+        if capability is not None:
+            actor.require(capability)
+    except (AuthorityError, ValueError) as exc:
+        raise ServiceError(str(exc), status_code=403) from exc
+    return actor
 
 
 def create_production(
@@ -859,7 +890,12 @@ def create_constraint(
 
 
 def activate_constraint(
-    session: Session, *, constraint_row_id: str, active: bool
+    session: Session,
+    *,
+    constraint_row_id: str,
+    active: bool,
+    actor_name: str = "Developer",
+    actor_role: str = "first_ad",
 ) -> ConstraintModel:
     row = session.get(ConstraintModel, constraint_row_id)
     if row is None:
@@ -872,11 +908,13 @@ def activate_constraint(
     row.active = active
     row.constraint_json = constraint_to_json(record)
     row.provenance_json = dict(row.constraint_json.get("source", {}))
+    actor = _actor_for_decision(actor_name, actor_role)
     audit(
         session,
         row.production_id,
         "constraint.activated" if active else "constraint.deactivated",
-        {"constraint_id": row.constraint_id},
+        {"constraint_id": row.constraint_id, "actor_role": actor.role.value},
+        actor=str(actor),
     )
     session.commit()
     return row
@@ -951,6 +989,332 @@ def ground_fact(
     return row
 
 
+def _board_day_snapshot(board: BoardModel, shoot_date: dt.date) -> dict[str, Any]:
+    for day in board.result_json.get("days", []):
+        if str(day.get("date")) == shoot_date.isoformat():
+            return dict(day)
+    raise ServiceError(
+        f"board {board.id} has no shoot day {shoot_date.isoformat()}",
+        status_code=404,
+    )
+
+
+def list_locked_days(session: Session, production_id: str) -> list[LockedDayModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(LockedDayModel)
+            .where(LockedDayModel.production_id == production_id)
+            .order_by(LockedDayModel.shoot_date, LockedDayModel.created_at)
+        )
+    )
+
+
+def lock_board_day(
+    session: Session,
+    *,
+    board_id: str,
+    shoot_date: dt.date,
+    call_sheet_version: str,
+    actor_name: str,
+    actor_role: str,
+) -> LockedDayModel:
+    board = get_board(session, board_id)
+    actor = _actor_for_decision(actor_name, actor_role, capability="lock_day")
+    existing = session.scalars(
+        select(LockedDayModel).where(
+            LockedDayModel.board_id == board_id,
+            LockedDayModel.shoot_date == shoot_date,
+        )
+    ).first()
+    if existing is not None:
+        return existing
+
+    day = _board_day_snapshot(board, shoot_date)
+    strips = list(day.get("strips") or day.get("assignments") or [])
+    if not strips:
+        raise ServiceError(f"board {board.id} has no locked work on {shoot_date}")
+    locked_assignments: list[dict[str, Any]] = []
+    for sequence, strip in enumerate(strips):
+        cast_ids = [str(cast_id) for cast_id in strip.get("cast_ids", [])]
+        locked_assignments.append(
+            {
+                "work_id": str(strip.get("work_id") or ""),
+                "sequence": strip.get("sequence", sequence),
+                "location_id": str(strip.get("location_id") or ""),
+                "planned_call_time": strip.get("planned_call_time"),
+                "planned_wrap_time": strip.get("planned_wrap_time"),
+                "cast_ids": cast_ids,
+            }
+        )
+    locations = sorted(
+        {item["location_id"] for item in locked_assignments if item["location_id"]}
+    )
+    cast = sorted({cast_id for item in locked_assignments for cast_id in item["cast_ids"]})
+    row = LockedDayModel(
+        id=new_id("lock"),
+        production_id=board.production_id,
+        board_id=board.id,
+        schedule_run_id=board.schedule_run_id,
+        shoot_date=shoot_date,
+        locked_assignments_json=locked_assignments,
+        locations_json=locations,
+        cast_json=cast,
+        call_sheet_version=call_sheet_version.strip(),
+        recorded_by_name=actor.name,
+        recorded_by_role=actor.role.value,
+    )
+    session.add(row)
+    audit(
+        session,
+        board.production_id,
+        "day.locked",
+        {
+            "board_id": board.id,
+            "shoot_date": shoot_date.isoformat(),
+            "work_ids": [item["work_id"] for item in locked_assignments],
+        },
+        actor=str(actor),
+    )
+    session.commit()
+    return row
+
+
+def _affected_work_ids(board: BoardModel, payload: dict[str, Any]) -> list[str]:
+    provided = [str(value) for value in payload.get("affected_work_ids", []) if value]
+    if provided:
+        return provided
+    return [
+        str(strip.get("work_id"))
+        for strip in board.result_json.get("strips", [])
+        if strip.get("work_id")
+    ]
+
+
+def create_monitor_finding(
+    session: Session,
+    production_id: str,
+    *,
+    payload: dict[str, Any],
+    requester_component: str = "monitor",
+) -> MonitorFindingModel:
+    get_production(session, production_id)
+    board = get_board(session, str(payload.get("board_id") or ""))
+    if board.production_id != production_id:
+        raise ServiceError("board belongs to another production", status_code=404)
+    evidence_id = payload.get("evidence_id")
+    if evidence_id:
+        evidence = get_grounding_evidence(session, str(evidence_id))
+        if evidence.production_id != production_id:
+            raise ServiceError("evidence belongs to another production", status_code=404)
+    old_fingerprint = str(payload.get("old_fingerprint") or "")
+    new_fingerprint = str(payload.get("new_fingerprint") or "")
+    material = bool(payload.get("material", old_fingerprint != new_fingerprint))
+    if old_fingerprint == new_fingerprint and material:
+        raise ServiceError("unchanged fingerprints cannot be material")
+    row = MonitorFindingModel(
+        id=new_id("mon"),
+        production_id=production_id,
+        board_id=board.id,
+        evidence_id=str(evidence_id) if evidence_id else None,
+        source_url=str(payload.get("source_url") or ""),
+        fact_kind=str(payload.get("fact_kind") or ""),
+        status="open" if material else "non_material",
+        material=material,
+        message=str(payload.get("message") or "changed monitored fact"),
+        old_fingerprint=old_fingerprint,
+        new_fingerprint=new_fingerprint,
+        old_value_json=dict(payload.get("old_value") or {}),
+        new_value_json=dict(payload.get("new_value") or {}),
+        affected_work_ids_json=_affected_work_ids(board, payload),
+        requester_component=requester_component,
+    )
+    if not row.source_url.strip() or not row.fact_kind.strip():
+        raise ServiceError("monitor finding requires source_url and fact_kind")
+    session.add(row)
+    audit(
+        session,
+        production_id,
+        "monitor.finding_created",
+        {"finding_id": row.id, "material": row.material, "board_id": board.id},
+        actor=requester_component,
+    )
+    session.commit()
+    return row
+
+
+def list_monitor_findings(
+    session: Session, production_id: str
+) -> list[MonitorFindingModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(MonitorFindingModel)
+            .where(MonitorFindingModel.production_id == production_id)
+            .order_by(MonitorFindingModel.created_at.desc())
+        )
+    )
+
+
+def decide_monitor_finding(
+    session: Session,
+    *,
+    finding_id: str,
+    decision: str,
+    actor_name: str,
+    actor_role: str,
+) -> tuple[MonitorFindingModel, ReplanRequestModel | None]:
+    finding = session.get(MonitorFindingModel, finding_id)
+    if finding is None:
+        raise ServiceError(f"monitor finding not found: {finding_id}", status_code=404)
+    actor = _actor_for_decision(actor_name, actor_role, capability="select_board")
+    if finding.status not in {"open", "non_material"}:
+        raise ServiceError(f"monitor finding is already {finding.status}", status_code=409)
+    finding.reviewed_by_name = actor.name
+    finding.reviewed_by_role = actor.role.value
+    finding.reviewed_at = utcnow()
+    if decision == "reject":
+        finding.status = "rejected"
+        audit(
+            session,
+            finding.production_id,
+            "monitor.finding_rejected",
+            {"finding_id": finding.id, "board_id": finding.board_id},
+            actor=str(actor),
+        )
+        session.commit()
+        return finding, None
+    if decision != "accept":
+        raise ServiceError(f"unsupported monitor finding decision: {decision}")
+    if not finding.material:
+        raise ServiceError("non-material finding cannot create a replan request")
+
+    locked = list_locked_days(session, finding.production_id)
+    replan = ReplanRequestModel(
+        id=new_id("replan"),
+        production_id=finding.production_id,
+        finding_id=finding.id,
+        current_board_id=finding.board_id,
+        requester_component=finding.requester_component,
+        status="requested",
+        affected_work_ids_json=list(finding.affected_work_ids_json or []),
+        locked_days_json=[row.id for row in locked],
+    )
+    finding.status = "accepted"
+    session.add(replan)
+    audit(
+        session,
+        finding.production_id,
+        "replan.requested",
+        {
+            "finding_id": finding.id,
+            "replan_request_id": replan.id,
+            "locked_day_ids": replan.locked_days_json,
+        },
+        actor=str(actor),
+    )
+    session.commit()
+    return finding, replan
+
+
+def list_replan_requests(
+    session: Session, production_id: str
+) -> list[ReplanRequestModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(ReplanRequestModel)
+            .where(ReplanRequestModel.production_id == production_id)
+            .order_by(ReplanRequestModel.created_at.desc())
+        )
+    )
+
+
+def select_board(
+    session: Session,
+    *,
+    board_id: str,
+    actor_name: str,
+    actor_role: str,
+    prior_board_id: str | None = None,
+) -> BoardSelectionModel:
+    board = get_board(session, board_id)
+    actor = _actor_for_decision(actor_name, actor_role, capability="select_board")
+    prior_run_id: str | None = None
+    if prior_board_id:
+        prior = get_board(session, prior_board_id)
+        if prior.production_id != board.production_id:
+            raise ServiceError("prior board belongs to another production", status_code=404)
+        prior_run_id = prior.schedule_run_id
+    row = BoardSelectionModel(
+        id=new_id("sel"),
+        production_id=board.production_id,
+        prior_board_id=prior_board_id,
+        selected_board_id=board.id,
+        prior_schedule_run_id=prior_run_id,
+        new_schedule_run_id=board.schedule_run_id,
+        actor_name=actor.name,
+        actor_role=actor.role.value,
+    )
+    session.add(row)
+    audit(
+        session,
+        board.production_id,
+        "board.selected",
+        {
+            "selection_id": row.id,
+            "selected_board_id": board.id,
+            "prior_board_id": prior_board_id,
+        },
+        actor=str(actor),
+    )
+    session.commit()
+    return row
+
+
+def approve_cost(
+    session: Session,
+    *,
+    board_id: str,
+    actor_name: str,
+    actor_role: str,
+    cost_delta: float,
+    added_shoot_days: list[dt.date],
+    decision: str = "approved",
+) -> CostApprovalModel:
+    board = get_board(session, board_id)
+    actor = _actor_for_decision(actor_name, actor_role, capability="approve_cost")
+    if decision not in {"approved", "rejected"}:
+        raise ServiceError("cost approval decision must be approved or rejected")
+    if cost_delta > 0 and not added_shoot_days:
+        raise ServiceError("cost exposure must name the added shoot days")
+    row = CostApprovalModel(
+        id=new_id("cost"),
+        production_id=board.production_id,
+        board_id=board.id,
+        approver_name=actor.name,
+        approver_role=actor.role.value,
+        cost_delta=cost_delta,
+        added_shoot_days_json=[day.isoformat() for day in added_shoot_days],
+        decision=decision,
+    )
+    session.add(row)
+    audit(
+        session,
+        board.production_id,
+        "cost.approved" if decision == "approved" else "cost.rejected",
+        {
+            "approval_id": row.id,
+            "board_id": board.id,
+            "cost_delta": cost_delta,
+            "added_shoot_days": row.added_shoot_days_json,
+        },
+        actor=str(actor),
+    )
+    session.commit()
+    return row
+
+
 def enqueue_breakdown_job(
     session: Session,
     production_id: str,
@@ -1003,6 +1367,28 @@ def enqueue_grounding_job(
             "location_id": location_id,
             "target_date": target_date.isoformat(),
         },
+    )
+
+
+def enqueue_monitor_job(
+    session: Session,
+    production_id: str,
+    *,
+    payload: dict[str, Any],
+) -> JobModel:
+    get_production(session, production_id)
+    board_id = str(payload.get("board_id") or "")
+    if not board_id:
+        raise ServiceError("monitor job requires board_id")
+    board = get_board(session, board_id)
+    if board.production_id != production_id:
+        raise ServiceError("board belongs to another production", status_code=404)
+    return enqueue_job(
+        session,
+        job_type="monitor",
+        target_id=board_id,
+        production_id=production_id,
+        payload={**payload, "board_id": board_id},
     )
 
 
@@ -1096,6 +1482,14 @@ def run_job(
                 "status": evidence.status,
                 "kind": evidence.fact_kind,
             }
+        elif job.job_type == "monitor":
+            finding = create_monitor_finding(
+                session,
+                str(job.production_id),
+                payload=payload,
+                requester_component="monitor",
+            )
+            job.result_json = {"finding_id": finding.id, "status": finding.status}
         else:
             raise ServiceError(f"unsupported job type: {job.job_type}")
         job.status = "complete"
@@ -1127,7 +1521,39 @@ def _constraint_set(session: Session, production_id: str) -> ConstraintSet:
             records.append(constraint_from_json(row.constraint_json))
         except (ConstraintError, KeyError, TypeError, ValueError) as exc:
             raise ServiceError(f"stored constraint {row.constraint_id} is invalid: {exc}") from exc
+    records.extend(_locked_day_constraints(session, production_id))
     return ConstraintSet(tuple(records))
+
+
+def _locked_day_constraints(
+    session: Session, production_id: str
+) -> list[ConstraintRecord]:
+    records: list[ConstraintRecord] = []
+    for row in list_locked_days(session, production_id):
+        actor = _actor_for_decision(row.recorded_by_name, row.recorded_by_role)
+        for assignment in row.locked_assignments_json or []:
+            work_id = str(assignment.get("work_id") or "")
+            if not work_id:
+                continue
+            records.append(
+                ConstraintRecord(
+                    constraint_id=f"locked-{row.id}-{work_id}",
+                    family=Family.LOCK,
+                    policy=Policy.HARD,
+                    subject=Subject(SubjectKind.WORK, work_id),
+                    expression=PinnedDay(row.shoot_date),
+                    source=HumanSource(
+                        actor,
+                        f"Locked day {row.shoot_date.isoformat()} from call sheet "
+                        f"{row.call_sheet_version}",
+                    ),
+                    created_by=str(actor),
+                    validated_against="coverset.locked_day",
+                    active=True,
+                    activated_at=row.created_at,
+                )
+            )
+    return records
 
 
 def _get_candidate(session: Session, candidate_id: str) -> SceneCandidateModel:
@@ -1276,13 +1702,19 @@ def get_board(session: Session, board_id: str) -> BoardModel:
 
 
 def audit(
-    session: Session, production_id: str | None, event_type: str, payload: dict
+    session: Session,
+    production_id: str | None,
+    event_type: str,
+    payload: dict,
+    *,
+    actor: str = "system",
 ) -> None:
     session.add(
         AuditEventModel(
             id=new_id("audit"),
             production_id=production_id,
             event_type=event_type,
+            actor=actor,
             payload=payload,
         )
     )

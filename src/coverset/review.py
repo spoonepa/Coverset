@@ -32,8 +32,11 @@ from enum import StrEnum
 from .actors import Actor
 from .locations import Location
 from .people import CastMember, Roster
+from .work import DayNight, WorkFlags, WorkItem, WorkKind
 
 __all__ = [
+    "BoardSelection",
+    "CostApproval",
     "CoverageItem",
     "CoverageStatus",
     "CoverageType",
@@ -277,6 +280,32 @@ class PickupTask:
         )
 
 
+    def to_work_item(
+        self,
+        *,
+        day_night: DayNight = DayNight.DAY,
+        requires_daylight: bool = False,
+    ) -> WorkItem:
+        """Convert an authorised pickup into schedulable solver work.
+
+        The pickup remains traceable to its human decision through
+        ``source_record_id``. A monitor or model can recommend a pickup, but only a
+        ``ReviewDecision`` can construct this object in the first place.
+        """
+        return WorkItem(
+            work_id=self.id,
+            kind=WorkKind.PICKUP,
+            scene_id=self.scene_id,
+            location_id=self.location.id,
+            day_night=day_night,
+            estimated_duration_minutes=max(1, round(self.estimated_eighths * 7.5)),
+            cast_ids=self.required_cast,
+            flags=WorkFlags(),
+            must_complete_by=self.must_complete_by,
+            source_record_id=self.id,
+            requires_daylight=requires_daylight,
+        )
+
     def cast_on(self, roster: Roster) -> tuple[CastMember, ...]:
         """Resolve this pickup's cast ids against the production roster.
 
@@ -299,5 +328,54 @@ class PickupTask:
             f"at {self.decision.decided_at:%Y-%m-%d %H:%M}Z"
         )
         if finding is not None:
-            chain += f" <- finding {finding.id} raised by {finding.raised_by}: {finding.summary}"
+            chain += (
+                f" <- finding {finding.id} raised by {finding.raised_by}: "
+                f"{finding.summary}"
+            )
         return chain
+
+
+@dataclass(frozen=True)
+class BoardSelection:
+    """A First AD selecting one generated board from the offered options."""
+
+    production_id: str
+    selected_board_id: str
+    prior_board_id: str | None
+    prior_schedule_version_id: str | None
+    new_schedule_version_id: str
+    selected_by: Actor
+    selected_at: dt.datetime = field(default_factory=lambda: dt.datetime.now(dt.UTC))
+
+    def __post_init__(self) -> None:
+        self.selected_by.require("select_board")
+        if not self.production_id.strip():
+            raise ReviewError("board selection must name a production")
+        if not self.selected_board_id.strip():
+            raise ReviewError("board selection must name the selected board")
+        if not self.new_schedule_version_id.strip():
+            raise ReviewError("board selection must name the selected schedule version")
+
+
+@dataclass(frozen=True)
+class CostApproval:
+    """A UPM or line producer ruling on added-day/cost exposure."""
+
+    production_id: str
+    board_id: str
+    approver: Actor
+    cost_delta: float
+    added_shoot_days: tuple[dt.date, ...]
+    decision: str = "approved"
+    decided_at: dt.datetime = field(default_factory=lambda: dt.datetime.now(dt.UTC))
+
+    def __post_init__(self) -> None:
+        self.approver.require("approve_cost")
+        if self.decision not in {"approved", "rejected"}:
+            raise ReviewError("cost approval decision must be approved or rejected")
+        if not self.production_id.strip() or not self.board_id.strip():
+            raise ReviewError("cost approval must name a production and board")
+        if self.cost_delta < 0:
+            raise ReviewError("cost delta cannot be negative")
+        if self.cost_delta > 0 and not self.added_shoot_days:
+            raise ReviewError("cost exposure must name the added shoot days")

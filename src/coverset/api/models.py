@@ -247,6 +247,106 @@ class BoardModel(Base):
     )
 
 
+class LockedDayModel(Base):
+    __tablename__ = "locked_days"
+    __table_args__ = (
+        UniqueConstraint("board_id", "shoot_date", name="uq_locked_days_board_date"),
+    )
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
+    schedule_run_id: Mapped[str] = mapped_column(String(48), nullable=False)
+    shoot_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    locked_assignments_json: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    locations_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    cast_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    call_sheet_version: Mapped[str] = mapped_column(String(120), nullable=False)
+    recorded_by_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    recorded_by_role: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class MonitorFindingModel(Base):
+    __tablename__ = "monitor_findings"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
+    evidence_id: Mapped[str | None] = mapped_column(
+        ForeignKey("grounding_evidence.id"), nullable=True
+    )
+    source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    fact_kind: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(40), default="open")
+    material: Mapped[bool] = mapped_column(Boolean, default=True)
+    message: Mapped[str] = mapped_column(Text, default="")
+    old_fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    new_fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    old_value_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    new_value_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    affected_work_ids_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    requester_component: Mapped[str] = mapped_column(String(80), default="monitor")
+    reviewed_by_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    reviewed_by_role: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    reviewed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class ReplanRequestModel(Base):
+    __tablename__ = "replan_requests"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    finding_id: Mapped[str] = mapped_column(ForeignKey("monitor_findings.id"), index=True)
+    current_board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
+    requester_component: Mapped[str] = mapped_column(String(80), nullable=False)
+    status: Mapped[str] = mapped_column(String(40), default="requested")
+    affected_work_ids_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    locked_days_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class BoardSelectionModel(Base):
+    __tablename__ = "board_selections"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    prior_board_id: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    selected_board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
+    prior_schedule_run_id: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    new_schedule_run_id: Mapped[str] = mapped_column(String(48), nullable=False)
+    actor_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    actor_role: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class CostApprovalModel(Base):
+    __tablename__ = "cost_approvals"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
+    approver_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    approver_role: Mapped[str] = mapped_column(String(80), nullable=False)
+    cost_delta: Mapped[float] = mapped_column(Float, default=0.0)
+    added_shoot_days_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    decision: Mapped[str] = mapped_column(String(40), default="approved")
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
 class AuditEventModel(Base):
     __tablename__ = "audit_events"
 

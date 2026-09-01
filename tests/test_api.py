@@ -4,6 +4,7 @@ import datetime as dt
 from collections.abc import Iterator
 
 import pytest
+import sqlalchemy as sa
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
@@ -16,21 +17,28 @@ from coverset.api.db import (  # type: ignore[import-not-found]
     run_migrations,
 )
 from coverset.api.main import app  # type: ignore[import-not-found]
-from coverset.api.models import Base  # type: ignore[import-not-found]
+from coverset.api.models import AuditEventModel, Base  # type: ignore[import-not-found]
 from coverset.api.services import (  # type: ignore[import-not-found]
     activate_constraint,
+    approve_cost,
     create_constraint,
     create_production,
+    decide_monitor_finding,
     enqueue_breakdown_job,
+    enqueue_monitor_job,
     enqueue_schedule_job,
     get_board,
     get_job,
     ground_fact,
     list_candidates_for_run,
+    list_monitor_findings,
+    list_replan_requests,
+    lock_board_day,
     materialize_demo_script,
     run_breakdown,
     run_job,
     run_scheduler,
+    select_board,
     upload_screenplay,
 )
 from coverset.api.storage import ObjectStorage  # type: ignore[import-not-found]
@@ -49,6 +57,34 @@ def db_session() -> Iterator[Session]:
     SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
     with SessionLocal() as session:
         yield session
+
+
+def solved_board(db_session: Session, tmp_path):
+    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    storage = ObjectStorage(settings)
+    production = create_production(db_session, title="P3", seed_demo_data=True)
+    asset = upload_screenplay(
+        db_session,
+        production_id=production.id,
+        filename="the_ferry_job.txt",
+        media="text",
+        content=materialize_demo_script(),
+        storage=storage,
+    )
+    breakdown_run = run_breakdown(
+        db_session,
+        production_id=production.id,
+        screenplay_asset_id=asset.id,
+        auto_accept_schedulable=True,
+        agent_mode="fixture",
+        storage=storage,
+        settings=settings,
+    )
+    assert breakdown_run.status == "complete"
+    schedule_run = run_scheduler(db_session, production_id=production.id)
+    assert schedule_run.status == "optimal"
+    assert schedule_run.board_id is not None
+    return production, get_board(db_session, schedule_run.board_id)
 
 
 @pytest.mark.req("BRK-001", "BRK-004", "BRK-013", "SOL-001", "SOL-007")
@@ -128,6 +164,11 @@ def test_migrations_create_expected_tables_and_are_idempotent(tmp_path):
         "locations",
         "shoot_days",
         "scene_candidates",
+        "locked_days",
+        "monitor_findings",
+        "replan_requests",
+        "board_selections",
+        "cost_approvals",
         "audit_events",
     }.issubset(set(inspector.get_table_names()))
     columns = {column["name"] for column in inspector.get_columns("scene_candidates")}
@@ -587,3 +628,234 @@ def test_active_lock_constraint_pins_work_item_in_schedule(db_session: Session, 
         trace["constraint_id"] == "LOCK-W-BRK-001" and trace["source"]
         for trace in board.result_json["explanation_traces"]
     )
+
+
+@pytest.mark.req("LCK-001", "LCK-002", "SOL-004", "SOL-012")
+def test_locked_day_records_compile_into_replans(db_session: Session, tmp_path):
+    production, board = solved_board(db_session, tmp_path)
+    locked_date = dt.date.fromisoformat(board.result_json["days"][0]["date"])
+
+    lock = lock_board_day(
+        db_session,
+        board_id=board.id,
+        shoot_date=locked_date,
+        call_sheet_version="CS-001",
+        actor_name="J. Alvarez",
+        actor_role="script_supervisor",
+    )
+
+    assert lock.locked_assignments_json[0]["work_id"]
+    rerun = run_scheduler(db_session, production_id=production.id)
+    assert rerun.status == "optimal"
+    assert rerun.board_id is not None
+    replanned = get_board(db_session, rerun.board_id)
+    assert any(
+        trace["family"] == "lock" and trace["satisfied"] is True
+        for trace in replanned.result_json["explanation_traces"]
+    )
+    audit_rows = db_session.scalars(
+        sa.select(AuditEventModel).where(AuditEventModel.event_type == "day.locked")
+    ).all()
+    assert audit_rows[-1].actor.startswith("J. Alvarez")
+
+
+@pytest.mark.req("MON-001", "MON-005", "MON-006", "MON-007", "MON-008", "ACT-007")
+def test_monitor_job_creates_finding_and_human_acceptance_requests_replan(
+    db_session: Session, tmp_path
+):
+    production, board = solved_board(db_session, tmp_path)
+    work_id = board.result_json["strips"][0]["work_id"]
+    job = enqueue_monitor_job(
+        db_session,
+        production.id,
+        payload={
+            "board_id": board.id,
+            "source_url": "https://film.example.gov/permits",
+            "fact_kind": "permit",
+            "old_fingerprint": "old",
+            "new_fingerprint": "new",
+            "old_value": {"hours": "07:00-22:00"},
+            "new_value": {"hours": "08:00-20:00"},
+            "affected_work_ids": [work_id],
+            "material": True,
+            "message": "permit window changed",
+        },
+    )
+
+    processed = run_job(db_session, job_id=job.id)
+
+    assert processed.status == "complete"
+    finding = list_monitor_findings(db_session, production.id)[0]
+    assert finding.status == "open"
+    assert list_replan_requests(db_session, production.id) == []
+
+    _, replan = decide_monitor_finding(
+        db_session,
+        finding_id=finding.id,
+        decision="accept",
+        actor_name="R. Okonkwo",
+        actor_role="first_ad",
+    )
+
+    assert replan is not None
+    assert replan.current_board_id == board.id
+    assert replan.affected_work_ids_json == [work_id]
+    assert get_job(db_session, job.id).result_json["finding_id"] == finding.id
+
+
+@pytest.mark.req("MON-004", "ACT-007")
+def test_rejected_or_non_material_findings_leave_board_unselected(
+    db_session: Session, tmp_path
+):
+    production, board = solved_board(db_session, tmp_path)
+    job = enqueue_monitor_job(
+        db_session,
+        production.id,
+        payload={
+            "board_id": board.id,
+            "source_url": "https://weather.example/forecast",
+            "fact_kind": "weather",
+            "old_fingerprint": "same",
+            "new_fingerprint": "changed",
+            "material": True,
+            "message": "forecast changed",
+        },
+    )
+    run_job(db_session, job_id=job.id)
+    finding = list_monitor_findings(db_session, production.id)[0]
+
+    reviewed, replan = decide_monitor_finding(
+        db_session,
+        finding_id=finding.id,
+        decision="reject",
+        actor_name="R. Okonkwo",
+        actor_role="first_ad",
+    )
+
+    assert reviewed.status == "rejected"
+    assert replan is None
+    assert list_replan_requests(db_session, production.id) == []
+    assert get_board(db_session, board.id).id == board.id
+
+
+@pytest.mark.req("ACT-004", "ACT-005", "ACT-008", "ACT-009")
+def test_board_selection_and_cost_approval_services_enforce_roles(
+    db_session: Session, tmp_path
+):
+    production, board = solved_board(db_session, tmp_path)
+
+    with pytest.raises(Exception, match="may not select board"):
+        select_board(
+            db_session,
+            board_id=board.id,
+            actor_name="A. Kowalczyk",
+            actor_role="director",
+        )
+
+    selection = select_board(
+        db_session,
+        board_id=board.id,
+        actor_name="R. Okonkwo",
+        actor_role="first_ad",
+    )
+    approval = approve_cost(
+        db_session,
+        board_id=board.id,
+        actor_name="L. Chen",
+        actor_role="line_producer",
+        cost_delta=12000,
+        added_shoot_days=[dt.date(2026, 9, 16)],
+    )
+
+    assert selection.selected_board_id == board.id
+    assert approval.decision == "approved"
+    assert approval.added_shoot_days_json == ["2026-09-16"]
+
+
+@pytest.mark.req("ACT-004", "ACT-007", "ACT-008", "LCK-001", "MON-007")
+def test_p3_authority_and_replan_endpoints(db_session: Session, tmp_path):
+    production, board = solved_board(db_session, tmp_path)
+    shoot_day = board.result_json["days"][0]["date"]
+    work_id = board.result_json["strips"][0]["work_id"]
+
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        locked = client.post(
+            f"/boards/{board.id}/locks",
+            json={
+                "shoot_date": shoot_day,
+                "call_sheet_version": "CS-001",
+                "actor_name": "J. Alvarez",
+                "actor_role": "script_supervisor",
+            },
+        )
+        assert locked.status_code == 200, locked.text
+        assert locked.json()["locked_assignments"][0]["work_id"]
+
+        monitor_job = client.post(
+            f"/productions/{production.id}/monitor/jobs",
+            json={
+                "board_id": board.id,
+                "source_url": "https://film.example.gov/permits",
+                "fact_kind": "permit",
+                "old_fingerprint": "old",
+                "new_fingerprint": "new",
+                "affected_work_ids": [work_id],
+                "material": True,
+                "message": "permit window changed",
+            },
+        )
+        assert monitor_job.status_code == 200, monitor_job.text
+        run_job(db_session, job_id=monitor_job.json()["id"])
+
+        findings = client.get(f"/productions/{production.id}/monitor/findings")
+        assert findings.status_code == 200, findings.text
+        finding_id = findings.json()[0]["id"]
+        decided = client.patch(
+            f"/monitor/findings/{finding_id}",
+            json={
+                "decision": "accept",
+                "actor_name": "R. Okonkwo",
+                "actor_role": "first_ad",
+            },
+        )
+        assert decided.status_code == 200, decided.text
+        assert decided.json()["replan_request"]["current_board_id"] == board.id
+
+        rejected_selection = client.post(
+            f"/boards/{board.id}/selection",
+            json={"actor_name": "A. Kowalczyk", "actor_role": "director"},
+        )
+        assert rejected_selection.status_code == 403
+        selected = client.post(
+            f"/boards/{board.id}/selection",
+            json={"actor_name": "R. Okonkwo", "actor_role": "first_ad"},
+        )
+        assert selected.status_code == 200, selected.text
+
+        rejected_cost = client.post(
+            f"/boards/{board.id}/cost-approvals",
+            json={
+                "actor_name": "R. Okonkwo",
+                "actor_role": "first_ad",
+                "cost_delta": 1000,
+                "added_shoot_days": ["2026-09-16"],
+            },
+        )
+        assert rejected_cost.status_code == 403
+        approved_cost = client.post(
+            f"/boards/{board.id}/cost-approvals",
+            json={
+                "actor_name": "L. Chen",
+                "actor_role": "line_producer",
+                "cost_delta": 1000,
+                "added_shoot_days": ["2026-09-16"],
+            },
+        )
+        assert approved_cost.status_code == 200, approved_cost.text
+    finally:
+        app.dependency_overrides.clear()

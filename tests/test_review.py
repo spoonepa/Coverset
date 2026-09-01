@@ -14,6 +14,8 @@ import pytest
 from coverset.actors import Actor, AuthorityError, Role
 from coverset.locations import Location
 from coverset.review import (
+    BoardSelection,
+    CostApproval,
     CoverageItem,
     CoverageStatus,
     CoverageType,
@@ -24,6 +26,7 @@ from coverset.review import (
     ReviewError,
     ReviewFinding,
 )
+from coverset.work import WorkKind
 
 CHURCH = Location(name="First African Baptist Church", locality="Savannah", region="Georgia")
 DIRECTOR = Actor("A. Kowalczyk", Role.DIRECTOR)
@@ -31,6 +34,7 @@ FIRST_AD = Actor("R. Okonkwo", Role.FIRST_AD)
 SUPERVISOR = Actor("J. Alvarez", Role.SCRIPT_SUPERVISOR)
 SECOND_AD = Actor("T. Nguyen", Role.SECOND_AD)
 UPM = Actor("M. Haddad", Role.UPM)
+LINE_PRODUCER = Actor("L. Chen", Role.LINE_PRODUCER)
 
 
 @pytest.fixture
@@ -95,7 +99,12 @@ def test_the_role_enum_has_no_member_an_agent_could_occupy():
     # The structural guarantee: refusing agents is not a name check that has to
     # anticipate every name. There is simply no role for a non-human to hold.
     assert {r.value for r in Role} == {
-        "first_ad", "director", "script_supervisor", "upm", "second_ad"
+        "first_ad",
+        "director",
+        "script_supervisor",
+        "upm",
+        "line_producer",
+        "second_ad",
     }
 
 
@@ -358,3 +367,67 @@ def test_a_pickup_carries_cast_that_resolves_against_the_roster(flagged):
     _, pickup = flagged.decide(_decision(Disposition.REQUEST_PICKUP))
 
     assert pickup.cast_on(roster) == roster.resolve(("SARAH", "MARCUS"))
+
+
+@pytest.mark.req("PIK-011", "AUD-004")
+def test_a_pickup_converts_to_solver_work_with_authorization_trace(flagged):
+    _, pickup = flagged.decide(_decision(Disposition.REQUEST_PICKUP, by=FIRST_AD))
+
+    work = pickup.to_work_item()
+
+    assert work.kind is WorkKind.PICKUP
+    assert work.work_id == pickup.id
+    assert work.source_record_id == pickup.id
+    assert work.location_id == CHURCH.id
+    assert work.cast_ids == ("SARAH", "MARCUS")
+    assert pickup.authorised_by == FIRST_AD
+
+
+@pytest.mark.req("ACT-004", "ACT-009")
+def test_board_selection_is_a_first_ad_decision():
+    selection = BoardSelection(
+        production_id="prod-1",
+        selected_board_id="board-new",
+        prior_board_id="board-old",
+        prior_schedule_version_id="sched-old",
+        new_schedule_version_id="sched-new",
+        selected_by=FIRST_AD,
+    )
+
+    assert selection.selected_by == FIRST_AD
+    with pytest.raises(AuthorityError, match="may not select board"):
+        BoardSelection(
+            production_id="prod-1",
+            selected_board_id="board-new",
+            prior_board_id=None,
+            prior_schedule_version_id=None,
+            new_schedule_version_id="sched-new",
+            selected_by=DIRECTOR,
+        )
+
+
+@pytest.mark.req("ACT-005", "ACT-008", "PIK-010")
+def test_cost_approval_is_a_upm_or_line_producer_decision():
+    CostApproval(
+        production_id="prod-1",
+        board_id="board-new",
+        approver=UPM,
+        cost_delta=12000,
+        added_shoot_days=(dt.date(2026, 9, 16),),
+    )
+    CostApproval(
+        production_id="prod-1",
+        board_id="board-new",
+        approver=LINE_PRODUCER,
+        cost_delta=12000,
+        added_shoot_days=(dt.date(2026, 9, 16),),
+    )
+
+    with pytest.raises(AuthorityError, match="may not approve cost"):
+        CostApproval(
+            production_id="prod-1",
+            board_id="board-new",
+            approver=FIRST_AD,
+            cost_delta=12000,
+            added_shoot_days=(dt.date(2026, 9, 16),),
+        )

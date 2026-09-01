@@ -16,8 +16,9 @@ FIRST_AD = Actor("R. Okonkwo", Role.FIRST_AD)
 DIRECTOR = Actor("A. Kowalczyk", Role.DIRECTOR)
 SUPERVISOR = Actor("J. Alvarez", Role.SCRIPT_SUPERVISOR)
 UPM = Actor("M. Haddad", Role.UPM)
+LINE_PRODUCER = Actor("L. Chen", Role.LINE_PRODUCER)
 SECOND_AD = Actor("T. Nguyen", Role.SECOND_AD)
-EVERYONE = [FIRST_AD, DIRECTOR, SUPERVISOR, UPM, SECOND_AD]
+EVERYONE = [FIRST_AD, DIRECTOR, SUPERVISOR, UPM, LINE_PRODUCER, SECOND_AD]
 
 
 @pytest.mark.req("ACT-001")
@@ -32,7 +33,12 @@ def test_no_role_exists_for_an_automated_agent():
     # The guarantee is structural. Refusing agents does not depend on anticipating
     # their names, because there is no role a non-human could occupy.
     assert {r.value for r in Role} == {
-        "first_ad", "director", "script_supervisor", "upm", "second_ad"
+        "first_ad",
+        "director",
+        "script_supervisor",
+        "upm",
+        "line_producer",
+        "second_ad",
     }
 
 
@@ -71,10 +77,10 @@ def test_selecting_a_board_belongs_to_the_first_ad_alone():
 
 
 @pytest.mark.req("ACT-005")
-def test_approving_added_cost_belongs_to_the_upm():
+def test_approving_added_cost_belongs_to_the_upm_or_line_producer():
     holders = {a for a in EVERYONE if a.may_approve_cost}
 
-    assert holders == {UPM}
+    assert holders == {UPM, LINE_PRODUCER}
 
 
 @pytest.mark.req("ACT-006")
