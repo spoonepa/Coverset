@@ -98,9 +98,9 @@ Database migrations must be forward-compatible during MVP deploys.
 ## Audit and exports
 
 Cloud SQL is the transactional source of truth. The API exposes board exports as text,
-CSV, and JSON, plus audit exports as CSV/JSON. The `audit_events` BigQuery table is an
-append-only analytics sink populated from explicit export calls; BigQuery is never read
-for interactive product state.
+CSV, and JSON, call-sheet exports as text/JSON, plus audit exports as CSV/JSON. The
+`audit_events` BigQuery table is an append-only analytics sink populated from explicit
+export calls; BigQuery is never read for interactive product state.
 
 ## Operations controls
 

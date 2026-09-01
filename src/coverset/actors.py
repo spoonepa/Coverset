@@ -94,6 +94,11 @@ class Actor:
         """Authorise work that adds a shoot day."""
         return self.role in (Role.UPM, Role.LINE_PRODUCER)
 
+    @property
+    def may_generate_call_sheet(self) -> bool:
+        """Generate the day's read-only call sheet for cast and crew."""
+        return self.role is Role.SECOND_AD
+
     def require(self, capability: str) -> None:
         """Raise unless this actor holds `capability`, naming the role that does.
 

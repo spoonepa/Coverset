@@ -69,7 +69,9 @@ def stripboard(
     ]
     for day in board.days:
         call, wrap = day.call_time, day.wrap_time
-        assert call is not None and wrap is not None  # a ShootDay on a board is non-empty
+        assert (
+            call is not None and wrap is not None
+        )  # a ShootDay on a board is non-empty
         lines.append(
             f"{day.date:%a %d %b %Y}   call {call:%H:%M}  wrap {wrap:%H:%M}  "
             f"({day.length.total_seconds() / 3600:.1f}h)"
@@ -128,7 +130,9 @@ def _bounds(record: ConstraintRecord, item: WorkItem, day: dt.date) -> str | Non
     if isinstance(expr, DaylightBound):
         if not item.needs_daylight:
             return None
-        return f"bounds the strip inside the computed daylight window ({expr.algorithm})"
+        return (
+            f"bounds the strip inside the computed daylight window ({expr.algorithm})"
+        )
     if isinstance(expr, MaximumDailyHours):
         return f"caps the day at {expr.hours:g}h for {subject}"
     if isinstance(expr, MinimumRest):
@@ -180,7 +184,7 @@ def explain_assignment(
         f"   cast holding days  {item.cast_ids and ', '.join(sorted(item.cast_ids)) or '—'}",
         f"   overtime exposure  strip runs {item.estimated_duration_minutes}m",
         "",
-        f"Board totals: " + " · ".join(board.objective_breakdown.lines()),
+        "Board totals: " + " · ".join(board.objective_breakdown.lines()),
         f"Solved under {board.solver_parameters}; validated against constraint "
         f"snapshot {board.constraint_snapshot_hash[:12]}.",
     ]

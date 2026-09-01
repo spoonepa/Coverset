@@ -17,6 +17,11 @@ from sqlalchemy.orm import Session
 import coverset.breakdown as breakdown  # type: ignore[import-not-found]
 from coverset.actors import Actor, AuthorityError, Role
 from coverset.breakdown import RawScene  # type: ignore[import-not-found]
+from coverset.call_sheet import (  # type: ignore[import-not-found]
+    CallSheetInputError,
+    build_call_sheet_payload,
+    render_call_sheet_text,
+)
 from coverset.constraints import (
     ConstraintError,
     ConstraintRecord,
@@ -28,7 +33,12 @@ from coverset.constraints import (
     Subject,
     SubjectKind,
 )
-from coverset.grounding import Evidence, FactKind, GroundingError, SearchGrounder
+from coverset.grounding import (
+    Evidence,
+    FactKind,
+    GroundingError,
+    SearchGrounder,
+)
 from coverset.locations import Location
 from coverset.scenes import CandidateStatus, SceneRecord
 from coverset.solver import ProductionCalendar, ScheduleProblem, SolverError, solve
@@ -47,6 +57,7 @@ from .models import (  # type: ignore[import-not-found]
     BoardModel,
     BoardSelectionModel,
     BreakdownRunModel,
+    CallSheetModel,
     CastMemberModel,
     ConstraintModel,
     CostApprovalModel,
@@ -870,6 +881,372 @@ def list_constraints(session: Session, production_id: str) -> list[ConstraintMod
     )
 
 
+def translate_constraint_text(
+    session: Session,
+    production_id: str,
+    *,
+    text: str,
+    actor_name: str = "Developer",
+) -> list[Any]:
+    """Persist inactive typed constraint candidates from production prose."""
+    from coverset.constraint_translation import (  # local: completion-layer service
+        translate_plain_english_constraints,
+    )
+
+    from .models import ConstraintProposalModel
+
+    get_production(session, production_id)
+    try:
+        candidates = translate_plain_english_constraints(
+            production_id, text, created_by=actor_name
+        )
+    except ValueError as exc:
+        raise ServiceError(str(exc)) from exc
+    rows = [
+        _constraint_proposal_row(session, production_id, candidate, actor_name)
+        for candidate in candidates
+    ]
+    audit(
+        session,
+        production_id,
+        "constraint.translation_created",
+        {"proposal_ids": [row.id for row in rows], "count": len(rows)},
+        actor=actor_name,
+    )
+    session.commit()
+    return list(
+        session.scalars(
+            select(ConstraintProposalModel)
+            .where(ConstraintProposalModel.production_id == production_id)
+            .order_by(ConstraintProposalModel.created_at)
+        )
+    )
+
+
+def _constraint_proposal_row(
+    session: Session,
+    production_id: str,
+    candidate: Any,
+    actor_name: str,
+) -> Any:
+    from .models import ConstraintProposalModel
+
+    row = ConstraintProposalModel(
+        id=new_id("cprop"),
+        production_id=production_id,
+        source_text=str(candidate.source_text),
+        status="blocked" if candidate.validation_errors else "candidate",
+        confidence=_candidate_confidence(candidate),
+        payload_json=dict(candidate.constraint_payload),
+        validation_errors_json=list(candidate.validation_errors),
+        created_by_name=actor_name,
+    )
+    session.add(row)
+    return row
+
+
+def _candidate_confidence(candidate: Any) -> float:
+    try:
+        return float(candidate.confidence)
+    except (TypeError, ValueError) as exc:
+        raise ServiceError("constraint proposal confidence must be numeric") from exc
+
+
+def accept_constraint_proposal(
+    session: Session,
+    *,
+    proposal_id: str,
+    actor_name: str = "Developer",
+    actor_role: str = "first_ad",
+) -> ConstraintModel:
+    """Activate a typed candidate only after an attributed human acceptance."""
+    from .models import ConstraintProposalModel
+
+    proposal = session.get(ConstraintProposalModel, proposal_id)
+    if proposal is None:
+        raise ServiceError(
+            f"constraint proposal not found: {proposal_id}", status_code=404
+        )
+    if proposal.accepted_constraint_id:
+        row = session.get(ConstraintModel, proposal.accepted_constraint_id)
+        if row is not None:
+            return row
+    if proposal.validation_errors_json:
+        raise ServiceError(
+            "constraint proposal has validation errors and cannot be accepted",
+            status_code=409,
+        )
+    actor = _actor_for_decision(actor_name, actor_role)
+    payload = dict(proposal.payload_json or {})
+    payload["active"] = True
+    payload["actor_name"] = actor.name
+    payload["actor_role"] = actor.role.value
+    constraint = create_constraint(session, proposal.production_id, payload=payload)
+    proposal.status = "accepted"
+    proposal.accepted_by_name = actor.name
+    proposal.accepted_by_role = actor.role.value
+    proposal.accepted_at = utcnow()
+    proposal.accepted_constraint_id = constraint.id
+    audit(
+        session,
+        proposal.production_id,
+        "constraint.proposal_accepted",
+        {"proposal_id": proposal.id, "constraint_id": constraint.id},
+        actor=str(actor),
+    )
+    session.commit()
+    return constraint
+
+
+def reject_constraint_proposal(
+    session: Session,
+    *,
+    proposal_id: str,
+    actor_name: str = "Developer",
+    actor_role: str = "first_ad",
+) -> Any:
+    from .models import ConstraintProposalModel
+
+    proposal = session.get(ConstraintProposalModel, proposal_id)
+    if proposal is None:
+        raise ServiceError(
+            f"constraint proposal not found: {proposal_id}", status_code=404
+        )
+    actor = _actor_for_decision(actor_name, actor_role)
+    proposal.status = "rejected"
+    proposal.accepted_by_name = actor.name
+    proposal.accepted_by_role = actor.role.value
+    proposal.accepted_at = utcnow()
+    audit(
+        session,
+        proposal.production_id,
+        "constraint.proposal_rejected",
+        {"proposal_id": proposal.id},
+        actor=str(actor),
+    )
+    session.commit()
+    return proposal
+
+
+def record_grounded_value(
+    session: Session,
+    *,
+    evidence_id: str,
+    normalized_value: dict[str, Any],
+    units: str,
+    source_url: str,
+    source_quote: str,
+    source_span: str = "source text",
+    query: str = "grounded value extraction",
+    validator_family: str = "generic",
+    validator_reason: str = "source span extracted and normalized",
+) -> Any:
+    """Persist exact value-level provenance derived from grounded evidence."""
+    from coverset.grounding import ValidatorResult
+    from coverset.grounding.values import bind_grounded_value
+
+    from .models import GroundedValueModel
+
+    evidence_row = get_grounding_evidence(session, evidence_id)
+    evidence = _evidence_domain_from_row(session, evidence_row)
+    try:
+        grounded = bind_grounded_value(
+            evidence,
+            value_id=new_id("gval"),
+            normalized_value=normalized_value,
+            units=units,
+            source_url=source_url,
+            source_quote=source_quote,
+            source_span=source_span,
+            query=query,
+            validator_result=ValidatorResult(
+                family=validator_family,
+                passed=True,
+                reason=validator_reason,
+                validator="coverset.api.services.record_grounded_value",
+            ),
+            require_date_coverage=True,
+        )
+    except GroundingError as exc:
+        raise ServiceError(str(exc)) from exc
+    _raise_on_grounded_value_conflict(
+        session, evidence_row, grounded.normalized_value, units
+    )
+    row = GroundedValueModel(
+        id=grounded.id,
+        production_id=evidence_row.production_id,
+        evidence_id=evidence_row.id,
+        fact_kind=grounded.kind.value,
+        location_id=grounded.location_id,
+        target_date=grounded.target_date,
+        normalized_value_json=grounded.normalized_value,
+        units=grounded.units,
+        source_url=grounded.source_url,
+        source_quote=grounded.source_quote,
+        source_span=grounded.source_span,
+        query=grounded.query,
+        provider_response_id=grounded.provider_response_id,
+        content_hash=grounded.content_hash,
+        derived_from=grounded.derived_from.value,
+        validator_result_json=grounded.validator_result.to_json(),
+        covering_date=grounded.covering_date,
+        context_source_urls_json=list(grounded.context_source_urls),
+    )
+    session.add(row)
+    audit(
+        session,
+        evidence_row.production_id,
+        "grounded_value.recorded",
+        {"grounded_value_id": row.id, "evidence_id": evidence_row.id},
+    )
+    session.commit()
+    return row
+
+
+def _evidence_domain_from_row(
+    session: Session, row: GroundingEvidenceModel
+) -> Evidence:
+    from .constraints_io import evidence_from_json
+
+    data = dict(row.evidence_json or {})
+    location = session.scalar(
+        select(LocationModel).where(
+            LocationModel.production_id == row.production_id,
+            LocationModel.location_id == row.location_id,
+        )
+    )
+    if location is None:
+        raise ServiceError(
+            f"location not found for grounded evidence: {row.location_id}",
+            status_code=404,
+        )
+    raw_retrieved = str(data.get("retrieved_at") or row.created_at.isoformat())
+    try:
+        retrieved_at = dt.datetime.fromisoformat(raw_retrieved)
+    except ValueError as exc:
+        raise ServiceError(
+            f"invalid evidence retrieval timestamp: {raw_retrieved}"
+        ) from exc
+    return Evidence(
+        kind=FactKind(row.fact_kind),
+        location=Location(
+            location.name,
+            location.city,
+            location.state,
+            id=location.location_id,
+            latitude=location.latitude,
+            longitude=location.longitude,
+            timezone=location.timezone,
+        ),
+        date=row.target_date,
+        sources=evidence_from_json(data),
+        search_id=str(data.get("search_id") or row.id),
+        session_id=str(data.get("session_id") or row.id),
+        retrieved_at=retrieved_at,
+        escalated=bool(data.get("escalated", False)),
+        covering_urls=tuple(str(url) for url in data.get("covering_urls", ())),
+    )
+
+
+def _raise_on_grounded_value_conflict(
+    session: Session,
+    evidence_row: GroundingEvidenceModel,
+    normalized_value: dict[str, Any],
+    units: str,
+) -> None:
+    from .models import GroundedValueModel
+
+    existing = session.scalars(
+        select(GroundedValueModel).where(
+            GroundedValueModel.production_id == evidence_row.production_id,
+            GroundedValueModel.fact_kind == evidence_row.fact_kind,
+            GroundedValueModel.location_id == evidence_row.location_id,
+            GroundedValueModel.target_date == evidence_row.target_date,
+            GroundedValueModel.units == units,
+        )
+    )
+    for row in existing:
+        validator = dict(row.validator_result_json or {})
+        if (
+            validator.get("passed", True)
+            and row.normalized_value_json != normalized_value
+        ):
+            raise ServiceError(
+                "conflicting grounded values for the same fact/date/location",
+                status_code=409,
+            )
+
+
+def _constraint_activation_validation(
+    record: ConstraintRecord,
+    *,
+    evidence_payload: dict[str, Any] | None,
+    payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Family-specific checks that must pass before activation."""
+    from coverset.constraints import GroundedSource
+
+    errors: list[str] = []
+    if isinstance(record.source, GroundedSource):
+        source_urls = set(record.source.source_urls)
+        if not source_urls:
+            errors.append("grounded constraint has no source URLs")
+        if evidence_payload is None:
+            errors.append("grounded constraint evidence was not found")
+        else:
+            target_date = _date_from_payload(evidence_payload.get("date"))
+            covering_urls = {
+                str(url) for url in evidence_payload.get("covering_urls", [])
+            }
+            if record.family in (Family.WEATHER, Family.PERMIT):
+                if target_date is None or not _constraint_expression_covers(
+                    record, target_date
+                ):
+                    errors.append(
+                        f"{record.family} expression does not cover evidence target date"
+                    )
+                if record.family is Family.WEATHER and not source_urls & covering_urls:
+                    errors.append(
+                        "weather constraint source does not cover target date"
+                    )
+            if record.family is Family.PERMIT:
+                if (
+                    payload is not None
+                    and not str(payload.get("timezone") or "").strip()
+                ):
+                    errors.append("permit constraint requires a local IANA timezone")
+                if not all(_looks_authoritative_permit_url(url) for url in source_urls):
+                    errors.append(
+                        "permit constraint requires authoritative source URLs"
+                    )
+    return {
+        "passed": not errors,
+        "errors": errors,
+        "validator": "coverset.api.services._constraint_activation_validation",
+    }
+
+
+def _constraint_expression_covers(
+    record: ConstraintRecord, target_date: dt.date
+) -> bool:
+    expression = record.expression
+    expression_name = expression.__class__.__name__
+    if expression_name == "BlackoutDates":
+        return target_date in set(getattr(expression, "dates", ()))
+    if expression_name == "DateWindows":
+        return any(
+            window.covers(target_date) for window in getattr(expression, "windows", ())
+        )
+    if expression_name == "PinnedDay":
+        return expression.day == target_date
+    return True
+
+
+def _looks_authoritative_permit_url(url: str) -> bool:
+    lowered = url.lower()
+    return ".gov" in lowered or "/permit" in lowered or "permits" in lowered
+
+
 def create_constraint(
     session: Session, production_id: str, *, payload: dict[str, Any]
 ) -> ConstraintModel:
@@ -898,7 +1275,29 @@ def create_constraint(
         record = constraint_from_payload(payload, evidence=evidence_payload)
     except (ConstraintError, KeyError, TypeError, ValueError) as exc:
         raise ServiceError(f"invalid constraint: {exc}") from exc
+    validation = _constraint_activation_validation(
+        record, evidence_payload=evidence_payload, payload=payload
+    )
+    if record.active and not validation["passed"]:
+        raise ServiceError(
+            "constraint failed activation validation: "
+            + "; ".join(validation["errors"])
+        )
     snapshot = constraint_to_json(record)
+    snapshot["activation_validation"] = validation
+    snapshot["activation_payload"] = {
+        key: payload[key]
+        for key in ("timezone", "grounded_value_id", "derived_from")
+        if key in payload
+    }
+    if record.active:
+        snapshot["accepted_by"] = {
+            "name": str(payload.get("actor_name") or "Developer"),
+            "role": str(payload.get("actor_role") or "first_ad"),
+            "accepted_at": record.activated_at.isoformat()
+            if record.activated_at
+            else "",
+        }
     row = ConstraintModel(
         id=new_id("con"),
         production_id=production_id,
@@ -933,15 +1332,32 @@ def activate_constraint(
         raise ServiceError(
             f"constraint not found: {constraint_row_id}", status_code=404
         )
-    record = replace(
-        constraint_from_json(row.constraint_json),
-        active=active,
-        activated_at=utcnow() if active else None,
+    actor = _actor_for_decision(actor_name, actor_role)
+    current = constraint_from_json(row.constraint_json)
+    evidence_payload = _evidence_payload_for_constraint(session, current)
+    validation = _constraint_activation_validation(
+        current,
+        evidence_payload=evidence_payload,
+        payload=dict(row.constraint_json.get("activation_payload") or {}),
     )
+    if active and not validation["passed"]:
+        raise ServiceError(
+            "constraint failed activation validation: "
+            + "; ".join(validation["errors"])
+        )
+    record = replace(current, active=active, activated_at=utcnow() if active else None)
     row.active = active
     row.constraint_json = constraint_to_json(record)
+    row.constraint_json["activation_validation"] = validation
+    if active:
+        row.constraint_json["accepted_by"] = {
+            "name": actor.name,
+            "role": actor.role.value,
+            "accepted_at": record.activated_at.isoformat()
+            if record.activated_at
+            else "",
+        }
     row.provenance_json = dict(row.constraint_json.get("source", {}))
-    actor = _actor_for_decision(actor_name, actor_role)
     audit(
         session,
         row.production_id,
@@ -951,6 +1367,19 @@ def activate_constraint(
     )
     session.commit()
     return row
+
+
+def _evidence_payload_for_constraint(
+    session: Session, record: ConstraintRecord
+) -> dict[str, Any] | None:
+    source = record.source
+    evidence_id = getattr(source, "evidence_id", "")
+    if not evidence_id:
+        return None
+    evidence = session.get(GroundingEvidenceModel, str(evidence_id))
+    if evidence is None:
+        return None
+    return dict(evidence.evidence_json or {})
 
 
 def get_grounding_evidence(
@@ -1134,6 +1563,261 @@ def _affected_work_ids(board: BoardModel, payload: dict[str, Any]) -> list[str]:
     ]
 
 
+def register_monitored_source(
+    session: Session,
+    production_id: str,
+    *,
+    board_id: str,
+    source_url: str,
+    fact_kind: str,
+    location_id: str = "",
+    query: str = "",
+    external_monitor_id: str = "",
+    monitor_client: Any | None = None,
+) -> Any:
+    """Register a mutable external source, optionally creating a provider monitor."""
+    from .models import MonitoredSourceModel
+
+    get_production(session, production_id)
+    board = get_board(session, board_id)
+    if board.production_id != production_id:
+        raise ServiceError("board belongs to another production", status_code=404)
+    if monitor_client is not None and not external_monitor_id:
+        try:
+            external_monitor_id = str(
+                monitor_client.create_monitor(
+                    production_id=production_id,
+                    board_id=board_id,
+                    source_url=source_url,
+                    fact_kind=fact_kind,
+                    query=query or source_url,
+                )
+            )
+        except Exception as exc:  # noqa: BLE001 - provider boundary
+            raise ServiceError(f"monitor provider registration failed: {exc}") from exc
+    row = MonitoredSourceModel(
+        id=new_id("msrc"),
+        production_id=production_id,
+        board_id=board_id,
+        source_url=source_url,
+        fact_kind=fact_kind,
+        location_id=location_id,
+        query=query or source_url,
+        external_monitor_id=external_monitor_id,
+        metadata_json={"registered_by": "coverset.api"},
+    )
+    session.add(row)
+    audit(
+        session,
+        production_id,
+        "monitor.source_registered",
+        {"monitored_source_id": row.id, "board_id": board_id, "source_url": source_url},
+    )
+    session.commit()
+    return row
+
+
+def list_monitored_sources(session: Session, production_id: str) -> list[Any]:
+    from .models import MonitoredSourceModel
+
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(MonitoredSourceModel)
+            .where(MonitoredSourceModel.production_id == production_id)
+            .order_by(MonitoredSourceModel.created_at)
+        )
+    )
+
+
+def process_monitor_change(
+    session: Session,
+    production_id: str,
+    *,
+    payload: dict[str, Any],
+) -> Any:
+    """Process a provider page-change event into finding/replan/audit records."""
+    from .models import MonitorChangeEventModel, MonitoredSourceModel
+
+    get_production(session, production_id)
+    source = None
+    source_id = str(payload.get("monitored_source_id") or "")
+    if source_id:
+        source = session.get(MonitoredSourceModel, source_id)
+        if source is None or source.production_id != production_id:
+            raise ServiceError("monitored source not found", status_code=404)
+    board_id = str(payload.get("board_id") or getattr(source, "board_id", ""))
+    board = get_board(session, board_id)
+    if board.production_id != production_id:
+        raise ServiceError("board belongs to another production", status_code=404)
+    event_status = str(payload.get("status") or "processed")
+    if event_status in {"failed", "stale"}:
+        event = MonitorChangeEventModel(
+            id=new_id("mevt"),
+            production_id=production_id,
+            monitored_source_id=source_id or None,
+            board_id=board_id,
+            status=event_status,
+            material=False,
+            payload_json=dict(payload),
+        )
+        session.add(event)
+        audit(
+            session,
+            production_id,
+            "monitor.alert",
+            {"event_id": event.id, "status": event_status, "board_id": board_id},
+            actor="monitor",
+        )
+        session.commit()
+        return event
+
+    old_fingerprint = str(
+        payload.get("old_fingerprint") or getattr(source, "last_fingerprint", "")
+    )
+    new_fingerprint = str(payload.get("new_fingerprint") or "")
+    material = bool(payload.get("material", old_fingerprint != new_fingerprint))
+    target_date = _date_from_payload(payload.get("target_date"))
+    if (
+        material
+        and target_date is not None
+        and _date_is_locked(session, board.production_id, target_date)
+    ):
+        event = MonitorChangeEventModel(
+            id=new_id("mevt"),
+            production_id=production_id,
+            monitored_source_id=source_id or None,
+            board_id=board_id,
+            status="retroactive_exception",
+            material=True,
+            old_fingerprint=old_fingerprint,
+            new_fingerprint=new_fingerprint,
+            payload_json={
+                **payload,
+                "future_recommendation": "apply this fact only to unshot days or a new pickup",
+            },
+        )
+        session.add(event)
+        audit(
+            session,
+            production_id,
+            "monitor.retroactive_exception",
+            {"event_id": event.id, "target_date": target_date.isoformat()},
+            actor="monitor",
+        )
+        session.commit()
+        return event
+    finding_payload = {
+        **payload,
+        "board_id": board_id,
+        "source_url": str(
+            payload.get("source_url") or getattr(source, "source_url", "")
+        ),
+        "fact_kind": str(payload.get("fact_kind") or getattr(source, "fact_kind", "")),
+        "old_fingerprint": old_fingerprint,
+        "new_fingerprint": new_fingerprint,
+        "material": material,
+    }
+    finding = create_monitor_finding(
+        session,
+        production_id,
+        payload=finding_payload,
+        requester_component="monitor",
+    )
+    replan = _request_replan_for_finding(session, finding) if material else None
+    event = MonitorChangeEventModel(
+        id=new_id("mevt"),
+        production_id=production_id,
+        monitored_source_id=source_id or None,
+        board_id=board_id,
+        status="material" if material else "non_material",
+        material=material,
+        old_fingerprint=old_fingerprint,
+        new_fingerprint=new_fingerprint,
+        payload_json=dict(payload),
+        finding_id=finding.id,
+        replan_request_id=replan.id if replan else None,
+    )
+    if source is not None:
+        source.last_fingerprint = new_fingerprint or old_fingerprint
+        source.last_checked_at = utcnow()
+    session.add(event)
+    audit(
+        session,
+        production_id,
+        "monitor.change_processed",
+        {
+            "event_id": event.id,
+            "material": material,
+            "finding_id": finding.id,
+            "replan_request_id": event.replan_request_id,
+        },
+        actor="monitor",
+    )
+    session.commit()
+    return event
+
+
+def _date_from_payload(value: Any) -> dt.date | None:
+    if value in (None, ""):
+        return None
+    if isinstance(value, dt.date):
+        return value
+    try:
+        return dt.date.fromisoformat(str(value))
+    except ValueError as exc:
+        raise ServiceError(f"invalid monitor target_date: {value}") from exc
+
+
+def _date_is_locked(session: Session, production_id: str, target_date: dt.date) -> bool:
+    return any(
+        row.shoot_date == target_date
+        for row in list_locked_days(session, production_id)
+    )
+
+
+def _request_replan_for_finding(
+    session: Session,
+    finding: MonitorFindingModel,
+) -> ReplanRequestModel:
+    existing = session.scalars(
+        select(ReplanRequestModel).where(
+            ReplanRequestModel.production_id == finding.production_id,
+            ReplanRequestModel.source_kind == "monitor",
+            ReplanRequestModel.source_id == finding.id,
+        )
+    ).first()
+    if existing is not None:
+        return existing
+    locked = list_locked_days(session, finding.production_id)
+    replan = ReplanRequestModel(
+        id=new_id("replan"),
+        production_id=finding.production_id,
+        finding_id=finding.id,
+        current_board_id=finding.board_id,
+        requester_component=finding.requester_component,
+        source_kind="monitor",
+        source_id=finding.id,
+        reason=finding.message,
+        status="requested",
+        affected_work_ids_json=list(finding.affected_work_ids_json or []),
+        locked_days_json=[row.id for row in locked],
+    )
+    session.add(replan)
+    audit(
+        session,
+        finding.production_id,
+        "replan.requested",
+        {
+            "finding_id": finding.id,
+            "replan_request_id": replan.id,
+            "locked_day_ids": replan.locked_days_json,
+        },
+        actor=finding.requester_component,
+    )
+    return replan
+
+
 def create_monitor_finding(
     session: Session,
     production_id: str,
@@ -1236,28 +1920,13 @@ def decide_monitor_finding(
     if not finding.material:
         raise ServiceError("non-material finding cannot create a replan request")
 
-    locked = list_locked_days(session, finding.production_id)
-    replan = ReplanRequestModel(
-        id=new_id("replan"),
-        production_id=finding.production_id,
-        finding_id=finding.id,
-        current_board_id=finding.board_id,
-        requester_component=finding.requester_component,
-        status="requested",
-        affected_work_ids_json=list(finding.affected_work_ids_json or []),
-        locked_days_json=[row.id for row in locked],
-    )
+    replan = _request_replan_for_finding(session, finding)
     finding.status = "accepted"
-    session.add(replan)
     audit(
         session,
         finding.production_id,
-        "replan.requested",
-        {
-            "finding_id": finding.id,
-            "replan_request_id": replan.id,
-            "locked_day_ids": replan.locked_days_json,
-        },
+        "monitor.finding_accepted",
+        {"finding_id": finding.id, "replan_request_id": replan.id},
         actor=str(actor),
     )
     session.commit()
@@ -1275,6 +1944,149 @@ def list_replan_requests(
             .order_by(ReplanRequestModel.created_at.desc())
         )
     )
+
+
+def create_schedule_diff(
+    session: Session,
+    *,
+    base_board_id: str,
+    revised_board_id: str,
+    replan_request_id: str | None = None,
+) -> Any:
+    from coverset.schedule_diff import build_schedule_diff, render_schedule_diff_text
+
+    from .models import ScheduleDiffModel
+
+    base = get_board(session, base_board_id)
+    revised = get_board(session, revised_board_id)
+    if base.production_id != revised.production_id:
+        raise ServiceError("boards belong to different productions", status_code=404)
+    if replan_request_id:
+        replan = session.get(ReplanRequestModel, replan_request_id)
+        if replan is None or replan.production_id != base.production_id:
+            raise ServiceError("replan request not found", status_code=404)
+    existing = session.scalars(
+        select(ScheduleDiffModel).where(
+            ScheduleDiffModel.base_board_id == base_board_id,
+            ScheduleDiffModel.revised_board_id == revised_board_id,
+            ScheduleDiffModel.replan_request_id == replan_request_id,
+        )
+    ).first()
+    if existing is not None:
+        return existing
+    diff = build_schedule_diff(
+        base_board_id=base_board_id,
+        revised_board_id=revised_board_id,
+        base=dict(base.result_json or {}),
+        revised=dict(revised.result_json or {}),
+    )
+    row = ScheduleDiffModel(
+        id=new_id("sdiff"),
+        production_id=base.production_id,
+        base_board_id=base_board_id,
+        revised_board_id=revised_board_id,
+        replan_request_id=replan_request_id,
+        diff_json=diff.to_json(),
+        required_approvals_json=list(diff.required_approvals),
+        cost_delta=diff.cost_delta,
+        rendered_text=render_schedule_diff_text(diff),
+    )
+    session.add(row)
+    _apply_cost_approval_state(revised, row)
+    audit(
+        session,
+        base.production_id,
+        "schedule.diff_created",
+        {
+            "schedule_diff_id": row.id,
+            "base_board_id": base_board_id,
+            "revised_board_id": revised_board_id,
+            "required_approvals": row.required_approvals_json,
+        },
+    )
+    session.commit()
+    return row
+
+
+def generate_replan_options(
+    session: Session,
+    *,
+    replan_request_id: str,
+    max_options: int = 2,
+) -> list[Any]:
+    from .models import ScheduleDiffModel
+
+    replan = session.get(ReplanRequestModel, replan_request_id)
+    if replan is None:
+        raise ServiceError(
+            f"replan request not found: {replan_request_id}", status_code=404
+        )
+    existing = list(
+        session.scalars(
+            select(ScheduleDiffModel)
+            .where(ScheduleDiffModel.replan_request_id == replan_request_id)
+            .order_by(ScheduleDiffModel.created_at)
+        )
+    )
+    if existing:
+        return existing
+    options: list[Any] = []
+    for seed in range(max(1, max_options)):
+        run = run_scheduler(session, production_id=replan.production_id, seed=seed)
+        if run.status == "failed" or not run.board_id:
+            continue
+        options.append(
+            create_schedule_diff(
+                session,
+                base_board_id=replan.current_board_id,
+                revised_board_id=run.board_id,
+                replan_request_id=replan.id,
+            )
+        )
+    if not options:
+        replan.status = "failed"
+        audit(
+            session,
+            replan.production_id,
+            "replan.options_failed",
+            {"replan_request_id": replan.id},
+        )
+        session.commit()
+        raise ServiceError("no viable replan options could be generated")
+    replan.status = "options_ready"
+    audit(
+        session,
+        replan.production_id,
+        "replan.options_ready",
+        {"replan_request_id": replan.id, "option_count": len(options)},
+    )
+    session.commit()
+    return options
+
+
+def list_schedule_diffs(session: Session, production_id: str) -> list[Any]:
+    from .models import ScheduleDiffModel
+
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(ScheduleDiffModel)
+            .where(ScheduleDiffModel.production_id == production_id)
+            .order_by(ScheduleDiffModel.created_at.desc())
+        )
+    )
+
+
+def _apply_cost_approval_state(board: BoardModel, diff_row: Any) -> None:
+    approvals = list(diff_row.required_approvals_json or [])
+    result = dict(board.result_json or {})
+    result["schedule_diff_id"] = diff_row.id
+    result["required_approvals"] = approvals
+    result["cost_delta"] = diff_row.cost_delta
+    if "upm_or_line_producer_cost_approval" in approvals:
+        board.approval_state = "pending_cost_approval"
+    result["approval_state"] = board.approval_state
+    board.result_json = result
 
 
 def select_board(
@@ -1348,6 +2160,13 @@ def approve_cost(
         decision=decision,
     )
     session.add(row)
+    result = dict(board.result_json or {})
+    if decision == "approved":
+        board.approval_state = "approved"
+    else:
+        board.approval_state = "cost_rejected"
+    result["approval_state"] = board.approval_state
+    board.result_json = result
     audit(
         session,
         board.production_id,
@@ -1362,6 +2181,305 @@ def approve_cost(
     )
     session.commit()
     return row
+
+
+def record_coverage_item(
+    session: Session,
+    production_id: str,
+    *,
+    scene_id: str,
+    coverage_key: str,
+    coverage_type: str,
+    planned: dict[str, Any] | None = None,
+) -> Any:
+    from .models import CoverageItemModel
+
+    get_production(session, production_id)
+    existing = session.scalars(
+        select(CoverageItemModel).where(
+            CoverageItemModel.production_id == production_id,
+            CoverageItemModel.coverage_key == coverage_key,
+        )
+    ).first()
+    if existing is not None:
+        return existing
+    row = CoverageItemModel(
+        id=new_id("cov"),
+        production_id=production_id,
+        scene_id=scene_id,
+        coverage_key=coverage_key,
+        coverage_type=coverage_type,
+        planned_json=dict(planned or {}),
+    )
+    session.add(row)
+    audit(
+        session,
+        production_id,
+        "coverage.item_recorded",
+        {"coverage_item_id": row.id, "coverage_key": coverage_key},
+    )
+    session.commit()
+    return row
+
+
+def mark_coverage_item_shot(
+    session: Session,
+    *,
+    coverage_item_id: str,
+    shot: dict[str, Any] | None = None,
+) -> Any:
+    from .models import CoverageItemModel
+
+    row = session.get(CoverageItemModel, coverage_item_id)
+    if row is None:
+        raise ServiceError(
+            f"coverage item not found: {coverage_item_id}", status_code=404
+        )
+    row.status = "shot"
+    row.shot_json = dict(shot or {})
+    row.updated_at = utcnow()
+    audit(
+        session,
+        row.production_id,
+        "coverage.item_shot",
+        {"coverage_item_id": row.id, "coverage_key": row.coverage_key},
+    )
+    session.commit()
+    return row
+
+
+def raise_coverage_finding(
+    session: Session,
+    *,
+    coverage_item_id: str,
+    board_id: str | None,
+    message: str,
+    actor_name: str,
+    actor_role: str,
+    severity: str = "medium",
+) -> Any:
+    from .models import CoverageFindingModel, CoverageItemModel
+
+    item = session.get(CoverageItemModel, coverage_item_id)
+    if item is None:
+        raise ServiceError(
+            f"coverage item not found: {coverage_item_id}", status_code=404
+        )
+    actor = _actor_for_decision(actor_name, actor_role, capability="raise_finding")
+    if item.status != "shot":
+        raise ServiceError("coverage item must be shot before it can be flagged")
+    if board_id is not None:
+        board = get_board(session, board_id)
+        if board.production_id != item.production_id:
+            raise ServiceError("board belongs to another production", status_code=404)
+    item.status = "needs_review"
+    item.updated_at = utcnow()
+    row = CoverageFindingModel(
+        id=new_id("cfnd"),
+        production_id=item.production_id,
+        coverage_item_id=item.id,
+        board_id=board_id,
+        severity=severity,
+        message=message,
+        raised_by_name=actor.name,
+        raised_by_role=actor.role.value,
+        human_raised=True,
+    )
+    session.add(row)
+    audit(
+        session,
+        item.production_id,
+        "coverage.finding_raised",
+        {"finding_id": row.id, "coverage_item_id": item.id},
+        actor=str(actor),
+    )
+    session.commit()
+    return row
+
+
+def request_pickup_from_finding(
+    session: Session,
+    *,
+    finding_id: str,
+    actor_name: str,
+    actor_role: str,
+    decision: str = "request_pickup",
+) -> Any:
+    from .models import CoverageFindingModel, CoverageItemModel, PickupTaskModel
+
+    finding = session.get(CoverageFindingModel, finding_id)
+    if finding is None:
+        raise ServiceError(f"coverage finding not found: {finding_id}", status_code=404)
+    item = session.get(CoverageItemModel, finding.coverage_item_id)
+    if item is None:
+        raise ServiceError(
+            f"coverage item not found: {finding.coverage_item_id}", status_code=404
+        )
+    actor = _actor_for_decision(actor_name, actor_role, capability="rule_on_coverage")
+    existing = session.scalars(
+        select(PickupTaskModel).where(PickupTaskModel.finding_id == finding_id)
+    ).first()
+    if existing is not None:
+        return existing
+    if finding.status != "open":
+        raise ServiceError(
+            f"coverage finding is already {finding.status}", status_code=409
+        )
+    task = PickupTaskModel(
+        id=new_id("ptask"),
+        production_id=finding.production_id,
+        finding_id=finding.id,
+        coverage_item_id=finding.coverage_item_id,
+        board_id=finding.board_id,
+        scene_id=item.scene_id,
+        status="requested",
+        pickup_spec_json={},
+        decision_json={
+            "decision": decision,
+            "actor_name": actor.name,
+            "actor_role": actor.role.value,
+            "decided_at": utcnow().isoformat(),
+        },
+        requested_by_name=actor.name,
+        requested_by_role=actor.role.value,
+    )
+    finding.status = "pickup_requested"
+    session.add(task)
+    audit(
+        session,
+        finding.production_id,
+        "pickup.requested",
+        {"pickup_task_id": task.id, "finding_id": finding.id},
+        actor=str(actor),
+    )
+    session.commit()
+    return task
+
+
+def confirm_pickup_task(
+    session: Session,
+    *,
+    pickup_task_id: str,
+    pickup_spec: dict[str, Any],
+    actor_name: str,
+    actor_role: str,
+) -> Any:
+    from .models import PickupTaskModel
+
+    task = session.get(PickupTaskModel, pickup_task_id)
+    if task is None:
+        raise ServiceError(f"pickup task not found: {pickup_task_id}", status_code=404)
+    actor = _actor_for_decision(actor_name, actor_role, capability="rule_on_coverage")
+    spec = _validated_pickup_spec(task, pickup_spec)
+    task.pickup_spec_json = spec
+    task.scene_id = str(spec["scene_id"])
+    task.status = "schedulable"
+    task.confirmed_by_name = actor.name
+    task.confirmed_by_role = actor.role.value
+    task.confirmed_at = utcnow()
+    audit(
+        session,
+        task.production_id,
+        "pickup.confirmed",
+        {"pickup_task_id": task.id, "work_id": f"pickup-{task.id}"},
+        actor=str(actor),
+    )
+    session.commit()
+    return task
+
+
+def create_pickup_replan(
+    session: Session,
+    *,
+    pickup_task_id: str,
+    current_board_id: str,
+    cutoff_at: dt.datetime,
+    lock_policy: str,
+) -> ReplanRequestModel:
+    from .models import PickupTaskModel
+
+    task = session.get(PickupTaskModel, pickup_task_id)
+    if task is None:
+        raise ServiceError(f"pickup task not found: {pickup_task_id}", status_code=404)
+    if task.status != "schedulable":
+        raise ServiceError("pickup task must be confirmed before replanning")
+    if cutoff_at.tzinfo is None:
+        raise ServiceError("pickup replan cutoff must be timezone-aware")
+    if lock_policy not in {"preserve_locked", "preserve_through_cutoff"}:
+        raise ServiceError("in-progress pickup replans require an explicit lock policy")
+    board = get_board(session, current_board_id)
+    if board.production_id != task.production_id:
+        raise ServiceError("board belongs to another production", status_code=404)
+    existing = session.scalars(
+        select(ReplanRequestModel).where(
+            ReplanRequestModel.production_id == task.production_id,
+            ReplanRequestModel.source_kind == "pickup",
+            ReplanRequestModel.source_id == task.id,
+        )
+    ).first()
+    if existing is not None:
+        return existing
+    locked = list_locked_days(session, task.production_id)
+    row = ReplanRequestModel(
+        id=new_id("replan"),
+        production_id=task.production_id,
+        finding_id=None,
+        current_board_id=board.id,
+        requester_component="pickup",
+        source_kind="pickup",
+        source_id=task.id,
+        reason=f"pickup task {task.id}; cutoff={cutoff_at.isoformat()}; lock_policy={lock_policy}",
+        status="requested",
+        affected_work_ids_json=[f"pickup-{task.id}"],
+        locked_days_json=[locked_day.id for locked_day in locked],
+    )
+    session.add(row)
+    audit(
+        session,
+        task.production_id,
+        "replan.requested",
+        {
+            "replan_request_id": row.id,
+            "pickup_task_id": task.id,
+            "cutoff_at": cutoff_at.isoformat(),
+            "lock_policy": lock_policy,
+        },
+        actor="pickup",
+    )
+    session.commit()
+    return row
+
+
+def _validated_pickup_spec(task: Any, pickup_spec: dict[str, Any]) -> dict[str, Any]:
+    spec = dict(pickup_spec)
+    required = (
+        "scene_id",
+        "coverage_type",
+        "location_id",
+        "cast_ids",
+        "duration_minutes",
+        "priority",
+    )
+    missing = [
+        field_name for field_name in required if spec.get(field_name) in (None, "", [])
+    ]
+    if missing:
+        raise ServiceError("pickup spec missing required fields: " + ", ".join(missing))
+    try:
+        duration = int(spec["duration_minutes"])
+        day_night = DayNight(str(spec.get("day_night") or "day"))
+    except (TypeError, ValueError) as exc:
+        raise ServiceError(f"invalid pickup spec: {exc}") from exc
+    if duration <= 0:
+        raise ServiceError("pickup duration must be positive")
+    spec["duration_minutes"] = duration
+    spec["estimated_duration_minutes"] = duration
+    spec["day_night"] = day_night.value
+    spec["cast_ids"] = [str(cast_id) for cast_id in spec.get("cast_ids", [])]
+    spec.setdefault("flags", {})
+    spec.setdefault("requires_daylight", day_night.needs_daylight)
+    spec.setdefault("authorization_trace", task.decision_json)
+    return spec
 
 
 def enqueue_breakdown_job(
@@ -1540,13 +2658,17 @@ def run_job(
                 "kind": evidence.fact_kind,
             }
         elif job.job_type == "monitor":
-            finding = create_monitor_finding(
+            event = process_monitor_change(
                 session,
                 str(job.production_id),
                 payload=payload,
-                requester_component="monitor",
             )
-            job.result_json = {"finding_id": finding.id, "status": finding.status}
+            job.result_json = {
+                "monitor_event_id": event.id,
+                "finding_id": event.finding_id,
+                "replan_request_id": event.replan_request_id,
+                "status": event.status,
+            }
         else:
             raise ServiceError(f"unsupported job type: {job.job_type}")
         job.status = "complete"
@@ -1644,7 +2766,9 @@ def _resolve_candidate_record(
     return resolved, errors, schedulable
 
 
-def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
+def run_scheduler(
+    session: Session, *, production_id: str, seed: int = 0
+) -> ScheduleRunModel:
     get_production(session, production_id)
     run = ScheduleRunModel(
         id=new_id("sched"), production_id=production_id, status="running"
@@ -1661,20 +2785,26 @@ def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
             )
         )
         scenes = tuple(scene_from_json(c.active_scene_json or {}) for c in candidates)
-        if not scenes:
+        scene_work_items = tuple(scene.to_work_item() for scene in scenes)
+        pickup_work_items = _pickup_work_items(session, production_id)
+        work_items = scene_work_items + pickup_work_items
+        if not work_items:
             raise SolverError("no accepted, schedulable scenes are available to solve")
-        work_items = tuple(scene.to_work_item() for scene in scenes)
         roster = roster_from_models(list_cast(session, production_id))
         locations = locations_from_models(list_locations(session, production_id))
+        constraints = _constraint_set(session, production_id)
+        constraints = _constraint_set_with_lock_blackouts(
+            session, production_id, work_items, constraints
+        )
         problem = ScheduleProblem(
             problem_id=f"{production_id}-mvp",
             production_calendar=_production_calendar(session, production_id),
             work_items=work_items,
-            constraints=_constraint_set(session, production_id),
+            constraints=constraints,
             roster=roster,
             locations=locations,
         )
-        result = solve(problem, seed=0)
+        result = solve(problem, seed=seed)
         run.status = str(result.status)
         run.diagnostics = list(result.diagnostics)
         run.input_hash = _input_hash(scenes, problem.constraint_snapshot_hash)
@@ -1683,19 +2813,26 @@ def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
             rendered = stripboard(
                 board, work_items=problem.work_items, locations=locations, roster=roster
             )
+            result_json = board_to_json(
+                board,
+                work_items=problem.work_items,
+                locations=locations,
+                roster=roster,
+                constraints=problem.constraints,
+            )
+            if violations := _locked_day_immutability_violations(
+                session, production_id, result_json
+            ):
+                raise SolverError(
+                    "locked day immutability violation: " + "; ".join(violations)
+                )
             persisted = BoardModel(
                 id=new_id("board"),
                 production_id=production_id,
                 schedule_run_id=run.id,
                 solver_status=str(board.solver_status),
                 stripboard=rendered,
-                result_json=board_to_json(
-                    board,
-                    work_items=problem.work_items,
-                    locations=locations,
-                    roster=roster,
-                    constraints=problem.constraints,
-                ),
+                result_json=result_json,
             )
             session.add(persisted)
             session.flush()
@@ -1707,7 +2844,7 @@ def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
             session,
             production_id,
             "schedule.completed",
-            {"run_id": run.id, "status": run.status},
+            {"run_id": run.id, "status": run.status, "seed": seed},
         )
     except Exception as exc:  # noqa: BLE001 - boundary records failures durably
         run.status = "failed"
@@ -1721,6 +2858,141 @@ def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
         )
     session.commit()
     return run
+
+
+def _constraint_set_with_lock_blackouts(
+    session: Session,
+    production_id: str,
+    work_items: tuple[Any, ...],
+    constraints: ConstraintSet,
+) -> ConstraintSet:
+    from coverset.constraints import BlackoutDates
+
+    locked_days = list_locked_days(session, production_id)
+    if not locked_days:
+        return constraints
+    locked_work_by_date = {
+        row.shoot_date: {
+            str(item.get("work_id") or "") for item in row.locked_assignments_json or []
+        }
+        for row in locked_days
+    }
+    records = list(constraints.records)
+    for work in work_items:
+        for locked_date, locked_work_ids in locked_work_by_date.items():
+            if work.work_id in locked_work_ids:
+                continue
+            actor = _actor_for_decision(
+                locked_days[0].recorded_by_name,
+                locked_days[0].recorded_by_role,
+            )
+            records.append(
+                ConstraintRecord(
+                    constraint_id=f"locked-day-open-{locked_date.isoformat()}-{work.work_id}",
+                    family=Family.LOCK,
+                    policy=Policy.HARD,
+                    subject=Subject(SubjectKind.WORK, work.work_id),
+                    expression=BlackoutDates((locked_date,)),
+                    source=HumanSource(
+                        actor,
+                        f"Locked day {locked_date.isoformat()} admits no new work",
+                    ),
+                    created_by=str(actor),
+                    validated_against="coverset.locked_day",
+                    active=True,
+                    activated_at=locked_days[0].created_at,
+                )
+            )
+    return ConstraintSet(tuple(records))
+
+
+def _locked_day_immutability_violations(
+    session: Session, production_id: str, board_json: dict[str, Any]
+) -> list[str]:
+    by_work = {
+        str(strip.get("work_id")): dict(strip)
+        for strip in board_json.get("strips", [])
+        if strip.get("work_id")
+    }
+    violations: list[str] = []
+    for locked_day in list_locked_days(session, production_id):
+        locked_work_ids = {
+            str(locked.get("work_id") or "")
+            for locked in locked_day.locked_assignments_json or []
+            if locked.get("work_id")
+        }
+        scheduled_on_locked_day = {
+            str(strip.get("work_id") or "")
+            for strip in board_json.get("strips", [])
+            if strip.get("shoot_day") == locked_day.shoot_date.isoformat()
+        }
+        for extra in sorted(scheduled_on_locked_day - locked_work_ids):
+            violations.append(
+                f"{extra} was inserted into locked day {locked_day.shoot_date}"
+            )
+        for locked in locked_day.locked_assignments_json or []:
+            work_id = str(locked.get("work_id") or "")
+            if not work_id:
+                continue
+            strip = by_work.get(work_id)
+            if strip is None:
+                violations.append(
+                    f"{work_id} was deleted from locked day {locked_day.shoot_date}"
+                )
+                continue
+            expected = {
+                "shoot_day": locked_day.shoot_date.isoformat(),
+                "sequence": locked.get("sequence"),
+                "location_id": locked.get("location_id"),
+                "planned_call_time": locked.get("planned_call_time"),
+                "planned_wrap_time": locked.get("planned_wrap_time"),
+            }
+            for field_name, expected_value in expected.items():
+                if str(strip.get(field_name)) != str(expected_value):
+                    violations.append(
+                        f"{work_id} changed {field_name}: {expected_value} -> {strip.get(field_name)}"
+                    )
+    return violations
+
+
+def _pickup_work_items(session: Session, production_id: str) -> tuple[Any, ...]:
+    from coverset.work import WorkItem, WorkKind
+
+    from .models import PickupTaskModel
+
+    rows = session.scalars(
+        select(PickupTaskModel)
+        .where(
+            PickupTaskModel.production_id == production_id,
+            PickupTaskModel.status == "schedulable",
+        )
+        .order_by(PickupTaskModel.created_at)
+    )
+    work: list[Any] = []
+    for row in rows:
+        spec = dict(row.pickup_spec_json or {})
+        try:
+            duration = int(
+                spec.get("estimated_duration_minutes") or spec["duration_minutes"]
+            )
+            day_night = DayNight(str(spec.get("day_night") or "day"))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ServiceError(f"invalid pickup task spec for {row.id}: {exc}") from exc
+        work.append(
+            WorkItem(
+                work_id=f"pickup-{row.id}",
+                kind=WorkKind.PICKUP,
+                scene_id=row.scene_id,
+                location_id=str(spec.get("location_id") or ""),
+                day_night=day_night,
+                estimated_duration_minutes=duration,
+                cast_ids=tuple(str(cast_id) for cast_id in spec.get("cast_ids", [])),
+                flags=flags_from_json(dict(spec.get("flags") or {})),
+                source_record_id=row.id,
+                requires_daylight=spec.get("requires_daylight"),
+            )
+        )
+    return tuple(work)
 
 
 def _input_hash(scenes: tuple[SceneRecord, ...], constraint_hash: str) -> str:
@@ -1760,6 +3032,104 @@ def get_board(session: Session, board_id: str) -> BoardModel:
     if board is None:
         raise ServiceError(f"board not found: {board_id}", status_code=404)
     return board
+
+
+def generate_call_sheet(
+    session: Session,
+    *,
+    board_id: str,
+    shoot_date: dt.date,
+    actor_name: str,
+    actor_role: str,
+) -> CallSheetModel:
+    board = get_board(session, board_id)
+    actor = _actor_for_decision(
+        actor_name, actor_role, capability="generate_call_sheet"
+    )
+    existing = session.scalars(
+        select(CallSheetModel).where(
+            CallSheetModel.board_id == board_id,
+            CallSheetModel.shoot_date == shoot_date,
+        )
+    ).first()
+    if existing is not None:
+        return existing
+    try:
+        payload = build_call_sheet_payload(
+            production_id=board.production_id,
+            board_id=board.id,
+            schedule_run_id=board.schedule_run_id,
+            board_result=board.result_json or {},
+            shoot_date=shoot_date,
+            generated_by=actor.name,
+            generated_by_role=actor.role.value,
+            roster=roster_from_models(list_cast(session, board.production_id)),
+            locations=locations_from_models(
+                list_locations(session, board.production_id)
+            ),
+            active_constraints=_constraint_set(session, board.production_id).active,
+        )
+    except (CallSheetInputError, KeyError, ValueError) as exc:
+        raise ServiceError(str(exc)) from exc
+    row = CallSheetModel(
+        id=new_id("cs"),
+        production_id=board.production_id,
+        board_id=board.id,
+        schedule_run_id=board.schedule_run_id,
+        shoot_date=shoot_date,
+        generated_by_name=actor.name,
+        generated_by_role=actor.role.value,
+        payload_json=payload,
+        rendered_text=render_call_sheet_text(payload),
+    )
+    session.add(row)
+    audit(
+        session,
+        board.production_id,
+        "call_sheet.generated",
+        {
+            "call_sheet_id": row.id,
+            "board_id": board.id,
+            "shoot_date": shoot_date.isoformat(),
+            "recipients": len(payload.get("recipients", [])),
+        },
+        actor=str(actor),
+    )
+    session.commit()
+    return row
+
+
+def list_call_sheets(session: Session, board_id: str) -> list[CallSheetModel]:
+    board = get_board(session, board_id)
+    return list(
+        session.scalars(
+            select(CallSheetModel)
+            .where(CallSheetModel.board_id == board.id)
+            .order_by(CallSheetModel.shoot_date, CallSheetModel.created_at)
+        )
+    )
+
+
+def get_call_sheet(session: Session, call_sheet_id: str) -> CallSheetModel:
+    row = session.get(CallSheetModel, call_sheet_id)
+    if row is None:
+        raise ServiceError(f"call sheet not found: {call_sheet_id}", status_code=404)
+    return row
+
+
+def call_sheet_export_json(row: CallSheetModel) -> dict[str, Any]:
+    return {
+        "id": row.id,
+        "production_id": row.production_id,
+        "board_id": row.board_id,
+        "schedule_run_id": row.schedule_run_id,
+        "shoot_date": row.shoot_date.isoformat(),
+        "generated_by_name": row.generated_by_name,
+        "generated_by_role": row.generated_by_role,
+        "payload": dict(row.payload_json or {}),
+        "rendered_text": row.rendered_text,
+        "created_at": row.created_at.isoformat(),
+    }
 
 
 def list_audit_events(session: Session, production_id: str) -> list[AuditEventModel]:

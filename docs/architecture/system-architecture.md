@@ -67,6 +67,7 @@ Primary transactional state:
 - boards,
 - board days,
 - board assignments,
+- call sheets,
 - audit events.
 
 ### GCS
@@ -75,7 +76,7 @@ Durable blobs:
 
 - uploaded screenplays,
 - raw agent outputs,
-- generated artifacts and exports.
+- generated artifacts and exports, including rendered call-sheet files.
 
 ### BigQuery
 
@@ -110,3 +111,7 @@ A schedule run stores:
 - board output or conflict set,
 - validation report,
 - rendered stripboard.
+
+Call sheets are generated after a board exists. They read the persisted board/day
+snapshot, roster, locations, daylight algorithm, turnaround model, and active permit
+constraints; they do not re-run or override scheduling logic.

@@ -157,6 +157,66 @@ type Board = {
     };
 };
 
+type CallSheetPayload = {
+    call_sheet_version: string;
+    shoot_date: string;
+    crew_call: string | null;
+    wrap_estimate: string | null;
+    scenes: Array<{
+        scene_id: string;
+        location_name: string;
+        planned_call_time: string | null;
+        planned_wrap_time: string | null;
+        cast: Array<{ character: string }>;
+        flags: Record<string, boolean>;
+    }>;
+    cast_calls: Array<{
+        cast_id: string;
+        performer: string;
+        character: string;
+        call_time: string | null;
+        wrap_time: string | null;
+        is_minor: boolean;
+        minor_max_work_hours?: number;
+        work_hours: number;
+    }>;
+    daylight_windows: Array<{
+        location_name: string;
+        sunrise: string | null;
+        sunset: string | null;
+        algorithm: string;
+    }>;
+    turnaround_notes: Array<{
+        display: string;
+        rest_hours: number;
+        minimum_hours: number;
+        satisfied: boolean;
+    }>;
+    permit_notes: Array<{
+        constraint_id: string;
+        detail: string;
+        source: string;
+    }>;
+    recipients: Array<{
+        recipient_type: string;
+        display_name: string;
+        authority: string;
+    }>;
+};
+
+type CallSheet = {
+    id: string;
+    production_id: string;
+    board_id: string;
+    schedule_run_id: string;
+    shoot_date: string;
+    generated_by_name: string;
+    generated_by_role: string;
+    payload: CallSheetPayload;
+    rendered_text: string;
+    created_at: string;
+};
+
 type Production = {
     id: string;
     title: string;
@@ -284,7 +344,7 @@ function resultString(job: Job, key: string): string {
     return typeof value === "string" ? value : "";
 }
 
-function timeLabel(value: string | null): string {
+function timeLabel(value: string | null | undefined): string {
     if (!value) return "--";
     return new Date(value).toLocaleTimeString([], {
         hour: "2-digit",
@@ -535,6 +595,10 @@ export default function Home() {
     const [filter, setFilter] = useState<CandidateFilter>("all");
     const [schedule, setSchedule] = useState<ScheduleRun | null>(null);
     const [board, setBoard] = useState<Board | null>(null);
+    const [callSheets, setCallSheets] = useState<CallSheet[]>([]);
+    const [selectedCallSheet, setSelectedCallSheet] =
+        useState<CallSheet | null>(null);
+    const [callSheetDate, setCallSheetDate] = useState("2026-09-14");
     const [jobs, setJobs] = useState<Job[]>([]);
     const [grounding, setGrounding] = useState<GroundingEvidence[]>([]);
     const [constraints, setConstraints] = useState<ConstraintRow[]>([]);
@@ -571,6 +635,29 @@ export default function Home() {
             ).length ?? 0,
         [breakdown],
     );
+
+    useEffect(() => {
+        if (!board) {
+            setCallSheets([]);
+            setSelectedCallSheet(null);
+            return;
+        }
+        const firstDate = board.result.days?.[0]?.date;
+        if (firstDate) setCallSheetDate(firstDate);
+        let cancelled = false;
+        jsonFetch<CallSheet[]>(`/api/coverset/boards/${board.id}/call-sheets`)
+            .then((loaded) => {
+                if (cancelled) return;
+                setCallSheets(loaded);
+                setSelectedCallSheet(loaded[0] ?? null);
+            })
+            .catch(() => {
+                if (!cancelled) setCallSheets([]);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [board]);
 
     const visibleCandidates = useMemo(() => {
         const candidates = breakdown?.candidates ?? [];
@@ -1037,6 +1124,39 @@ export default function Home() {
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setStatus("Constraint update failed.");
+        }
+    }
+
+    async function generateCallSheet(shootDate = callSheetDate) {
+        if (!board) return;
+        if (!shootDate) {
+            setError("Choose a shoot date from the board first.");
+            return;
+        }
+        setError("");
+        try {
+            setStatus(`Generating Second AD call sheet for ${shootDate}...`);
+            const sheet = await jsonFetch<CallSheet>(
+                `/api/coverset/boards/${board.id}/call-sheets`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        shoot_date: shootDate,
+                        actor_name: "T. Nguyen",
+                        actor_role: "second_ad",
+                    }),
+                },
+            );
+            setCallSheetDate(shootDate);
+            setSelectedCallSheet(sheet);
+            setCallSheets((current) => [
+                sheet,
+                ...current.filter((existing) => existing.id !== sheet.id),
+            ]);
+            setStatus("Call sheet generated for read-only distribution.");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+            setStatus("Call-sheet generation failed.");
         }
     }
 
@@ -1631,6 +1751,199 @@ export default function Home() {
                             ))}
                         </div>
                     )}
+                    <section className="callSheetPanel">
+                        <div className="sectionHeader">
+                            <div>
+                                <h3>UC-05 call sheets</h3>
+                                <p className="muted">
+                                    Generate a shoot-day packet from the
+                                    selected board. Cast and crew recipients
+                                    stay read-only; schedule authority remains
+                                    with the First AD.
+                                </p>
+                            </div>
+                            <label>
+                                Shoot date
+                                <select
+                                    value={callSheetDate}
+                                    onChange={(event) =>
+                                        setCallSheetDate(event.target.value)
+                                    }
+                                >
+                                    {(board.result.days ?? []).map((day) => (
+                                        <option key={day.date} value={day.date}>
+                                            {day.date}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => void generateCallSheet()}
+                            >
+                                Generate call sheet
+                            </button>
+                        </div>
+                        {callSheets.length > 0 && (
+                            <div className="callSheetTabs">
+                                {callSheets.map((sheet) => (
+                                    <button
+                                        className="secondary"
+                                        key={sheet.id}
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedCallSheet(sheet)
+                                        }
+                                    >
+                                        {sheet.shoot_date}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {selectedCallSheet ? (
+                            <article className="callSheetCard">
+                                <div className="sceneHeader">
+                                    <strong>
+                                        {
+                                            selectedCallSheet.payload
+                                                .call_sheet_version
+                                        }
+                                    </strong>
+                                    <span>
+                                        Crew{" "}
+                                        {timeLabel(
+                                            selectedCallSheet.payload.crew_call,
+                                        )}
+                                        –
+                                        {timeLabel(
+                                            selectedCallSheet.payload
+                                                .wrap_estimate,
+                                        )}
+                                    </span>
+                                    <a
+                                        href={`/api/coverset/call-sheets/${selectedCallSheet.id}/export?format=text`}
+                                    >
+                                        Text export
+                                    </a>
+                                </div>
+                                <div className="callSheetColumns">
+                                    <div>
+                                        <h4>Scenes</h4>
+                                        <ul className="compactList">
+                                            {selectedCallSheet.payload.scenes.map(
+                                                (scene) => (
+                                                    <li key={scene.scene_id}>
+                                                        {timeLabel(
+                                                            scene.planned_call_time,
+                                                        )}{" "}
+                                                        {scene.scene_id} ·{" "}
+                                                        {scene.location_name}
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h4>Cast calls</h4>
+                                        <ul className="compactList">
+                                            {selectedCallSheet.payload.cast_calls.map(
+                                                (row) => (
+                                                    <li key={row.cast_id}>
+                                                        {row.character}:{" "}
+                                                        {timeLabel(
+                                                            row.call_time,
+                                                        )}
+                                                        {row.is_minor &&
+                                                        row.minor_max_work_hours
+                                                            ? ` · minor max ${row.minor_max_work_hours}h`
+                                                            : ""}
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h4>Daylight</h4>
+                                        <ul className="compactList">
+                                            {selectedCallSheet.payload.daylight_windows.map(
+                                                (window) => (
+                                                    <li
+                                                        key={
+                                                            window.location_name
+                                                        }
+                                                    >
+                                                        {window.location_name}:{" "}
+                                                        {timeLabel(
+                                                            window.sunrise,
+                                                        )}{" "}
+                                                        sunrise /{" "}
+                                                        {timeLabel(
+                                                            window.sunset,
+                                                        )}{" "}
+                                                        sunset
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </div>
+                                </div>
+                                <details>
+                                    <summary>
+                                        Turnaround, permits, recipients
+                                    </summary>
+                                    <ul className="compactList">
+                                        {selectedCallSheet.payload.turnaround_notes.map(
+                                            (note) => (
+                                                <li key={note.display}>
+                                                    <span
+                                                        className={
+                                                            note.satisfied
+                                                                ? "pill good"
+                                                                : "pill warn"
+                                                        }
+                                                    >
+                                                        {note.satisfied
+                                                            ? "ok"
+                                                            : "check"}
+                                                    </span>{" "}
+                                                    {note.display}:{" "}
+                                                    {note.rest_hours}h rest
+                                                    (minimum{" "}
+                                                    {note.minimum_hours}h)
+                                                </li>
+                                            ),
+                                        )}
+                                        {selectedCallSheet.payload.permit_notes.map(
+                                            (note) => (
+                                                <li key={note.constraint_id}>
+                                                    Permit {note.constraint_id}:{" "}
+                                                    {note.detail}
+                                                </li>
+                                            ),
+                                        )}
+                                        {selectedCallSheet.payload.recipients.map(
+                                            (recipient) => (
+                                                <li
+                                                    key={`${recipient.recipient_type}-${recipient.display_name}`}
+                                                >
+                                                    {recipient.display_name} ·{" "}
+                                                    {recipient.authority}
+                                                </li>
+                                            ),
+                                        )}
+                                    </ul>
+                                </details>
+                                <details>
+                                    <summary>Rendered call sheet</summary>
+                                    <pre>{selectedCallSheet.rendered_text}</pre>
+                                </details>
+                            </article>
+                        ) : (
+                            <p className="muted">
+                                No call sheet generated for this board yet.
+                            </p>
+                        )}
+                    </section>
                     {board.result.explanation_traces && (
                         <details className="explanations">
                             <summary>Constraint explanation traces</summary>

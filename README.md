@@ -7,9 +7,10 @@ An agentic scheduling partner for first assistant directors.
 ## Overview
 
 Coverset turns a screenplay into scheduler-ready scene records, lets humans review
-and lock production decisions, then produces deterministic stripboards with CP-SAT.
-Gemini and Parallel supply candidates and evidence; they never select boards,
-approve costs, or mutate locked shoot history.
+and lock production decisions, then produces deterministic stripboards with CP-SAT
+and Second AD call sheets for selected shoot days. Gemini and Parallel supply
+candidates and evidence; they never select boards, approve costs, or mutate locked
+shoot history.
 
 ## Architecture
 
@@ -112,6 +113,9 @@ Useful review artifacts are available from the private API:
 
 ```text
 GET  /boards/{board_id}/export?format=text|csv|json
+POST /boards/{board_id}/call-sheets
+GET  /boards/{board_id}/call-sheets
+GET  /call-sheets/{call_sheet_id}/export?format=text|json
 GET  /productions/{production_id}/audit
 GET  /productions/{production_id}/audit/export?format=csv|json
 POST /productions/{production_id}/audit/bigquery

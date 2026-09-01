@@ -96,6 +96,13 @@ def test_locking_a_day_belongs_to_the_first_ad_and_script_supervisor():
     assert holders == {FIRST_AD, SUPERVISOR}
 
 
+@pytest.mark.req("ACT-010", "OUT-004")
+def test_generating_call_sheets_belongs_to_the_second_ad_alone():
+    holders = {a for a in EVERYONE if a.may_generate_call_sheet}
+
+    assert holders == {SECOND_AD}
+
+
 @pytest.mark.req("ACT-003")
 def test_the_second_ad_holds_no_authority_over_the_schedule():
     assert not any(

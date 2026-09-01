@@ -13,8 +13,8 @@ an hour wrong twice a year, so half-configured coordinates are rejected outright
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 __all__ = ["Location", "LocationBook", "UnknownLocation"]
@@ -130,7 +130,7 @@ class LocationBook:
                 return loc
         raise UnknownLocation(
             f"{location_id!r} is not on the production's locations; known ids: "
-            f"{', '.join(sorted(l.id for l in self.locations)) or '(empty)'}"
+            f"{', '.join(sorted(loc.id for loc in self.locations)) or '(empty)'}"
         )
 
     def resolve(self, location_ids: tuple[str, ...]) -> tuple[Location, ...]:

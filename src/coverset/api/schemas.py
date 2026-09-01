@@ -223,6 +223,9 @@ class ConstraintCreate(BaseModel):
     windows: list[DateWindowPayload] = Field(default_factory=list)
     hours: float | None = None
     evidence_id: str | None = None
+    grounded_value_id: str = ""
+    derived_from: Literal["excerpt", "full_content"] | None = None
+    timezone: str | None = None
     actor_name: str = "Developer"
     actor_role: ActorRole = "first_ad"
     statement: str = "Production entered constraint"
@@ -246,6 +249,63 @@ class ConstraintResponse(BaseModel):
     provenance: dict[str, Any] = Field(default_factory=dict)
 
 
+class ConstraintTranslationRequest(BaseModel):
+    text: str = Field(min_length=1)
+    actor_name: str = "Developer"
+
+
+class ConstraintProposalDecisionRequest(BaseModel):
+    decision: Literal["accept", "reject"] = "accept"
+    actor_name: str = "Developer"
+    actor_role: ActorRole = "first_ad"
+
+
+class ConstraintProposalResponse(BaseModel):
+    id: str
+    production_id: str
+    source_text: str
+    status: str
+    confidence: float
+    payload: dict[str, Any] = Field(default_factory=dict)
+    validation_errors: list[str] = Field(default_factory=list)
+    created_by_name: str
+    accepted_by_name: str | None = None
+    accepted_by_role: str | None = None
+    accepted_constraint_id: str | None = None
+
+
+class GroundedValueCreate(BaseModel):
+    normalized_value: dict[str, Any]
+    units: str = Field(min_length=1)
+    source_url: str = Field(min_length=1)
+    source_quote: str = Field(min_length=1)
+    source_span: str = "source text"
+    query: str = "grounded value extraction"
+    validator_family: str = "generic"
+    validator_reason: str = "source span extracted and normalized"
+
+
+class GroundedValueResponse(BaseModel):
+    id: str
+    production_id: str
+    evidence_id: str
+    fact_kind: str
+    location_id: str
+    target_date: dt.date
+    normalized_value: dict[str, Any] = Field(default_factory=dict)
+    units: str
+    source_url: str
+    source_quote: str
+    source_span: str
+    query: str
+    provider_response_id: str
+    content_hash: str
+    derived_from: str
+    validator_result: dict[str, Any] = Field(default_factory=dict)
+    covering_date: bool
+    context_source_urls: list[str] = Field(default_factory=list)
+
+
 class ScheduleRequest(BaseModel):
     accepted_only: bool = True
 
@@ -265,6 +325,7 @@ class BoardResponse(BaseModel):
     production_id: str
     schedule_run_id: str
     solver_status: str
+    approval_state: str = "approved"
     stripboard: str
     result: dict[str, Any]
 
@@ -317,6 +378,46 @@ class MonitorJobRequest(BaseModel):
     message: str = ""
     affected_work_ids: list[str] = Field(default_factory=list)
     evidence_id: str | None = None
+    monitored_source_id: str | None = None
+    target_date: dt.date | None = None
+    status: str = ""
+
+
+class MonitoredSourceCreate(BaseModel):
+    board_id: str
+    source_url: str = Field(min_length=1)
+    fact_kind: Literal["weather", "permit"]
+    location_id: str = ""
+    query: str = ""
+    external_monitor_id: str = ""
+
+
+class MonitoredSourceResponse(BaseModel):
+    id: str
+    production_id: str
+    board_id: str
+    source_url: str
+    fact_kind: str
+    location_id: str = ""
+    query: str = ""
+    provider: str
+    external_monitor_id: str = ""
+    status: str
+    last_fingerprint: str = ""
+
+
+class MonitorChangeEventResponse(BaseModel):
+    id: str
+    production_id: str
+    monitored_source_id: str | None = None
+    board_id: str
+    status: str
+    material: bool
+    old_fingerprint: str = ""
+    new_fingerprint: str = ""
+    payload: dict[str, Any] = Field(default_factory=dict)
+    finding_id: str | None = None
+    replan_request_id: str | None = None
 
 
 class MonitorFindingResponse(BaseModel):
@@ -348,9 +449,12 @@ class MonitorFindingDecisionRequest(BaseModel):
 class ReplanRequestResponse(BaseModel):
     id: str
     production_id: str
-    finding_id: str
+    finding_id: str | None = None
     current_board_id: str
     requester_component: str
+    source_kind: str = "monitor"
+    source_id: str = ""
+    reason: str = ""
     status: str
     affected_work_ids: list[str] = Field(default_factory=list)
     locked_days: list[str] = Field(default_factory=list)
@@ -359,6 +463,22 @@ class ReplanRequestResponse(BaseModel):
 class MonitorFindingDecisionResponse(BaseModel):
     finding: MonitorFindingResponse
     replan_request: ReplanRequestResponse | None = None
+
+
+class ReplanOptionsRequest(BaseModel):
+    max_options: int = Field(default=2, ge=1, le=4)
+
+
+class ScheduleDiffResponse(BaseModel):
+    id: str
+    production_id: str
+    base_board_id: str
+    revised_board_id: str
+    replan_request_id: str | None = None
+    diff: dict[str, Any]
+    required_approvals: list[str] = Field(default_factory=list)
+    cost_delta: float = 0.0
+    rendered_text: str = ""
 
 
 class BoardSelectionRequest(BaseModel):
@@ -395,3 +515,99 @@ class CostApprovalResponse(BaseModel):
     cost_delta: float
     added_shoot_days: list[dt.date] = Field(default_factory=list)
     decision: str
+
+
+class CoverageItemCreate(BaseModel):
+    scene_id: str = Field(min_length=1)
+    coverage_key: str = Field(min_length=1)
+    coverage_type: str = Field(min_length=1)
+    planned: dict[str, Any] = Field(default_factory=dict)
+
+
+class CoverageShotUpdate(BaseModel):
+    shot: dict[str, Any] = Field(default_factory=dict)
+
+
+class CoverageFindingCreate(BaseModel):
+    board_id: str | None = None
+    message: str = Field(min_length=1)
+    severity: str = "medium"
+    actor_name: str = "Developer"
+    actor_role: ActorRole = "script_supervisor"
+
+
+class CoverageItemResponse(BaseModel):
+    id: str
+    production_id: str
+    scene_id: str
+    coverage_key: str
+    coverage_type: str
+    planned: dict[str, Any] = Field(default_factory=dict)
+    shot: dict[str, Any] = Field(default_factory=dict)
+    status: str
+
+
+class CoverageFindingResponse(BaseModel):
+    id: str
+    production_id: str
+    coverage_item_id: str
+    board_id: str | None = None
+    status: str
+    severity: str
+    message: str
+    raised_by_name: str
+    raised_by_role: str
+    human_raised: bool
+
+
+class PickupDecisionRequest(BaseModel):
+    decision: Literal["request_pickup", "reject"] = "request_pickup"
+    actor_name: str = "Developer"
+    actor_role: ActorRole = "director"
+
+
+class PickupConfirmRequest(BaseModel):
+    pickup_spec: dict[str, Any]
+    actor_name: str = "Developer"
+    actor_role: ActorRole = "director"
+
+
+class PickupReplanRequest(BaseModel):
+    current_board_id: str
+    cutoff_at: dt.datetime
+    lock_policy: Literal["preserve_locked", "preserve_through_cutoff"]
+
+
+class PickupTaskResponse(BaseModel):
+    id: str
+    production_id: str
+    finding_id: str
+    coverage_item_id: str
+    board_id: str | None = None
+    status: str
+    scene_id: str
+    pickup_spec: dict[str, Any] = Field(default_factory=dict)
+    decision: dict[str, Any] = Field(default_factory=dict)
+    requested_by_name: str
+    requested_by_role: str
+    confirmed_by_name: str | None = None
+    confirmed_by_role: str | None = None
+
+
+class CallSheetGenerateRequest(BaseModel):
+    shoot_date: dt.date
+    actor_name: str = "Developer"
+    actor_role: ActorRole = "second_ad"
+
+
+class CallSheetResponse(BaseModel):
+    id: str
+    production_id: str
+    board_id: str
+    schedule_run_id: str
+    shoot_date: dt.date
+    generated_by_name: str
+    generated_by_role: str
+    payload: dict[str, Any] = Field(default_factory=dict)
+    rendered_text: str
+    created_at: dt.datetime

@@ -25,9 +25,10 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Iterator, TypeAlias
+from typing import TypeAlias
 
 from .actors import Actor
 from .daylight import ALGORITHM
@@ -224,7 +225,9 @@ class DaylightBound:
 
     def __post_init__(self) -> None:
         if not self.algorithm.strip():
-            raise ConstraintError("a daylight bound must name the algorithm computing it")
+            raise ConstraintError(
+                "a daylight bound must name the algorithm computing it"
+            )
 
     def __str__(self) -> str:
         return f"inside the daylight window ({self.algorithm})"
@@ -306,6 +309,7 @@ class GroundedSource:
     evidence_id: str
     source_urls: tuple[str, ...]
     grounded_value_id: str = ""
+    source_mode: DerivedFrom = DerivedFrom.EXCERPT
 
     def __post_init__(self) -> None:
         if not self.evidence_id.strip():
@@ -315,10 +319,15 @@ class GroundedSource:
                 "a grounded constraint must cite at least one source URL; without one "
                 "the value is a guess with a citation field"
             )
+        if self.source_mode not in (DerivedFrom.FULL_CONTENT, DerivedFrom.EXCERPT):
+            raise ConstraintError(
+                "a grounded constraint must say whether it came from full content "
+                "or excerpts"
+            )
 
     @property
     def derived_from(self) -> DerivedFrom:
-        return DerivedFrom.EXCERPT
+        return self.source_mode
 
     def describe(self) -> str:
         return f"evidence {self.evidence_id} ({len(self.source_urls)} source(s))"
@@ -407,7 +416,9 @@ class ConstraintRecord:
         # CON-008, made unrepresentable rather than checked. A daylight bound backed
         # by a URL is a retrieved sunset, and a retrieved sunset was wrong for the
         # shoot date in 8 of 8 live sources.
-        if self.family is Family.DAYLIGHT and not isinstance(self.source, AlgorithmSource):
+        if self.family is Family.DAYLIGHT and not isinstance(
+            self.source, AlgorithmSource
+        ):
             raise ConstraintError(
                 f"{self.constraint_id}: a daylight constraint must cite the "
                 f"deterministic algorithm, not "
@@ -415,16 +426,16 @@ class ConstraintRecord:
                 f"provenance. Daylight is computed; retrieving it was tried and was "
                 f"wrong in the worst way (CON-008)."
             )
-        if self.family is Family.DAYLIGHT and not isinstance(self.expression, DaylightBound):
+        if self.family is Family.DAYLIGHT and not isinstance(
+            self.expression, DaylightBound
+        ):
             raise ConstraintError(
                 f"{self.constraint_id}: a daylight constraint's expression must be a "
                 f"DaylightBound, got {type(self.expression).__name__}"
             )
         if not isinstance(
             self.expression, (DaylightBound, MinimumRest, MaximumDailyHours)
-        ) and (
-            self.subject.kind is SubjectKind.SCHEDULE
-        ):
+        ) and (self.subject.kind is SubjectKind.SCHEDULE):
             raise ConstraintError(
                 f"{self.constraint_id}: {type(self.expression).__name__} constrains a "
                 f"specific subject, but none was named"
@@ -493,7 +504,7 @@ class ConstraintSet:
             seen.add(r.constraint_id)
 
     def __iter__(self) -> Iterator[ConstraintRecord]:
-        return iter(self.records)
+        yield from self.records
 
     def __len__(self) -> int:
         return len(self.records)
@@ -524,7 +535,10 @@ class ConstraintSet:
         board would appear stale because a file was re-serialised.
         """
         payload = json.dumps(
-            [r.canonical() for r in sorted(self.records, key=lambda r: r.constraint_id)],
+            [
+                r.canonical()
+                for r in sorted(self.records, key=lambda r: r.constraint_id)
+            ],
             sort_keys=True,
             separators=(",", ":"),
         )
