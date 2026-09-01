@@ -444,7 +444,9 @@ def test_candidate_edit_clears_blockers_before_explicit_accept(
 
 
 @pytest.mark.req("BRK-001", "SOL-001")
-def test_async_jobs_are_enqueued_and_worker_updates_status(db_session: Session, tmp_path):
+def test_async_jobs_are_enqueued_and_worker_updates_status(
+    db_session: Session, tmp_path
+):
     settings = Settings(upload_root=tmp_path, agent_mode="fixture")
     storage = ObjectStorage(settings)
     production = create_production(db_session, title="Async Jobs", seed_demo_data=True)
@@ -485,7 +487,9 @@ def test_async_jobs_are_enqueued_and_worker_updates_status(db_session: Session, 
     assert rerun.attempts == 1
 
 
-def test_job_enqueue_api_returns_pollable_job(db_session: Session, tmp_path, monkeypatch):
+def test_job_enqueue_api_returns_pollable_job(
+    db_session: Session, tmp_path, monkeypatch
+):
     import coverset.api.main as api_main  # type: ignore[import-not-found]
 
     monkeypatch.setattr(api_main, "settings", Settings(task_queue="", worker_url=""))
@@ -581,10 +585,14 @@ def test_grounding_evidence_creates_inactive_constraint_until_activated(
 
 
 @pytest.mark.req("SOL-001", "SOL-007")
-def test_active_lock_constraint_pins_work_item_in_schedule(db_session: Session, tmp_path):
+def test_active_lock_constraint_pins_work_item_in_schedule(
+    db_session: Session, tmp_path
+):
     settings = Settings(upload_root=tmp_path, agent_mode="fixture")
     storage = ObjectStorage(settings)
-    production = create_production(db_session, title="Locked Board", seed_demo_data=True)
+    production = create_production(
+        db_session, title="Locked Board", seed_demo_data=True
+    )
     asset = upload_screenplay(
         db_session,
         production_id=production.id,
@@ -896,7 +904,7 @@ def test_board_and_audit_exports_are_reviewable_and_append_only(
         text_export = client.get(f"/boards/{board.id}/export?format=text")
         assert text_export.status_code == 200, text_export.text
         assert "STRIPBOARD" in text_export.text
-        assert text_export.headers["content-disposition"].endswith("-stripboard.txt\"")
+        assert text_export.headers["content-disposition"].endswith('-stripboard.txt"')
 
         csv_export = client.get(f"/boards/{board.id}/export?format=csv")
         assert csv_export.status_code == 200, csv_export.text
@@ -907,7 +915,9 @@ def test_board_and_audit_exports_are_reviewable_and_append_only(
         assert json_export.status_code == 200, json_export.text
         assert json_export.json()["id"] == board.id
 
-        audit_json = client.get(f"/productions/{production.id}/audit/export?format=json")
+        audit_json = client.get(
+            f"/productions/{production.id}/audit/export?format=json"
+        )
         assert audit_json.status_code == 200, audit_json.text
         assert any(row["event_type"] == "day.locked" for row in audit_json.json())
 

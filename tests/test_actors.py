@@ -115,9 +115,9 @@ def test_require_names_the_person_and_the_role_that_holds_the_authority():
         SUPERVISOR.require("rule_on_coverage")
 
     message = str(excinfo.value)
-    assert "J. Alvarez" in message          # who was refused
+    assert "J. Alvarez" in message  # who was refused
     assert "may not rule on coverage" in message
-    assert "director" in message            # who could have
+    assert "director" in message  # who could have
 
 
 @pytest.mark.req("ACT-003")
@@ -138,8 +138,15 @@ def test_no_role_exists_for_cast_crew_or_permit_authorities():
     # Stated as a test because the claim was got wrong once already: "they never touch
     # the system" is false (cast receive call sheets) and hid a modelling gap.
     forbidden = {
-        "cast", "performer", "actor_talent", "crew", "grip", "gaffer",
-        "location_owner", "permit_authority", "vendor",
+        "cast",
+        "performer",
+        "actor_talent",
+        "crew",
+        "grip",
+        "gaffer",
+        "location_owner",
+        "permit_authority",
+        "vendor",
     }
 
     assert forbidden.isdisjoint({r.value for r in Role})

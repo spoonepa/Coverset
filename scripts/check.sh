@@ -6,7 +6,11 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 status=0
-run() { printf '\n\033[1m== %s ==\033[0m\n' "$1"; shift; "$@" || status=1; }
+run() {
+  printf '\n\033[1m== %s ==\033[0m\n' "$1"
+  shift
+  "$@" || status=1
+}
 
 secret_scan() {
   local tracked_artifacts

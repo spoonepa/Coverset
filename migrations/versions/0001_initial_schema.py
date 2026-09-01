@@ -55,7 +55,9 @@ def upgrade() -> None:
     if "jobs" in tables:
         columns = {column["name"] for column in inspector.get_columns("jobs")}
         if "production_id" not in columns:
-            op.add_column("jobs", sa.Column("production_id", sa.String(48), nullable=True))
+            op.add_column(
+                "jobs", sa.Column("production_id", sa.String(48), nullable=True)
+            )
             op.create_index("ix_jobs_production_id", "jobs", ["production_id"])
         if "payload_json" not in columns:
             op.add_column("jobs", sa.Column("payload_json", sa.JSON(), nullable=True))
@@ -63,11 +65,13 @@ def upgrade() -> None:
             op.add_column("jobs", sa.Column("result_json", sa.JSON(), nullable=True))
         if "claimed_at" not in columns:
             op.add_column(
-                "jobs", sa.Column("claimed_at", sa.DateTime(timezone=True), nullable=True)
+                "jobs",
+                sa.Column("claimed_at", sa.DateTime(timezone=True), nullable=True),
             )
         if "completed_at" not in columns:
             op.add_column(
-                "jobs", sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True)
+                "jobs",
+                sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
             )
 
 

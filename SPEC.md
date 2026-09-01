@@ -22,7 +22,7 @@ The central design is unchanged:
 ## 1. Non-negotiables
 
 | ID | Contract | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | NNG-001 | Parallel Search is called at runtime for every externally grounded fact request. No cache, precomputed fact table, fixture, or offline fallback may stand in for Search in production runtime. | Track eligibility and grounding integrity. |
 | NNG-002 | Gemini and other advisory agents may produce candidate records, findings, summaries, and explanations; they may not decide coverage, approve costs, select boards, or emit schedules. | Keeps advisory and deciding authority separate. |
 | NNG-003 | A returned active schedule is produced by CP-SAT and independently validated against the active hard constraints. | Solver output alone is not enough proof if the model was miscompiled or underspecified. |
@@ -36,7 +36,7 @@ The central design is unchanged:
 ### Implementation maturity
 
 | Maturity | Meaning |
-|---|---|
+| --- | --- |
 | `not-started` | No meaningful implementation exists. |
 | `domain-model` | Types/entities exist and enforce local invariants, but are not integrated into the full workflow. |
 | `unit-built` | Behavior is implemented and covered by deterministic tests. |
@@ -46,7 +46,7 @@ The central design is unchanged:
 ### Verification tier
 
 | Tier | Command / Evidence | Proves |
-|---|---|---|
+| --- | --- | --- |
 | `none` | No accepted verification yet. | Nothing. |
 | `offline` | `uv run pytest` | Deterministic wiring, shape, invariants; no network/key. |
 | `live` | `uv run pytest -m live` | Real provider behavior and fact-binding invariants. Requires `PARALLEL_API_KEY`. |
@@ -63,7 +63,7 @@ reason is stated rather than inferred.
 A requirement exercised by no use case carries a leading tag in its Notes cell:
 
 | Tag | Meaning |
-|---|---|
+| --- | --- |
 | `[invariant]` | A correctness property of a capability some journey already exercises. |
 | `[edge-case]` | A rare path that no ordinary journey reaches. |
 | `[cross-cutting]` | Applies across many journeys and belongs to none of them. |
@@ -78,7 +78,7 @@ otherwise.
 ### Active slices
 
 | Slice | Purpose | Required outcome |
-|---|---|---|
+| --- | --- | --- |
 | `MVP-0` | Deterministic board from structured fixtures. | Produce a valid stripboard from pre-parsed scenes and typed constraints. |
 | `MVP-1` | Grounded constraints. | Parallel Search/Extract feeds typed permit/weather records into constraints or risk policy. |
 | `MVP-2` | Replan with locked history. | Re-solve after one changed fact while preserving already-shot days. |
@@ -90,7 +90,7 @@ otherwise.
 Requirement tables use:
 
 | Column | Meaning |
-|---|---|
+| --- | --- |
 | `ID` | Stable identifier used by tests and traceability. Existing IDs are preserved where possible. |
 | `Requirement` | Testable statement. |
 | `Maturity` | Implementation maturity from the vocabulary above. |
@@ -197,7 +197,7 @@ MVP-3 extends the existing review/pickup authority model into the solver:
 The solver receives constraints and objective terms with an explicit policy.
 
 | Policy | Meaning | May an active board violate it? | Typical examples |
-|---|---|---:|---|
+| --- | --- | ---: | --- |
 | `hard` | Feasibility bound. | No. | permit unavailability, cast unavailable, child-labor legal limit, already-shot immutability. |
 | `soft_penalty` | Cost/risk term optimized and surfaced. | Yes, as cost/exposure, not as hidden failure. | holding days, company moves, overtime exposure when allowed. |
 | `waivable_by_role` | Bound that can be relaxed only through named approval. | Not while active; only as pending exception scenario. | waivable turnaround exception, added shoot day requiring UPM/Line Producer approval. |
@@ -223,7 +223,7 @@ declaration; the solver reads them and refuses to build an objective from anythi
 was not given.
 
 | Term | Weight | Unit |
-|---|---:|---|
+| --- | ---: | --- |
 | Company move | 3.0 | per move |
 | Cast holding day | 1.0 | per held day, per performer |
 | Overtime exposure | 0.5 | per hour beyond the standard day |
@@ -252,7 +252,7 @@ The architecture is fundamentally a statement about authority: who may advise, w
 decide, and what may put work on a board.
 
 | Actor class | May advise | May decide | May schedule |
-|---|:---:|:---:|:---:|
+| --- | :---: | :---: | :---: |
 | Gemini agents (breakdown, constraint, review) | yes | **no** | no |
 | Parallel (Search, Extract) | supplies facts | no | no |
 | Monitor loop | may trigger a replan | **no** | no |
@@ -262,7 +262,7 @@ decide, and what may put work on a board.
 #### Human actors
 
 | Role | Uses Coverset to | Authority |
-|---|---|---|
+| --- | --- | --- |
 | **First AD** | Own the board: supply constraints, choose among replan options, lock shot days, diagnose infeasibility | Scheduling decisions; board selection |
 | **Director** | Review flagged coverage and rule on it | Creative acceptance of coverage |
 | **Script Supervisor** | Raise coverage findings from the floor; record what was actually shot | Raise findings; record shot status |
@@ -272,7 +272,7 @@ decide, and what may put work on a board.
 #### System actors
 
 | Actor | Role | Boundary |
-|---|---|---|
+| --- | --- | --- |
 | **Breakdown agent** (Gemini) | Screenplay PDF to candidate scene records | Extractive; produces no schedule |
 | **Constraint agent** (Gemini) | Plain English plus retrieved facts to candidate constraints | Advisory; candidates require validation |
 | **Review agent** (Gemini) | Coverage to review findings | Advisory only; cannot decide an outcome |
@@ -524,7 +524,7 @@ No board may be returned as viable unless `status` is `optimal` or `feasible` an
 ## 6. ACT — Actors and authority
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | ACT-001 | Every decision that changes the schedule records the actor who made it and the role they made it under. | integrated | offline | MVP-2 | Board selection, cost approval, lock, monitor, constraint, and export paths are audited with actor/role metadata. |
 | ACT-002 | An advisory agent cannot be constructed as a deciding actor. Deciding requires a human role. | unit-built | offline | MVP-0 | Existing tests cover advisory names/roles. |
 | ACT-003 | Ruling on coverage requires Director or First AD authority. | unit-built | offline | MVP-3 | Existing review tests cover this. |
@@ -541,7 +541,7 @@ No board may be returned as viable unless `status` is `optimal` or `feasible` an
 ## 7. CST — Cast and crew
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | CST-001 | Cast members are typed entities carrying availability, contract, and status, not bare names on a scene. | demo-ready | offline | MVP-0 | Existing model/tests. |
 | CST-002 | A cast id that is not on the roster is rejected, reporting every unknown id at once rather than the first. | unit-built | offline | MVP-0 | Existing model/tests. |
 | CST-003 | A cast member with no stated availability is available for the whole shoot. | demo-ready | offline | MVP-0 | Existing model/tests. |
@@ -569,7 +569,7 @@ substitutes for the other, and the `corpus` tier is barred from claiming correct
 so the distinction cannot quietly collapse.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | SCN-001 | A `SceneRecord` has stable id, scene number, slugline, INT/EXT enum, day/night enum, location reference, page eighths, cast IDs, flags, and source span. | demo-ready | offline | MVP-0 | Implemented as `coverset.scenes.SceneRecord`. |
 | SCN-002 | Scene fixture import rejects missing required fields, invalid enum values, non-positive page eighths, and unknown cast/location references. | demo-ready | offline | MVP-0 | Implemented as `coverset.fixtures.load_scenes`; reports every problem at once. |
 | SCN-003 | A valid active `SceneRecord` can be converted to a schedulable `WorkItem`. | demo-ready | offline | MVP-0 | Implemented as `SceneRecord.to_work_item`; only active records convert. |
@@ -593,7 +593,7 @@ so the distinction cannot quietly collapse.
 ## 9. TRK — Parallel track eligibility
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | TRK-001 | Parallel Search is called at runtime for every externally grounded fact request. No cache, precomputed fact table, or offline fallback may stand in for it. | unit-built | live | MVP-1 | Existing offline + live tests. |
 | TRK-002 | Parallel Extract retrieves full page contents where excerpt compression would discard the operative value. | unit-built | live | MVP-1 | Existing tests. |
 | TRK-003 | Parallel Monitor watches mutable weather and permit source URLs that a live schedule depends on and emits change events. | not-started | live | POST | Daylight is not monitored. |
@@ -605,7 +605,7 @@ so the distinction cannot quietly collapse.
 ## 10. GRD — Grounding and value provenance
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | GRD-001 | Evidence carries the URL of every source behind it and cannot be constructed without at least one. | unit-built | live | MVP-1 | Existing tests. |
 | GRD-002 | A fact with no source raises rather than returning empty evidence or a default value. | unit-built | offline | MVP-1 | Live exempt: cannot reliably provoke no-results. |
 | GRD-003 | A date-specific fact must prove at least one source explicitly mentions the target date before any value may be bound to that date. | unit-built | live | MVP-1 | Existing tests. |
@@ -627,7 +627,7 @@ so the distinction cannot quietly collapse.
 ## 11. DAY — Daylight
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | DAY-001 | Daylight is computed from coordinates and date, never retrieved. | demo-ready | offline | MVP-0 | Existing tests. |
 | DAY-002 | Computed times agree with published almanac tables to within 2 minutes. | unit-built | offline | MVP-0 | [invariant] Existing tests. |
 | DAY-003 | Times are timezone-aware and DST-correct for the date in question. | demo-ready | offline | MVP-0 | Existing tests. |
@@ -649,7 +649,7 @@ production policy decides whether that fact is a hard constraint, a soft penalty
 waivable condition, or informational.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | WEA-001 | Weather evidence is normalized into `ForecastRisk` values with issued_at, valid_for_date, horizon, condition, probability/intensity, source, and confidence tier. | not-started | live | MVP-1 | Connects grounding to scheduler. |
 | WEA-002 | The forecast horizon is explicit. Values outside the horizon are classified as climatology/risk prior, not forecast. | not-started | live | MVP-1 | Makes GRD-010 testable. |
 | WEA-003 | Production policy declares how each weather risk maps to constraint policy: hard, soft_penalty, waivable_by_role, or informational. | not-started | offline | MVP-1 | Solves weather ambiguity. |
@@ -665,7 +665,7 @@ accepted. MVP-0 may load typed constraints from fixtures; MVP-1 may derive permi
 constraints from grounded values; full Gemini translation is post-MVP.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | CON-001 | Plain-English production constraints are translated into candidate typed constraint records. | not-started | offline | POST | Existing broad requirement reframed as candidate output. |
 | CON-002 | A typed constraint derived from retrieved text is validated by fact-family-specific checks before activation. | not-started | offline | MVP-1 | Define validators below. |
 | CON-003 | Extraction may bind a dated value only from evidence sources recorded as covering the target date. | not-started | offline | MVP-1 | Source-level date binding. |
@@ -681,7 +681,7 @@ constraints from grounded values; full Gemini translation is post-MVP.
 ## 14. SOL — Solver and schedule validation
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | SOL-001 | The schedule is produced by CP-SAT. No language model emits a schedule. | demo-ready | offline | MVP-0 | Implemented as `coverset.solver`; CP-SAT only, asserted by an import check. |
 | SOL-002 | Every returned viable board satisfies all active hard constraints and all unwaived waivable constraints. Soft costs and exposures are represented as objective terms or required approvals. | demo-ready | offline | MVP-0 | Every binding constraint is re-checked on the returned board by `coverset.validate`. |
 | SOL-003 | When no valid schedule exists, Coverset returns an irreducible conflicting constraint subset: removing any one listed constraint makes the reported conflict no longer proven. | unit-built | offline | MVP-0 | Deletion filter shrinks CP-SAT's core to load-bearing records; where no constraint is at fault the cause is named structurally. A conflict set naming nothing is unconstructible. |
@@ -701,7 +701,7 @@ constraints from grounded values; full Gemini translation is post-MVP.
 ## 15. LCK — Shot-day locking and actuals
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | LCK-001 | A `LockedDayRecord` includes scheduled scenes, actual shot status, date, locations, cast, call/wrap times, call sheet version, recorder, and timestamp. | integrated | offline | MVP-2 | Persisted from board day snapshots and exposed through API responses. |
 | LCK-002 | The solver may reference locked records as constraints but must not mutate, delete, resequence, or reassign them. | integrated | offline | MVP-2 | Locked records compile into active hard pinned-day constraints for replans. |
 | LCK-003 | Replans start after an explicit cutoff day/time; in-progress or partial days require an explicit lock policy. | not-started | offline | MVP-2 | Avoids accidental rewrite of current day. |
@@ -715,7 +715,7 @@ MVP-2 can simulate changed typed facts without the Monitor API. Post-MVP uses Pa
 Monitor to detect changes in mutable source URLs.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | MON-001 | A material change in a monitored typed fact triggers replanning with no user action. | not-started | live | POST | Full autonomous Monitor. |
 | MON-002 | Replanning returns multiple boards satisfying hard constraints, each with production-readable cost deltas and required approvals stated. | not-started | offline | MVP-2 | Valid boards only. |
 | MON-003 | A monitor page-change event becomes a replan trigger only after Coverset re-extracts the watched fact, normalizes old/new values, and proves a material schedule-relevant change under the fact family's threshold. | not-started | live | POST | Prevents ad/header churn replans. |
@@ -733,7 +733,7 @@ MVP-0 output is a stripboard. Full call sheets and schedule diffs come later, bu
 schemas are specified now.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | OUT-001 | A call sheet is generated for a scheduled day. | not-started | offline | POST | Existing requirement; schema below. |
 | OUT-002 | Two schedule versions can be diffed with the delta quantified in production terms. | not-started | offline | MVP-2 | Needed for replan options. |
 | OUT-003 | A stripboard output lists shoot days, ordered work items, scene IDs, locations, day/night, cast, and estimated call/wrap windows. | demo-ready | offline | MVP-0 | Implemented as `coverset.stripboard.stripboard`. |
@@ -751,7 +751,7 @@ The existing implementation is strong here; additions mostly connect review deci
 solver-ready pickup work.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | REV-001 | A review finding is advisory. The only status transition a finding can cause is to needs review; it cannot accept, reject, or request a pickup. | unit-built | offline | MVP-3 | Existing tests. |
 | REV-002 | A flagged coverage item is marked needs review and carries the finding that flagged it. | unit-built | offline | MVP-3 | Existing tests. |
 | REV-003 | Only a decision attributed to a named human can accept, reject, or request a pickup. An automated agent is rejected as decider. | unit-built | offline | MVP-3 | Existing tests. |
@@ -767,7 +767,7 @@ solver-ready pickup work.
 ## 19. PIK — Pickups and re-shoots
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | PIK-001 | A pickup task cannot be constructed without a human decision authorizing it. | unit-built | offline | MVP-3 | Existing tests. |
 | PIK-002 | A pickup task traces to the decision that authorized it and the finding that prompted it. | unit-built | offline | MVP-3 | Existing tests. |
 | PIK-003 | A rejection or pickup request yields exactly one pickup intent/task for the decision and coverage key. | unit-built | offline | MVP-3 | Existing tests; idempotence should be explicit. |
@@ -785,7 +785,7 @@ solver-ready pickup work.
 ## 20. AUD — Auditability
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | AUD-001 | Every scheduling decision traces to explicit active constraints and objective terms. | demo-ready | offline | MVP-0 | Implemented as `coverset.stripboard.explain_assignment`. |
 | AUD-002 | Every constraint traces to either source URL/value provenance, a named deterministic algorithm, or a human-entered production rule. | domain-model | live | MVP-1 | Offline covers deterministic/algorithm provenance; live is required for externally grounded constraints. Full ConstraintRecord is still missing. |
 | AUD-003 | Every constraint records whether it was derived from full page content, excerpt, algorithm, fixture, or human input. | domain-model | offline | MVP-1 | Evidence has extraction mode; constraints missing. |
@@ -803,7 +803,7 @@ A row it cannot parse used to be skipped, which removed the requirement from eve
 report and left no symptom but a total nobody had memorised.
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | TRC-001 | Every ID-bearing row parses as a well-formed requirement or non-negotiable. Anything else is a reported defect with its line number, never a silent skip. | unit-built | offline | MVP-0 | Closes the silent-drift path. |
 | TRC-002 | A duplicate requirement or use-case ID is reported as a defect naming both line numbers. | unit-built | offline | MVP-0 | Previously overwrote silently. |
 | TRC-003 | A use case citing a requirement that does not exist is reported as a defect. | unit-built | offline | MVP-0 | Catches renamed or deleted IDs. |
@@ -817,7 +817,7 @@ report and left no symptom but a total nobody had memorised.
 ## 22. OPS — Deployment operations
 
 | ID | Requirement | Maturity | Verification | Slice | Notes |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | OPS-001 | Terraform state is stored in a versioned remote GCS backend and the generated backend config is not committed. | integrated | offline | POST | [cross-cutting] Bootstrap script creates/version-enables the state bucket and writes gitignored backend config. |
 | OPS-002 | Dev infrastructure provisions Cloud SQL backups and a Cloud Run error alert. | integrated | offline | POST | [cross-cutting] Terraform declares PITR backups, a log-based metric, and a Monitoring alert policy. |
 | OPS-003 | Dev deploys provision a monthly budget alert when a billing account is configured or detected. | integrated | offline | POST | [cross-cutting] Terraform budget resource is enabled by deploy-time billing account discovery. |

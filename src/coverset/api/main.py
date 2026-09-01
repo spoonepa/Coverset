@@ -79,11 +79,11 @@ from .services import (  # type: ignore[import-not-found]
     ServiceError,
     activate_constraint,
     add_cast_member,
+    add_location,
+    approve_cost,
     audit_event_to_json,
     audit_export_csv,
     audit_export_json,
-    add_location,
-    approve_cost,
     batch_accept_candidates,
     board_export_csv,
     board_export_json,
@@ -286,9 +286,7 @@ async def upload_screenplay_endpoint(
     return _asset_response(asset)
 
 
-@app.post(
-    "/productions/{production_id}/breakdowns/jobs", response_model=JobResponse
-)
+@app.post("/productions/{production_id}/breakdowns/jobs", response_model=JobResponse)
 def enqueue_breakdown_endpoint(
     production_id: str,
     payload: BreakdownRequest,
@@ -375,9 +373,7 @@ def batch_accept_candidates_endpoint(
     )
 
 
-@app.post(
-    "/productions/{production_id}/boards/solve/jobs", response_model=JobResponse
-)
+@app.post("/productions/{production_id}/boards/solve/jobs", response_model=JobResponse)
 def enqueue_solve_board_endpoint(
     production_id: str,
     _: ScheduleRequest,
@@ -401,7 +397,9 @@ def list_audit_endpoint(
     production_id: str,
     session: Annotated[Session, Depends(get_session)],
 ) -> list[AuditEventResponse]:
-    return [_audit_event_response(row) for row in list_audit_events(session, production_id)]
+    return [
+        _audit_event_response(row) for row in list_audit_events(session, production_id)
+    ]
 
 
 @app.get("/productions/{production_id}/audit/export")
@@ -448,9 +446,7 @@ def get_job_endpoint(
     return _job_response(get_job(session, job_id))
 
 
-@app.post(
-    "/productions/{production_id}/grounding/jobs", response_model=JobResponse
-)
+@app.post("/productions/{production_id}/grounding/jobs", response_model=JobResponse)
 def enqueue_grounding_endpoint(
     production_id: str,
     payload: GroundingRequest,
@@ -500,9 +496,7 @@ def list_grounding_endpoint(
     ]
 
 
-@app.post(
-    "/productions/{production_id}/constraints", response_model=ConstraintResponse
-)
+@app.post("/productions/{production_id}/constraints", response_model=ConstraintResponse)
 def create_constraint_endpoint(
     production_id: str,
     payload: ConstraintCreate,
@@ -524,7 +518,9 @@ def list_constraints_endpoint(
     production_id: str,
     session: Annotated[Session, Depends(get_session)],
 ) -> list[ConstraintResponse]:
-    return [_constraint_response(row) for row in list_constraints(session, production_id)]
+    return [
+        _constraint_response(row) for row in list_constraints(session, production_id)
+    ]
 
 
 @app.patch("/constraints/{constraint_id}/activation", response_model=ConstraintResponse)
@@ -567,7 +563,9 @@ def list_locked_days_endpoint(
     production_id: str,
     session: Annotated[Session, Depends(get_session)],
 ) -> list[LockedDayResponse]:
-    return [_locked_day_response(row) for row in list_locked_days(session, production_id)]
+    return [
+        _locked_day_response(row) for row in list_locked_days(session, production_id)
+    ]
 
 
 @app.post("/productions/{production_id}/monitor/jobs", response_model=JobResponse)
@@ -630,7 +628,8 @@ def list_replan_requests_endpoint(
     session: Annotated[Session, Depends(get_session)],
 ) -> list[ReplanRequestResponse]:
     return [
-        _replan_request_response(row) for row in list_replan_requests(session, production_id)
+        _replan_request_response(row)
+        for row in list_replan_requests(session, production_id)
     ]
 
 

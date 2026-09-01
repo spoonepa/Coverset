@@ -7,7 +7,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 ActorRole = Literal[
     "first_ad", "director", "script_supervisor", "upm", "line_producer", "second_ad"
 ]

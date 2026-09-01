@@ -874,7 +874,9 @@ def create_constraint(
     session: Session, production_id: str, *, payload: dict[str, Any]
 ) -> ConstraintModel:
     get_production(session, production_id)
-    if _constraint_id_exists(session, production_id, str(payload.get("constraint_id", ""))):
+    if _constraint_id_exists(
+        session, production_id, str(payload.get("constraint_id", ""))
+    ):
         raise ServiceError(
             f"constraint id already exists: {payload.get('constraint_id')}",
             status_code=409,
@@ -884,9 +886,13 @@ def create_constraint(
     if evidence_id:
         evidence = get_grounding_evidence(session, str(evidence_id))
         if evidence.production_id != production_id:
-            raise ServiceError("grounding evidence belongs to another production", status_code=404)
+            raise ServiceError(
+                "grounding evidence belongs to another production", status_code=404
+            )
         if evidence.status != "complete":
-            raise ServiceError("failed grounding evidence cannot back an active constraint")
+            raise ServiceError(
+                "failed grounding evidence cannot back an active constraint"
+            )
         evidence_payload = dict(evidence.evidence_json or {})
     try:
         record = constraint_from_payload(payload, evidence=evidence_payload)
@@ -924,7 +930,9 @@ def activate_constraint(
 ) -> ConstraintModel:
     row = session.get(ConstraintModel, constraint_row_id)
     if row is None:
-        raise ServiceError(f"constraint not found: {constraint_row_id}", status_code=404)
+        raise ServiceError(
+            f"constraint not found: {constraint_row_id}", status_code=404
+        )
     record = replace(
         constraint_from_json(row.constraint_json),
         active=active,
@@ -945,10 +953,14 @@ def activate_constraint(
     return row
 
 
-def get_grounding_evidence(session: Session, evidence_id: str) -> GroundingEvidenceModel:
+def get_grounding_evidence(
+    session: Session, evidence_id: str
+) -> GroundingEvidenceModel:
     row = session.get(GroundingEvidenceModel, evidence_id)
     if row is None:
-        raise ServiceError(f"grounding evidence not found: {evidence_id}", status_code=404)
+        raise ServiceError(
+            f"grounding evidence not found: {evidence_id}", status_code=404
+        )
     return row
 
 
@@ -976,7 +988,9 @@ def ground_fact(
 ) -> GroundingEvidenceModel:
     get_production(session, production_id)
     try:
-        location = locations_from_models(list_locations(session, production_id))[location_id]
+        location = locations_from_models(list_locations(session, production_id))[
+            location_id
+        ]
         fact_kind = FactKind(kind)
     except (KeyError, ValueError) as exc:
         raise ServiceError(f"invalid grounding request: {exc}") from exc
@@ -991,7 +1005,9 @@ def ground_fact(
     session.add(row)
     session.commit()
     try:
-        evidence = (grounder or SearchGrounder()).ground(fact_kind, location, target_date)
+        evidence = (grounder or SearchGrounder()).ground(
+            fact_kind, location, target_date
+        )
         row.status = "complete"
         row.evidence_json = evidence_to_json(evidence)
         row.error = ""
@@ -1075,7 +1091,9 @@ def lock_board_day(
     locations = sorted(
         {item["location_id"] for item in locked_assignments if item["location_id"]}
     )
-    cast = sorted({cast_id for item in locked_assignments for cast_id in item["cast_ids"]})
+    cast = sorted(
+        {cast_id for item in locked_assignments for cast_id in item["cast_ids"]}
+    )
     row = LockedDayModel(
         id=new_id("lock"),
         production_id=board.production_id,
@@ -1131,7 +1149,9 @@ def create_monitor_finding(
     if evidence_id:
         evidence = get_grounding_evidence(session, str(evidence_id))
         if evidence.production_id != production_id:
-            raise ServiceError("evidence belongs to another production", status_code=404)
+            raise ServiceError(
+                "evidence belongs to another production", status_code=404
+            )
     old_fingerprint = str(payload.get("old_fingerprint") or "")
     new_fingerprint = str(payload.get("new_fingerprint") or "")
     material = bool(payload.get("material", old_fingerprint != new_fingerprint))
@@ -1194,7 +1214,9 @@ def decide_monitor_finding(
         raise ServiceError(f"monitor finding not found: {finding_id}", status_code=404)
     actor = _actor_for_decision(actor_name, actor_role, capability="select_board")
     if finding.status not in {"open", "non_material"}:
-        raise ServiceError(f"monitor finding is already {finding.status}", status_code=409)
+        raise ServiceError(
+            f"monitor finding is already {finding.status}", status_code=409
+        )
     finding.reviewed_by_name = actor.name
     finding.reviewed_by_role = actor.role.value
     finding.reviewed_at = utcnow()
@@ -1269,7 +1291,9 @@ def select_board(
     if prior_board_id:
         prior = get_board(session, prior_board_id)
         if prior.production_id != board.production_id:
-            raise ServiceError("prior board belongs to another production", status_code=404)
+            raise ServiceError(
+                "prior board belongs to another production", status_code=404
+            )
         prior_run_id = prior.schedule_run_id
     row = BoardSelectionModel(
         id=new_id("sel"),
@@ -1442,7 +1466,9 @@ def run_next_job(
     settings: Settings | None = None,
 ) -> int:
     job = session.scalars(
-        select(JobModel).where(JobModel.status == "queued").order_by(JobModel.created_at)
+        select(JobModel)
+        .where(JobModel.status == "queued")
+        .order_by(JobModel.created_at)
     ).first()
     if job is None:
         return 0
@@ -1474,8 +1500,12 @@ def run_job(
             run = run_breakdown(
                 session,
                 production_id=str(job.production_id),
-                screenplay_asset_id=str(payload.get("screenplay_asset_id") or job.target_id),
-                auto_accept_schedulable=bool(payload.get("auto_accept_schedulable", False)),
+                screenplay_asset_id=str(
+                    payload.get("screenplay_asset_id") or job.target_id
+                ),
+                auto_accept_schedulable=bool(
+                    payload.get("auto_accept_schedulable", False)
+                ),
                 agent_mode=payload.get("agent_mode"),
                 storage=storage,
                 settings=settings,
@@ -1484,7 +1514,9 @@ def run_job(
                 raise ServiceError(run.error or f"breakdown {run.status}")
             job.result_json = {"breakdown_run_id": run.id, "status": run.status}
         elif job.job_type == "schedule":
-            run = run_scheduler(session, production_id=str(job.production_id or job.target_id))
+            run = run_scheduler(
+                session, production_id=str(job.production_id or job.target_id)
+            )
             if run.status == "failed" or not run.board_id:
                 raise ServiceError(run.error or f"schedule {run.status}")
             job.result_json = {
@@ -1527,7 +1559,9 @@ def run_job(
     return job
 
 
-def _constraint_id_exists(session: Session, production_id: str, constraint_id: str) -> bool:
+def _constraint_id_exists(
+    session: Session, production_id: str, constraint_id: str
+) -> bool:
     return (
         session.scalars(
             select(ConstraintModel).where(
@@ -1545,7 +1579,9 @@ def _constraint_set(session: Session, production_id: str) -> ConstraintSet:
         try:
             records.append(constraint_from_json(row.constraint_json))
         except (ConstraintError, KeyError, TypeError, ValueError) as exc:
-            raise ServiceError(f"stored constraint {row.constraint_id} is invalid: {exc}") from exc
+            raise ServiceError(
+                f"stored constraint {row.constraint_id} is invalid: {exc}"
+            ) from exc
     records.extend(_locked_day_constraints(session, production_id))
     return ConstraintSet(tuple(records))
 
@@ -1726,9 +1762,7 @@ def get_board(session: Session, board_id: str) -> BoardModel:
     return board
 
 
-def list_audit_events(
-    session: Session, production_id: str
-) -> list[AuditEventModel]:
+def list_audit_events(session: Session, production_id: str) -> list[AuditEventModel]:
     get_production(session, production_id)
     return list(
         session.scalars(
@@ -1790,7 +1824,9 @@ def board_export_csv(board: BoardModel) -> str:
                 "day_night": strip.get("day_night", ""),
                 "location_id": strip.get("location_id", ""),
                 "location_name": location.get("name", ""),
-                "cast_ids": ";".join(str(cast_id) for cast_id in strip.get("cast_ids", [])),
+                "cast_ids": ";".join(
+                    str(cast_id) for cast_id in strip.get("cast_ids", [])
+                ),
                 "planned_call_time": strip.get("planned_call_time", ""),
                 "planned_wrap_time": strip.get("planned_wrap_time", ""),
             }
@@ -1857,14 +1893,18 @@ class BigQueryAuditSink:
         if not rows:
             return 0
         if not self.configured:
-            raise ServiceError("BigQuery audit export is not configured", status_code=503)
+            raise ServiceError(
+                "BigQuery audit export is not configured", status_code=503
+            )
         try:
             import google.auth  # type: ignore[import-untyped]
             from google.auth.transport.requests import (  # type: ignore[import-untyped]
                 AuthorizedSession,
             )
         except ImportError as exc:  # pragma: no cover - depends on deployed deps
-            raise ServiceError("google-auth is not available for BigQuery export", status_code=503) from exc
+            raise ServiceError(
+                "google-auth is not available for BigQuery export", status_code=503
+            ) from exc
         credentials, _ = google.auth.default(
             scopes=["https://www.googleapis.com/auth/bigquery.insertdata"]
         )
@@ -1880,10 +1920,7 @@ class BigQueryAuditSink:
                 "kind": "bigquery#tableDataInsertAllRequest",
                 "skipInvalidRows": False,
                 "ignoreUnknownValues": False,
-                "rows": [
-                    {"insertId": row["id"], "json": row}
-                    for row in rows
-                ],
+                "rows": [{"insertId": row["id"], "json": row} for row in rows],
             },
             timeout=15,
         )
@@ -1937,7 +1974,9 @@ def enqueue_job(
         result_json={},
     )
     session.add(job)
-    audit(session, production_id, "job.enqueued", {"job_id": job.id, "job_type": job_type})
+    audit(
+        session, production_id, "job.enqueued", {"job_id": job.id, "job_type": job_type}
+    )
     session.commit()
     return job
 

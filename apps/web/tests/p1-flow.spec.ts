@@ -439,10 +439,14 @@ test("production setup, candidate edit, accept, and solve flow", async ({
   await expect(page.getByText("Accepted 1; skipped 1.")).toBeVisible();
 
   await page.getByRole("button", { name: "Solve accepted" }).click();
-  await expect(page.getByText("Accepted scenes solved by the worker.")).toBeVisible();
+  await expect(
+    page.getByText("Accepted scenes solved by the worker."),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Board: optimal" }),
   ).toBeVisible();
-  await expect(page.getByText("Maya's Apartment", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Maya's Apartment", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("Constraint explanation traces")).toBeVisible();
 });

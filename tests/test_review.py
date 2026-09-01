@@ -28,7 +28,9 @@ from coverset.review import (
 )
 from coverset.work import WorkKind
 
-CHURCH = Location(name="First African Baptist Church", locality="Savannah", region="Georgia")
+CHURCH = Location(
+    name="First African Baptist Church", locality="Savannah", region="Georgia"
+)
 DIRECTOR = Actor("A. Kowalczyk", Role.DIRECTOR)
 FIRST_AD = Actor("R. Okonkwo", Role.FIRST_AD)
 SUPERVISOR = Actor("J. Alvarez", Role.SCRIPT_SUPERVISOR)
@@ -109,7 +111,9 @@ def test_the_role_enum_has_no_member_an_agent_could_occupy():
 
 
 @pytest.mark.req("REV-003", "ACT-002", "AUD-004")
-@pytest.mark.parametrize("agent", ["gemini", "Gemini", "GEMINI", "system", "ai", "bot", "coverset"])
+@pytest.mark.parametrize(
+    "agent", ["gemini", "Gemini", "GEMINI", "system", "ai", "bot", "coverset"]
+)
 def test_an_agent_name_cannot_be_given_a_human_role(agent):
     with pytest.raises(AuthorityError, match="advisory agent"):
         Actor(agent, Role.DIRECTOR)
@@ -316,11 +320,11 @@ def test_coverage_with_no_duration_is_refused():
 @pytest.mark.req("REV-001", "REV-003", "PIK-002")
 def test_the_full_path_from_advisory_finding_to_authorised_pickup(planned, finding):
     shot = planned.mark_shot()
-    flagged = shot.flag_for_review(finding)          # Gemini: advisory only
-    assert flagged.awaits_decision                   # ... and it stops here
+    flagged = shot.flag_for_review(finding)  # Gemini: advisory only
+    assert flagged.awaits_decision  # ... and it stops here
 
     decision = _decision(Disposition.REQUEST_PICKUP, by=FIRST_AD)
-    decided, pickup = flagged.decide(decision)       # the human acts
+    decided, pickup = flagged.decide(decision)  # the human acts
 
     assert decided.status is CoverageStatus.PICKUP_REQUESTED
     assert pickup.id == "PU-S12-CU-01"
@@ -338,10 +342,12 @@ def test_the_full_path_from_advisory_finding_to_authorised_pickup(planned, findi
 def test_a_coverage_item_resolves_its_cast_against_the_roster(planned):
     from coverset.people import CastMember, Roster
 
-    roster = Roster((
-        CastMember(id="SARAH", name="S. Idowu", character="Ruth"),
-        CastMember(id="MARCUS", name="D. Whitfield", character="Elias"),
-    ))
+    roster = Roster(
+        (
+            CastMember(id="SARAH", name="S. Idowu", character="Ruth"),
+            CastMember(id="MARCUS", name="D. Whitfield", character="Elias"),
+        )
+    )
 
     assert [m.character for m in planned.cast_on(roster)] == ["Ruth", "Elias"]
 
@@ -360,10 +366,12 @@ def test_a_coverage_item_naming_someone_not_on_the_roster_is_rejected(planned):
 def test_a_pickup_carries_cast_that_resolves_against_the_roster(flagged):
     from coverset.people import CastMember, Roster
 
-    roster = Roster((
-        CastMember(id="SARAH", name="S. Idowu", character="Ruth"),
-        CastMember(id="MARCUS", name="D. Whitfield", character="Elias"),
-    ))
+    roster = Roster(
+        (
+            CastMember(id="SARAH", name="S. Idowu", character="Ruth"),
+            CastMember(id="MARCUS", name="D. Whitfield", character="Elias"),
+        )
+    )
     _, pickup = flagged.decide(_decision(Disposition.REQUEST_PICKUP))
 
     assert pickup.cast_on(roster) == roster.resolve(("SARAH", "MARCUS"))

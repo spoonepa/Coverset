@@ -296,7 +296,8 @@ function expressionSummary(row: ConstraintRow): string {
     const expression = row.constraint["expression"];
     if (!expression || typeof expression !== "object") return "constraint";
     const shaped = expression as Record<string, unknown>;
-    if (typeof shaped.type === "string") return shaped.type.replaceAll("_", " ");
+    if (typeof shaped.type === "string")
+        return shaped.type.replaceAll("_", " ");
     return "constraint";
 }
 
@@ -658,7 +659,9 @@ export default function Home() {
                 return latest;
             }
             if (latest.status === "failed") {
-                throw new Error(latest.error || `${latest.job_type} job failed`);
+                throw new Error(
+                    latest.error || `${latest.job_type} job failed`,
+                );
             }
             await sleep(2000);
         }
@@ -689,7 +692,9 @@ export default function Home() {
                 jsonFetch<{ shoot_dates: string[] }>(
                     `/api/coverset/productions/${productionId}/calendar`,
                 ),
-                jsonFetch<Job[]>(`/api/coverset/productions/${productionId}/jobs`),
+                jsonFetch<Job[]>(
+                    `/api/coverset/productions/${productionId}/jobs`,
+                ),
                 jsonFetch<GroundingEvidence[]>(
                     `/api/coverset/productions/${productionId}/grounding`,
                 ),
@@ -889,7 +894,9 @@ export default function Home() {
                 },
             );
             await pollJob(job);
-            setStatus("Breakdown job complete. Review candidates before solving.");
+            setStatus(
+                "Breakdown job complete. Review candidates before solving.",
+            );
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setStatus("Upload or breakdown failed.");
@@ -1024,7 +1031,9 @@ export default function Home() {
                     entry.id === updated.id ? updated : entry,
                 ),
             );
-            setStatus(active ? "Constraint activated." : "Constraint deactivated.");
+            setStatus(
+                active ? "Constraint activated." : "Constraint deactivated.",
+            );
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setStatus("Constraint update failed.");
@@ -1047,7 +1056,9 @@ export default function Home() {
                 },
             );
             await pollJob(job);
-            setStatus("Grounding job complete. Evidence is persisted for review.");
+            setStatus(
+                "Grounding job complete. Evidence is persisted for review.",
+            );
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setStatus("Grounding failed.");
@@ -1398,7 +1409,10 @@ export default function Home() {
                                         type="button"
                                         className="tiny"
                                         onClick={() =>
-                                            void toggleConstraint(row, !row.active)
+                                            void toggleConstraint(
+                                                row,
+                                                !row.active,
+                                            )
                                         }
                                     >
                                         {row.active ? "Deactivate" : "Activate"}
@@ -1420,7 +1434,9 @@ export default function Home() {
                                     >
                                         Refresh
                                     </button>{" "}
-                                    <span className={jobClass(job)}>{job.status}</span>{" "}
+                                    <span className={jobClass(job)}>
+                                        {job.status}
+                                    </span>{" "}
                                     {job.job_type} · attempts {job.attempts}
                                     {job.error ? ` · ${job.error}` : ""}
                                 </li>
@@ -1550,7 +1566,8 @@ export default function Home() {
                                 <div className="dayCard" key={day.date}>
                                     <h3>{day.date}</h3>
                                     <p className="muted">
-                                        {timeLabel(day.call_time)}–{timeLabel(day.wrap_time)} ·{" "}
+                                        {timeLabel(day.call_time)}–
+                                        {timeLabel(day.wrap_time)} ·{" "}
                                         {day.company_moves} company move(s)
                                     </p>
                                     {(day.strips ?? []).map((strip) => (
@@ -1559,17 +1576,27 @@ export default function Home() {
                                             key={`${day.date}-${strip.sequence}`}
                                         >
                                             <div className="sceneHeader">
-                                                <strong>{strip.scene_id}</strong>
-                                                <span>{strip.location.name}</span>
+                                                <strong>
+                                                    {strip.scene_id}
+                                                </strong>
+                                                <span>
+                                                    {strip.location.name}
+                                                </span>
                                                 <span className="pill">
                                                     {strip.day_night}
                                                 </span>
                                             </div>
                                             <small>
                                                 {strip.work_id} · {strip.kind} ·{" "}
-                                                {strip.duration_minutes ?? 0} min ·{" "}
-                                                {timeLabel(strip.planned_call_time)}–
-                                                {timeLabel(strip.planned_wrap_time)}
+                                                {strip.duration_minutes ?? 0}{" "}
+                                                min ·{" "}
+                                                {timeLabel(
+                                                    strip.planned_call_time,
+                                                )}
+                                                –
+                                                {timeLabel(
+                                                    strip.planned_wrap_time,
+                                                )}
                                             </small>
                                             <div className="badges">
                                                 {strip.cast.map((member) => (
@@ -1581,7 +1608,9 @@ export default function Home() {
                                                     </span>
                                                 ))}
                                                 {Object.entries(strip.flags)
-                                                    .filter(([, value]) => value)
+                                                    .filter(
+                                                        ([, value]) => value,
+                                                    )
                                                     .map(([flag]) => (
                                                         <span
                                                             className="pill warn"
@@ -1606,23 +1635,33 @@ export default function Home() {
                         <details className="explanations">
                             <summary>Constraint explanation traces</summary>
                             <ul className="compactList">
-                                {board.result.explanation_traces.map((trace) => (
-                                    <li key={trace.constraint_id}>
-                                        <span
-                                            className={
-                                                trace.satisfied
-                                                    ? "pill good"
-                                                    : "pill warn"
-                                            }
-                                        >
-                                            {trace.satisfied ? "ok" : "blocked"}
-                                        </span>{" "}
-                                        <strong>{trace.constraint_id}</strong> ·{" "}
-                                        {trace.family}/{trace.policy}
-                                        {trace.detail ? ` · ${trace.detail}` : ""}
-                                        {trace.source ? ` · ${trace.source}` : ""}
-                                    </li>
-                                ))}
+                                {board.result.explanation_traces.map(
+                                    (trace) => (
+                                        <li key={trace.constraint_id}>
+                                            <span
+                                                className={
+                                                    trace.satisfied
+                                                        ? "pill good"
+                                                        : "pill warn"
+                                                }
+                                            >
+                                                {trace.satisfied
+                                                    ? "ok"
+                                                    : "blocked"}
+                                            </span>{" "}
+                                            <strong>
+                                                {trace.constraint_id}
+                                            </strong>{" "}
+                                            · {trace.family}/{trace.policy}
+                                            {trace.detail
+                                                ? ` · ${trace.detail}`
+                                                : ""}
+                                            {trace.source
+                                                ? ` · ${trace.source}`
+                                                : ""}
+                                        </li>
+                                    ),
+                                )}
                             </ul>
                         </details>
                     )}

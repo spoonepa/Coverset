@@ -25,14 +25,14 @@ RUN_INIT=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --no-init)
-      RUN_INIT=0
-      shift
-      ;;
-    *)
-      echo "unknown argument: $1" >&2
-      exit 2
-      ;;
+  --no-init)
+    RUN_INIT=0
+    shift
+    ;;
+  *)
+    echo "unknown argument: $1" >&2
+    exit 2
+    ;;
   esac
 done
 

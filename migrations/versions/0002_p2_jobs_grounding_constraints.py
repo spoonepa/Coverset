@@ -38,7 +38,12 @@ def upgrade() -> None:
         op.create_table(
             "grounding_evidence",
             sa.Column("id", sa.String(48), primary_key=True),
-            sa.Column("production_id", sa.String(48), sa.ForeignKey("productions.id"), nullable=False),
+            sa.Column(
+                "production_id",
+                sa.String(48),
+                sa.ForeignKey("productions.id"),
+                nullable=False,
+            ),
             sa.Column("location_id", sa.String(120), nullable=False),
             sa.Column("fact_kind", sa.String(40), nullable=False),
             sa.Column("target_date", sa.Date(), nullable=False),
@@ -69,16 +74,24 @@ def upgrade() -> None:
     if "jobs" in tables:
         columns = _columns("jobs")
         if "production_id" not in columns:
-            op.add_column("jobs", sa.Column("production_id", sa.String(48), nullable=True))
+            op.add_column(
+                "jobs", sa.Column("production_id", sa.String(48), nullable=True)
+            )
             op.create_index("ix_jobs_production_id", "jobs", ["production_id"])
         if "payload_json" not in columns:
             op.add_column("jobs", sa.Column("payload_json", sa.JSON(), nullable=True))
         if "result_json" not in columns:
             op.add_column("jobs", sa.Column("result_json", sa.JSON(), nullable=True))
         if "claimed_at" not in columns:
-            op.add_column("jobs", sa.Column("claimed_at", sa.DateTime(timezone=True), nullable=True))
+            op.add_column(
+                "jobs",
+                sa.Column("claimed_at", sa.DateTime(timezone=True), nullable=True),
+            )
         if "completed_at" not in columns:
-            op.add_column("jobs", sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True))
+            op.add_column(
+                "jobs",
+                sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
+            )
 
 
 def downgrade() -> None:
@@ -86,7 +99,9 @@ def downgrade() -> None:
     inspector = inspect(bind)
     tables = set(inspector.get_table_names())
     if "grounding_evidence" in tables:
-        op.drop_index("ix_grounding_evidence_production_id", table_name="grounding_evidence")
+        op.drop_index(
+            "ix_grounding_evidence_production_id", table_name="grounding_evidence"
+        )
         op.drop_table("grounding_evidence")
     if "jobs" in tables:
         columns = _columns("jobs")
@@ -101,7 +116,9 @@ def downgrade() -> None:
                 if name == "production_id":
                     op.drop_index("ix_jobs_production_id", table_name="jobs")
                 op.drop_column("jobs", name)
-    if "constraints" in tables and "uq_constraints_id" in _unique_constraints("constraints"):
+    if "constraints" in tables and "uq_constraints_id" in _unique_constraints(
+        "constraints"
+    ):
         if bind.dialect.name == "sqlite":
             with op.batch_alter_table("constraints") as batch_op:
                 batch_op.drop_constraint("uq_constraints_id", type_="unique")

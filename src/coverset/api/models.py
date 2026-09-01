@@ -304,7 +304,9 @@ class ReplanRequestModel(Base):
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
-    finding_id: Mapped[str] = mapped_column(ForeignKey("monitor_findings.id"), index=True)
+    finding_id: Mapped[str] = mapped_column(
+        ForeignKey("monitor_findings.id"), index=True
+    )
     current_board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
     requester_component: Mapped[str] = mapped_column(String(80), nullable=False)
     status: Mapped[str] = mapped_column(String(40), default="requested")

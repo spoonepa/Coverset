@@ -10,7 +10,10 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from coverset.api.models import JobModel  # type: ignore[import-not-found]
-from coverset.api.services import run_job, run_next_job  # type: ignore[import-not-found]
+from coverset.api.services import (  # type: ignore[import-not-found]
+    run_job,
+    run_next_job,
+)
 
 
 def run_once(session: Session) -> int:

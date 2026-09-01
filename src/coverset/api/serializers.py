@@ -144,10 +144,13 @@ def board_to_json(
     constraints: ConstraintSet | None = None,
 ) -> dict[str, Any]:
     work_by_id = {item.work_id: item for item in work_items}
-    location_by_id = {location.id: location for location in (locations or LocationBook())}
+    location_by_id = {
+        location.id: location for location in (locations or LocationBook())
+    }
     cast_by_id = {member.id: member for member in (roster or Roster())}
     constraint_explanations = {
-        record.constraint_id: record.explain() for record in (constraints or ConstraintSet())
+        record.constraint_id: record.explain()
+        for record in (constraints or ConstraintSet())
     }
     return {
         "schedule_version_id": board.schedule_version_id,

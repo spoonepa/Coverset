@@ -48,6 +48,7 @@ __all__ = [
     "ReviewFinding",
 ]
 
+
 class ReviewError(Exception):
     """Base for review-workflow violations."""
 
@@ -182,7 +183,9 @@ class CoverageItem:
             )
         return replace(self, status=CoverageStatus.NEEDS_REVIEW, finding=finding)
 
-    def decide(self, decision: ReviewDecision) -> tuple[CoverageItem, PickupTask | None]:
+    def decide(
+        self, decision: ReviewDecision
+    ) -> tuple[CoverageItem, PickupTask | None]:
         """Apply the human ruling, returning the updated item and any pickup work.
 
         Accepting returns no task. Rejecting or requesting a pickup returns exactly
@@ -212,7 +215,6 @@ class CoverageItem:
         if not decision.disposition.creates_pickup:
             return decided, None
         return decided, PickupTask.from_decision(decided, decision)
-
 
     def cast_on(self, roster: Roster) -> tuple[CastMember, ...]:
         """Resolve this item's cast ids against the production roster.
@@ -278,7 +280,6 @@ class PickupTask:
             estimated_eighths=item.estimated_eighths,
             must_complete_by=must_complete_by,
         )
-
 
     def to_work_item(
         self,

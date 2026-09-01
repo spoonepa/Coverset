@@ -43,7 +43,9 @@ class Settings:
     artifact_bucket: str = os.getenv("COVERSET_ARTIFACT_BUCKET", "")
     bigquery_dataset: str = os.getenv("COVERSET_BIGQUERY_DATASET", "")
     bigquery_audit_table: str = os.getenv("COVERSET_BIGQUERY_AUDIT_TABLE", "")
-    upload_root: Path = Path(os.getenv("COVERSET_UPLOAD_ROOT", ".coverset-data/uploads"))
+    upload_root: Path = Path(
+        os.getenv("COVERSET_UPLOAD_ROOT", ".coverset-data/uploads")
+    )
     task_queue: str = os.getenv("COVERSET_TASK_QUEUE", "")
     worker_url: str = os.getenv("COVERSET_WORKER_URL", "")
     task_oidc_service_account: str = os.getenv("COVERSET_TASK_OIDC_SERVICE_ACCOUNT", "")

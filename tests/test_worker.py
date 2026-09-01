@@ -55,7 +55,9 @@ def test_worker_runs_breakdown_job_with_local_storage(tmp_path):
     with next(session_fixture()) as session:
         settings = Settings(upload_root=tmp_path, agent_mode="fixture")
         storage = ObjectStorage(settings)
-        production = create_production(session, title="Async Breakdown", seed_demo_data=True)
+        production = create_production(
+            session, title="Async Breakdown", seed_demo_data=True
+        )
         asset = upload_screenplay(
             session,
             production_id=production.id,
@@ -86,7 +88,9 @@ def test_worker_runs_schedule_job_from_accepted_scenes(tmp_path):
     with next(session_fixture()) as session:
         settings = Settings(upload_root=tmp_path, agent_mode="fixture")
         storage = ObjectStorage(settings)
-        production = create_production(session, title="Async Schedule", seed_demo_data=True)
+        production = create_production(
+            session, title="Async Schedule", seed_demo_data=True
+        )
         asset = upload_screenplay(
             session,
             production_id=production.id,
