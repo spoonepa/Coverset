@@ -140,7 +140,9 @@ class SpecDefect:
 
     def __str__(self) -> str:
         where = f"SPEC.md:{self.line}" if self.line else "SPEC.md"
-        return f"{where}  {self.problem}" + (f" -- {self.detail}" if self.detail else "")
+        return f"{where}  {self.problem}" + (
+            f" -- {self.detail}" if self.detail else ""
+        )
 
 
 @dataclass
@@ -180,26 +182,38 @@ def parse_spec(text: str) -> ParsedSpec:
             rid, cells = m.group(1), _cells(m.group(2))
 
             if rid in seen_at:
-                spec.defects.append(SpecDefect(
-                    n, f"duplicate requirement id {rid}",
-                    f"first defined at line {seen_at[rid]}"))
+                spec.defects.append(
+                    SpecDefect(
+                        n,
+                        f"duplicate requirement id {rid}",
+                        f"first defined at line {seen_at[rid]}",
+                    )
+                )
                 continue
             seen_at[rid] = n
 
             if rid.startswith("NNG"):
                 if len(cells) != NON_NEGOTIABLE_CELLS:
-                    spec.defects.append(SpecDefect(
-                        n, f"malformed non-negotiable row {rid}",
-                        f"expected {NON_NEGOTIABLE_CELLS} cells, found {len(cells)}"))
+                    spec.defects.append(
+                        SpecDefect(
+                            n,
+                            f"malformed non-negotiable row {rid}",
+                            f"expected {NON_NEGOTIABLE_CELLS} cells, found {len(cells)}",
+                        )
+                    )
                     continue
                 spec.non_negotiables.append(NonNegotiable(id=rid, contract=cells[0]))
                 continue
 
             if len(cells) != REQUIREMENT_CELLS:
-                spec.defects.append(SpecDefect(
-                    n, f"malformed requirement row {rid}",
-                    f"expected {REQUIREMENT_CELLS} cells "
-                    f"(statement|maturity|verification|slice|notes), found {len(cells)}"))
+                spec.defects.append(
+                    SpecDefect(
+                        n,
+                        f"malformed requirement row {rid}",
+                        f"expected {REQUIREMENT_CELLS} cells "
+                        f"(statement|maturity|verification|slice|notes), found {len(cells)}",
+                    )
+                )
                 continue
 
             statement, maturity, verification, slice_, notes = cells
@@ -208,30 +222,51 @@ def parse_spec(text: str) -> ParsedSpec:
                 spec.defects.append(SpecDefect(n, f"{rid} has an empty statement"))
                 bad = True
             if maturity not in RANK:
-                spec.defects.append(SpecDefect(
-                    n, f"{rid} has unknown maturity {maturity!r}",
-                    f"expected one of {', '.join(MATURITY)}"))
+                spec.defects.append(
+                    SpecDefect(
+                        n,
+                        f"{rid} has unknown maturity {maturity!r}",
+                        f"expected one of {', '.join(MATURITY)}",
+                    )
+                )
                 bad = True
             if verification not in TIERS:
-                spec.defects.append(SpecDefect(
-                    n, f"{rid} has unknown verification tier {verification!r}",
-                    f"expected one of {', '.join(TIERS)}"))
+                spec.defects.append(
+                    SpecDefect(
+                        n,
+                        f"{rid} has unknown verification tier {verification!r}",
+                        f"expected one of {', '.join(TIERS)}",
+                    )
+                )
                 bad = True
             if slice_ not in SLICES:
-                spec.defects.append(SpecDefect(
-                    n, f"{rid} has unknown slice {slice_!r}",
-                    f"expected one of {', '.join(SLICES)}"))
+                spec.defects.append(
+                    SpecDefect(
+                        n,
+                        f"{rid} has unknown slice {slice_!r}",
+                        f"expected one of {', '.join(SLICES)}",
+                    )
+                )
                 bad = True
             if bad:
                 continue
 
             req = Requirement(
-                id=rid, statement=statement, maturity=maturity,
-                verification=verification, slice=slice_, notes=notes)
+                id=rid,
+                statement=statement,
+                maturity=maturity,
+                verification=verification,
+                slice=slice_,
+                notes=notes,
+            )
             if (tag := req.intent) and tag not in INTENT_TAGS:
-                spec.defects.append(SpecDefect(
-                    n, f"{rid} has unknown intent tag {tag!r}",
-                    f"expected one of {', '.join(INTENT_TAGS)}"))
+                spec.defects.append(
+                    SpecDefect(
+                        n,
+                        f"{rid} has unknown intent tag {tag!r}",
+                        f"expected one of {', '.join(INTENT_TAGS)}",
+                    )
+                )
             spec.requirements[rid] = req
 
         elif m := UC_HEADING.match(line):
@@ -241,19 +276,27 @@ def parse_spec(text: str) -> ParsedSpec:
             spec.use_cases.append(UseCase(id=uid, title=m.group(2).strip(), line=n))
         elif (m := UC_EXERCISES.match(line)) and spec.use_cases:
             if spec.use_cases[-1].exercises:
-                spec.defects.append(SpecDefect(
-                    n, f"{spec.use_cases[-1].id} has more than one Exercises line"))
+                spec.defects.append(
+                    SpecDefect(
+                        n, f"{spec.use_cases[-1].id} has more than one Exercises line"
+                    )
+                )
             spec.use_cases[-1].exercises = re.findall(r"[A-Z]{3}-\d{3}", m.group(1))
 
     for uc in spec.use_cases:
         if not uc.exercises:
-            spec.defects.append(SpecDefect(
-                uc.line, f"{uc.id} exercises no requirements",
-                "a use case with no Exercises line cannot be reported on"))
+            spec.defects.append(
+                SpecDefect(
+                    uc.line,
+                    f"{uc.id} exercises no requirements",
+                    "a use case with no Exercises line cannot be reported on",
+                )
+            )
         for rid in uc.exercises:
             if rid not in spec.requirements:
-                spec.defects.append(SpecDefect(
-                    uc.line, f"{uc.id} cites unknown requirement {rid}"))
+                spec.defects.append(
+                    SpecDefect(uc.line, f"{uc.id} cites unknown requirement {rid}")
+                )
 
     return spec
 
@@ -267,7 +310,11 @@ def _marker_ids(node: ast.expr, wanted: str) -> list[str] | None:
         return None
     if not (isinstance(target.value, ast.Attribute) and target.value.attr == "mark"):
         return None
-    return [a.value for a in args if isinstance(a, ast.Constant) and isinstance(a.value, str)]
+    return [
+        a.value
+        for a in args
+        if isinstance(a, ast.Constant) and isinstance(a.value, str)
+    ]
 
 
 def parse_tests() -> tuple[dict[str, list[TestRef]], list[tuple[str, str]]]:
@@ -281,10 +328,14 @@ def parse_tests() -> tuple[dict[str, list[TestRef]], list[tuple[str, str]]]:
             for stmt in tree.body
             if isinstance(stmt, ast.Assign)
             and any(getattr(t, "id", "") == "pytestmark" for t in stmt.targets)
-            for d in (stmt.value.elts if isinstance(stmt.value, ast.List) else [stmt.value])
+            for d in (
+                stmt.value.elts if isinstance(stmt.value, ast.List) else [stmt.value]
+            )
         )
         for node in tree.body:
-            if not isinstance(node, ast.FunctionDef) or not node.name.startswith("test_"):
+            if not isinstance(node, ast.FunctionDef) or not node.name.startswith(
+                "test_"
+            ):
                 continue
             ids: list[str] = []
             live = module_live
@@ -318,7 +369,11 @@ def main() -> int:
     live_required = [r for r in implemented if r.needs_live]
     live_covered = [r for r in live_required if r.live_tests]
     # TRK-005: demo-ready plus live-required plus no live test is a false claim.
-    false_demo_ready = [r for r in reqs.values() if r.is_deliverable and r.needs_live and not r.live_tests]
+    false_demo_ready = [
+        r
+        for r in reqs.values()
+        if r.is_deliverable and r.needs_live and not r.live_tests
+    ]
 
     rule = "=" * 76
     print(f"\n{rule}\nCOVERSET REQUIREMENT TRACEABILITY\n{rule}")
@@ -328,13 +383,13 @@ def main() -> int:
         if n := sum(1 for r in reqs.values() if r.maturity == m):
             print(f"    {m:<16} {n:>3}")
 
-    print(f"\n  Verification required")
+    print("\n  Verification required")
     for t in TIERS:
         if n := sum(1 for r in reqs.values() if r.verification == t):
             print(f"    {t:<16} {n:>3}")
 
     pct = 100 * len(covered) / len(implemented) if implemented else 100.0
-    print(f"\n  Tests (requirements claiming implementation)")
+    print("\n  Tests (requirements claiming implementation)")
     print(f"    require a test   {len(implemented):>3}")
     print(f"    have one         {len(covered):>3}  ({pct:.0f}%)")
     print(f"    gaps             {len(gaps):>3}")
@@ -343,7 +398,11 @@ def main() -> int:
     print(f"    untagged tests   {len(untagged):>3}")
 
     print(f"\n  Use cases          {len(cases)}")
-    ready = [uc for uc in cases if all(reqs[r].is_deliverable for r in uc.exercises if r in reqs)]
+    ready = [
+        uc
+        for uc in cases
+        if all(reqs[r].is_deliverable for r in uc.exercises if r in reqs)
+    ]
     print(f"    deliverable      {len(ready):>3}")
     print(f"    blocked          {len(cases) - len(ready):>3}")
 
@@ -361,7 +420,7 @@ def main() -> int:
                 remaining[r.area].append(r.id)
         if remaining:
             top = sorted(remaining.items(), key=lambda kv: -len(kv[1]))
-            print(f"          remaining: " + "  ".join(f"{a}x{len(v)}" for a, v in top))
+            print("          remaining: " + "  ".join(f"{a}x{len(v)}" for a, v in top))
 
     print(f"\n{rule}\nUSE CASES -- can a user complete the journey?\n{rule}")
     for uc in cases:
@@ -370,15 +429,21 @@ def main() -> int:
         done = [r for r in known if r.is_deliverable]
         # Two different kinds of blocker, needing two different kinds of work.
         to_build = sorted(r.id for r in known if not r.claims_implementation)
-        to_integrate = sorted(r.id for r in known if r.claims_implementation and not r.is_deliverable)
+        to_integrate = sorted(
+            r.id for r in known if r.claims_implementation and not r.is_deliverable
+        )
         state = "READY  " if not (to_build or to_integrate) else "BLOCKED"
         print(f"  {state} {uc.id}  {len(done)}/{len(uc.exercises):<3} {uc.title}")
         if to_build:
-            print(f"            needs building     ({len(to_build)}): {', '.join(to_build[:6])}"
-                  + (" ..." if len(to_build) > 6 else ""))
+            print(
+                f"            needs building     ({len(to_build)}): {', '.join(to_build[:6])}"
+                + (" ..." if len(to_build) > 6 else "")
+            )
         if to_integrate:
-            print(f"            needs integration  ({len(to_integrate)}): {', '.join(to_integrate[:6])}"
-                  + (" ..." if len(to_integrate) > 6 else ""))
+            print(
+                f"            needs integration  ({len(to_integrate)}): {', '.join(to_integrate[:6])}"
+                + (" ..." if len(to_integrate) > 6 else "")
+            )
         if unknown:
             print(f"            UNKNOWN IDS: {', '.join(unknown)}")
             orphans.extend(unknown)
@@ -389,8 +454,12 @@ def main() -> int:
             if rid in reqs and not reqs[rid].claims_implementation:
                 blocking[rid].append(uc.id)
     if blocking:
-        print(f"\n{rule}\nCRITICAL PATH -- unbuilt requirements ranked by journeys blocked\n{rule}")
-        for rid, ucs in sorted(blocking.items(), key=lambda kv: (-len(kv[1]), kv[0]))[:8]:
+        print(
+            f"\n{rule}\nCRITICAL PATH -- unbuilt requirements ranked by journeys blocked\n{rule}"
+        )
+        for rid, ucs in sorted(blocking.items(), key=lambda kv: (-len(kv[1]), kv[0]))[
+            :8
+        ]:
             r = reqs[rid]
             print(f"  {len(ucs)}x  {rid}  [{r.slice}]  {r.statement[:40]}")
             print(f"        blocks {', '.join(ucs)}")
@@ -398,9 +467,15 @@ def main() -> int:
     if show_matrix:
         for area in sorted({r.area for r in reqs.values()}):
             print(f"\n{'-' * 76}\n{area}\n{'-' * 76}")
-            for r in sorted((x for x in reqs.values() if x.area == area), key=lambda x: x.id):
-                mark = "OK " if r.tests else ("GAP" if r.claims_implementation else "-- ")
-                print(f"  {mark} {r.id}  [{r.maturity}/{r.verification}/{r.slice}]  {r.statement[:40]}")
+            for r in sorted(
+                (x for x in reqs.values() if x.area == area), key=lambda x: x.id
+            ):
+                mark = (
+                    "OK " if r.tests else ("GAP" if r.claims_implementation else "-- ")
+                )
+                print(
+                    f"  {mark} {r.id}  [{r.maturity}/{r.verification}/{r.slice}]  {r.statement[:40]}"
+                )
                 for t in r.tests:
                     print(f"          {t}")
 
@@ -415,14 +490,20 @@ def main() -> int:
             print(f"  {rid}: {', '.join(str(t) for t in found.get(rid, []))}")
 
     if false_demo_ready:
-        print(f"\n{rule}\nFALSE DEMO-READY -- live verification required, none present (TRK-005)\n{rule}")
+        print(
+            f"\n{rule}\nFALSE DEMO-READY -- live verification required, none present (TRK-005)\n{rule}"
+        )
         for r in false_demo_ready:
             print(f"  {r.id}  {r.statement[:60]}")
 
     if missing_live := [r for r in live_required if not r.live_tests]:
-        print(f"\n{rule}\nLIVE COVERAGE MISSING -- spec requires live, only offline present\n{rule}")
+        print(
+            f"\n{rule}\nLIVE COVERAGE MISSING -- spec requires live, only offline present\n{rule}"
+        )
         print("  Not a failure while these are below demo-ready, but they are verified")
-        print("  against fixtures of our own writing, which cannot catch a false assumption.\n")
+        print(
+            "  against fixtures of our own writing, which cannot catch a false assumption.\n"
+        )
         for r in missing_live:
             print(f"  {r.id}  {r.statement[:58]}")
 
@@ -434,8 +515,7 @@ def main() -> int:
             print(f"  {d}")
 
     unexercised = sorted(
-        r.id for r in reqs.values()
-        if not any(r.id in uc.exercises for uc in cases)
+        r.id for r in reqs.values() if not any(r.id in uc.exercises for uc in cases)
     )
     product = [r for r in unexercised if r[:3] not in SELF_AREAS]
     self_reqs = [r for r in unexercised if r[:3] in SELF_AREAS]
@@ -446,7 +526,9 @@ def main() -> int:
             by_intent[reqs[rid].intent].append(rid)
         unclassified = by_intent.pop(None, [])
 
-        print(f"\n{rule}\nPRODUCT REQUIREMENTS EXERCISED BY NO USE CASE ({len(product)})\n{rule}")
+        print(
+            f"\n{rule}\nPRODUCT REQUIREMENTS EXERCISED BY NO USE CASE ({len(product)})\n{rule}"
+        )
         print("  Grouped by declared intent. These are accounted for, not missing.\n")
         for tag in INTENT_TAGS:
             if ids := by_intent.get(tag):
@@ -454,14 +536,22 @@ def main() -> int:
 
         if unclassified:
             print(f"\n  UNCLASSIFIED ({len(unclassified)}) -- the actionable ones")
-            print("  Outside every journey with no stated reason. Either add them to a use")
-            print("  case, or tag them: " + ", ".join(f"[{x}]" for x in INTENT_TAGS) + ".\n")
+            print(
+                "  Outside every journey with no stated reason. Either add them to a use"
+            )
+            print(
+                "  case, or tag them: "
+                + ", ".join(f"[{x}]" for x in INTENT_TAGS)
+                + ".\n"
+            )
             for i in range(0, len(unclassified), 6):
-                print("  " + ", ".join(unclassified[i:i + 6]))
+                print("  " + ", ".join(unclassified[i : i + 6]))
 
     if self_reqs:
         print(f"\n{rule}\nTRACEABILITY SELF-REQUIREMENTS ({len(self_reqs)})\n{rule}")
-        print("  Constrain the tooling, not the product. Expected to sit outside every use")
+        print(
+            "  Constrain the tooling, not the product. Expected to sit outside every use"
+        )
         print("  case: no user journey validates the spec document.\n")
         print("  " + ", ".join(self_reqs))
 
@@ -472,7 +562,11 @@ def main() -> int:
 
     failed = bool(spec.defects or gaps or orphans or false_demo_ready)
     print(f"\n{rule}")
-    print("FAIL: traceability incomplete" if failed else "PASS: every implemented requirement is traced")
+    print(
+        "FAIL: traceability incomplete"
+        if failed
+        else "PASS: every implemented requirement is traced"
+    )
     print(rule)
     return 1 if failed else 0
 

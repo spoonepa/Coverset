@@ -34,7 +34,6 @@ from .constraints import (
     ConstraintSet,
     DateWindows,
     DaylightBound,
-    Family,
     MaximumDailyHours,
     MinimumRest,
     PinnedDay,
@@ -62,7 +61,9 @@ def _days_of(assignments: tuple[Assignment, ...]) -> tuple[ShootDay, ...]:
     by_date: dict[dt.date, list[Assignment]] = defaultdict(list)
     for a in assignments:
         by_date[a.shoot_day].append(a)
-    return tuple(ShootDay(date=d, assignments=tuple(by_date[d])) for d in sorted(by_date))
+    return tuple(
+        ShootDay(date=d, assignments=tuple(by_date[d])) for d in sorted(by_date)
+    )
 
 
 def validate_board(
@@ -100,10 +101,7 @@ def validate_board(
         )
 
     def work_touching_cast(cast_id: str) -> list[Assignment]:
-        return [
-            a for a in assignments
-            if cast_id in work_by_id[a.work_id].cast_ids
-        ]
+        return [a for a in assignments if cast_id in work_by_id[a.work_id].cast_ids]
 
     for r in constraints.binding:
         expr = r.expression
@@ -125,8 +123,9 @@ def validate_board(
             record(
                 r,
                 not bad,
-                "" if not bad else
-                f"{r.subject} is scheduled outside {expr} on "
+                ""
+                if not bad
+                else f"{r.subject} is scheduled outside {expr} on "
                 + ", ".join(sorted({a.shoot_day.isoformat() for a in bad})),
             )
             continue
@@ -140,13 +139,18 @@ def validate_board(
                 )
             a = placed.get(r.subject.ref)
             if a is None:
-                record(r, False, f"{r.subject.ref} is pinned to {expr.day} but is not on the board")
+                record(
+                    r,
+                    False,
+                    f"{r.subject.ref} is pinned to {expr.day} but is not on the board",
+                )
             else:
                 record(
                     r,
                     a.shoot_day == expr.day,
-                    "" if a.shoot_day == expr.day else
-                    f"{r.subject.ref} sits on {a.shoot_day.isoformat()}, pinned to "
+                    ""
+                    if a.shoot_day == expr.day
+                    else f"{r.subject.ref} sits on {a.shoot_day.isoformat()}, pinned to "
                     f"{expr.day.isoformat()}",
                 )
             continue
@@ -158,7 +162,10 @@ def validate_board(
                 item = work_by_id[a.work_id]
                 if not item.needs_daylight:
                     continue
-                if r.subject.kind is SubjectKind.LOCATION and a.location_id != r.subject.ref:
+                if (
+                    r.subject.kind is SubjectKind.LOCATION
+                    and a.location_id != r.subject.ref
+                ):
                     continue
                 if r.subject.kind is SubjectKind.WORK and a.work_id != r.subject.ref:
                     continue
@@ -195,7 +202,8 @@ def validate_board(
             for day in days:
                 if r.subject.kind is SubjectKind.CAST:
                     on_day = [
-                        a for a in day
+                        a
+                        for a in day
                         if r.subject.ref in work_by_id[a.work_id].cast_ids
                     ]
                     if not on_day:
@@ -224,8 +232,16 @@ def validate_board(
             problems = []
             for earlier, later in zip(days, days[1:], strict=False):
                 if r.subject.kind is SubjectKind.CAST:
-                    prev = [a for a in earlier if r.subject.ref in work_by_id[a.work_id].cast_ids]
-                    nxt = [a for a in later if r.subject.ref in work_by_id[a.work_id].cast_ids]
+                    prev = [
+                        a
+                        for a in earlier
+                        if r.subject.ref in work_by_id[a.work_id].cast_ids
+                    ]
+                    nxt = [
+                        a
+                        for a in later
+                        if r.subject.ref in work_by_id[a.work_id].cast_ids
+                    ]
                     if not prev or not nxt:
                         continue
                     wrap = max(a.planned_wrap_time for a in prev)
@@ -279,6 +295,8 @@ def holding_days(
         for cast_id in work_by_id[a.work_id].cast_ids:
             days_by_cast[cast_id].add(a.shoot_day)
     return {
-        cast_id: Engagement(member=roster[cast_id], work_days=tuple(sorted(days))).held_days
+        cast_id: Engagement(
+            member=roster[cast_id], work_days=tuple(sorted(days))
+        ).held_days
         for cast_id, days in days_by_cast.items()
     }

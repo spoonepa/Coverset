@@ -11,6 +11,7 @@ from coverset.constraints import (
     BlackoutDates,
     ConstraintRecord,
     DateWindows,
+    DerivedFrom,
     DaylightBound,
     Expression,
     Family,
@@ -200,6 +201,7 @@ def _source_to_json(source: Provenance) -> dict[str, Any]:
             "evidence_id": source.evidence_id,
             "source_urls": list(source.source_urls),
             "grounded_value_id": source.grounded_value_id,
+            "derived_from": source.derived_from.value,
         }
     if isinstance(source, AlgorithmSource):
         return {"type": "algorithm", "name": source.name, "version": source.version}
@@ -221,6 +223,7 @@ def _source_from_json(data: dict[str, Any]) -> Provenance:
             evidence_id=str(data["evidence_id"]),
             source_urls=tuple(str(url) for url in data.get("source_urls", ())),
             grounded_value_id=str(data.get("grounded_value_id", "")),
+            source_mode=DerivedFrom(str(data.get("derived_from") or "excerpt")),
         )
     if kind == "algorithm":
         return AlgorithmSource(
@@ -246,8 +249,20 @@ def _source_from_payload(
         return AlgorithmSource()
     evidence_id = payload.get("evidence_id")
     if evidence_id:
-        source_urls = tuple(str(url) for url in (evidence or {}).get("source_urls", ()))
-        return GroundedSource(evidence_id=str(evidence_id), source_urls=source_urls)
+        source_urls = tuple(
+            str(url)
+            for url in (evidence or {}).get("source_urls", payload.get("source_urls", ()))
+        )
+        derived_from = str(
+            payload.get("derived_from")
+            or ("full_content" if (evidence or {}).get("escalated") else "excerpt")
+        )
+        return GroundedSource(
+            evidence_id=str(evidence_id),
+            source_urls=source_urls,
+            grounded_value_id=str(payload.get("grounded_value_id", "")),
+            source_mode=DerivedFrom(derived_from),
+        )
     return HumanSource(
         Actor(
             str(payload.get("actor_name") or "Developer"),

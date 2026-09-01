@@ -28,10 +28,12 @@ from coverset.api.services import (  # type: ignore[import-not-found]
     enqueue_monitor_job,
     enqueue_schedule_job,
     export_audit_events_to_sink,
+    generate_call_sheet,
     get_board,
     get_job,
     ground_fact,
     list_audit_events,
+    list_call_sheets,
     list_candidates_for_run,
     list_monitor_findings,
     list_replan_requests,
@@ -697,9 +699,11 @@ def test_monitor_job_creates_finding_and_human_acceptance_requests_replan(
     assert processed.status == "complete"
     finding = list_monitor_findings(db_session, production.id)[0]
     assert finding.status == "open"
-    assert list_replan_requests(db_session, production.id) == []
+    replans = list_replan_requests(db_session, production.id)
+    assert len(replans) == 1
+    replan = replans[0]
 
-    _, replan = decide_monitor_finding(
+    _, accepted_replan = decide_monitor_finding(
         db_session,
         finding_id=finding.id,
         decision="accept",
@@ -707,10 +711,12 @@ def test_monitor_job_creates_finding_and_human_acceptance_requests_replan(
         actor_role="first_ad",
     )
 
-    assert replan is not None
+    assert accepted_replan is not None
+    assert accepted_replan.id == replan.id
     assert replan.current_board_id == board.id
     assert replan.affected_work_ids_json == [work_id]
     assert get_job(db_session, job.id).result_json["finding_id"] == finding.id
+    assert get_job(db_session, job.id).result_json["replan_request_id"] == replan.id
 
 
 @pytest.mark.req("MON-004", "ACT-007")
@@ -727,8 +733,8 @@ def test_rejected_or_non_material_findings_leave_board_unselected(
             "fact_kind": "weather",
             "old_fingerprint": "same",
             "new_fingerprint": "changed",
-            "material": True,
-            "message": "forecast changed",
+            "material": False,
+            "message": "forecast changed below materiality threshold",
         },
     )
     run_job(db_session, job_id=job.id)
@@ -780,6 +786,121 @@ def test_board_selection_and_cost_approval_services_enforce_roles(
     assert selection.selected_board_id == board.id
     assert approval.decision == "approved"
     assert approval.added_shoot_days_json == ["2026-09-16"]
+
+
+@pytest.mark.req(
+    "ACT-010",
+    "CST-006",
+    "CST-007",
+    "DAY-001",
+    "DAY-003",
+    "OUT-001",
+    "OUT-004",
+    "OUT-006",
+)
+def test_call_sheet_service_builds_second_ad_day_output(db_session: Session, tmp_path):
+    production, board = solved_board(db_session, tmp_path)
+    day_snapshot = board.result_json["days"][1]
+    shoot_date = dt.date.fromisoformat(day_snapshot["date"])
+    location_id = day_snapshot["strips"][0]["location_id"]
+    create_constraint(
+        db_session,
+        production.id,
+        payload={
+            "constraint_id": "PERMIT-CALLSHEET",
+            "family": "permit",
+            "policy": "hard",
+            "subject_kind": "location",
+            "subject_ref": location_id,
+            "expression_type": "date_windows",
+            "windows": [{"start": shoot_date, "end": shoot_date}],
+            "statement": "Permit allows this location on the shoot day.",
+            "actor_name": "R. Okonkwo",
+            "actor_role": "first_ad",
+            "active": True,
+        },
+    )
+
+    sheet = generate_call_sheet(
+        db_session,
+        board_id=board.id,
+        shoot_date=shoot_date,
+        actor_name="T. Nguyen",
+        actor_role="second_ad",
+    )
+
+    assert sheet.shoot_date == shoot_date
+    assert sheet.payload_json["crew_call"] == day_snapshot["call_time"]
+    assert sheet.payload_json["wrap_estimate"] == day_snapshot["wrap_time"]
+    assert sheet.payload_json["scenes"][0]["location_id"] == location_id
+    assert sheet.payload_json["daylight_windows"][0]["sunrise"]
+    assert sheet.payload_json["turnaround_notes"][0]["subject"] == "crew"
+    assert sheet.payload_json["permit_notes"][0]["constraint_id"] == "PERMIT-CALLSHEET"
+    assert {row["authority"] for row in sheet.payload_json["recipients"]} == {
+        "read_only"
+    }
+    assert "CALL SHEET" in sheet.rendered_text
+    assert list_call_sheets(db_session, board.id) == [sheet]
+
+    with pytest.raises(Exception, match="may not generate call sheet"):
+        generate_call_sheet(
+            db_session,
+            board_id=board.id,
+            shoot_date=shoot_date,
+            actor_name="R. Okonkwo",
+            actor_role="first_ad",
+        )
+
+
+@pytest.mark.req("OUT-001", "OUT-004", "OUT-006", "ACT-010")
+def test_call_sheet_endpoints_generate_list_and_export(db_session: Session, tmp_path):
+    _, board = solved_board(db_session, tmp_path)
+    shoot_date = board.result_json["days"][0]["date"]
+
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        rejected = client.post(
+            f"/boards/{board.id}/call-sheets",
+            json={
+                "shoot_date": shoot_date,
+                "actor_name": "R. Okonkwo",
+                "actor_role": "first_ad",
+            },
+        )
+        assert rejected.status_code == 403
+
+        created = client.post(
+            f"/boards/{board.id}/call-sheets",
+            json={
+                "shoot_date": shoot_date,
+                "actor_name": "T. Nguyen",
+                "actor_role": "second_ad",
+            },
+        )
+        assert created.status_code == 200, created.text
+        body = created.json()
+        assert body["payload"]["shoot_date"] == shoot_date
+        assert body["payload"]["recipients"][0]["authority"] == "read_only"
+        assert "Daylight" in body["rendered_text"]
+
+        listed = client.get(f"/boards/{board.id}/call-sheets")
+        assert listed.status_code == 200, listed.text
+        assert listed.json()[0]["id"] == body["id"]
+
+        exported_text = client.get(f"/call-sheets/{body['id']}/export?format=text")
+        assert exported_text.status_code == 200, exported_text.text
+        assert "CALL SHEET" in exported_text.text
+        assert "read_only" in exported_text.text
+
+        exported_json = client.get(f"/call-sheets/{body['id']}/export?format=json")
+        assert exported_json.status_code == 200, exported_json.text
+        assert exported_json.json()["id"] == body["id"]
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.mark.req("ACT-004", "ACT-007", "ACT-008", "LCK-001", "MON-007")
@@ -936,3 +1057,349 @@ def test_board_and_audit_exports_are_reviewable_and_append_only(
     assert exported == len(before_exports)
     assert sink.rows[-1]["event_type"] == "day.locked"
     assert isinstance(sink.rows[-1]["payload"], str)
+
+
+@pytest.mark.req("CON-001", "CON-002", "CON-003", "CON-007", "CON-009", "GRD-012", "AUD-003")
+def test_completion_constraint_translation_grounded_values_and_permit_activation(
+    db_session: Session, parallel_stub
+):
+    production = create_production(db_session, title="Completion Constraints", seed_demo_data=True)
+
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        translated = client.post(
+            f"/productions/{production.id}/constraints/translate",
+            json={"text": "Maximum daily hours 11", "actor_name": "R. Okonkwo"},
+        )
+        assert translated.status_code == 200, translated.text
+        proposal = translated.json()[0]
+        assert proposal["status"] == "candidate"
+        assert proposal["payload"]["active"] is False
+
+        accepted = client.post(
+            f"/constraint-proposals/{proposal['id']}/accept",
+            json={"actor_name": "R. Okonkwo", "actor_role": "first_ad"},
+        )
+        assert accepted.status_code == 200, accepted.text
+        assert accepted.json()["active"] is True
+        assert accepted.json()["constraint"]["accepted_by"]["role"] == "first_ad"
+
+        weather_client, _ = parallel_stub()
+        weather = ground_fact(
+            db_session,
+            production.id,
+            kind="weather",
+            location_id="brooklyn-bridge-park",
+            target_date=dt.date(2026, 3, 17),
+            grounder=SearchGrounder(weather_client),
+        )
+        value = client.post(
+            f"/grounding/{weather.id}/values",
+            json={
+                "normalized_value": {"probability": 0.85},
+                "units": "probability_0_1",
+                "source_url": weather.evidence_json["covering_urls"][0],
+                "source_quote": "Precipitation probability 85%",
+                "source_span": "forecast row",
+                "query": "weather forecast",
+                "validator_family": "weather",
+            },
+        )
+        assert value.status_code == 200, value.text
+        assert value.json()["covering_date"] is True
+        assert value.json()["source_quote"] == "Precipitation probability 85%"
+
+        permit_url = "https://brooklyn.example.gov/film-permits"
+        permit_client, _ = parallel_stub(
+            search={
+                "results": [
+                    {
+                        "url": permit_url,
+                        "excerpts": ["Permit filming hours are published by the city."],
+                        "title": "Film Permits",
+                        "publish_date": "2026-01-01",
+                    }
+                ],
+                "search_id": "search_permit_1",
+                "session_id": "session_permit_1",
+            },
+            extract={
+                "results": [
+                    {
+                        "url": permit_url,
+                        "excerpts": ["Permit filming hours."],
+                        "full_content": "Filming permit window is 07:00-22:00 for public locations.",
+                        "title": "Film Permits",
+                        "publish_date": "2026-01-01",
+                    }
+                ],
+                "errors": [],
+                "extract_id": "extract_permit_1",
+                "session_id": "session_permit_1",
+            },
+        )
+        permit = ground_fact(
+            db_session,
+            production.id,
+            kind="permit",
+            location_id="brooklyn-bridge-park",
+            target_date=dt.date(2026, 9, 14),
+            grounder=SearchGrounder(permit_client),
+        )
+        created = client.post(
+            f"/productions/{production.id}/constraints",
+            json={
+                "constraint_id": "PERMIT-BBP-001",
+                "family": "permit",
+                "policy": "hard",
+                "subject_kind": "location",
+                "subject_ref": "brooklyn-bridge-park",
+                "expression_type": "date_windows",
+                "windows": [{"start": "2026-09-14", "end": "2026-09-14"}],
+                "evidence_id": permit.id,
+                "timezone": "America/New_York",
+                "active": True,
+            },
+        )
+        assert created.status_code == 200, created.text
+        assert created.json()["constraint"]["activation_validation"]["passed"] is True
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.req("MON-001", "MON-002", "MON-003", "MON-004", "OUT-002", "OUT-005", "LCK-004")
+def test_monitor_source_event_creates_replan_options_and_non_material_alerts(
+    db_session: Session, tmp_path
+):
+    production, board = solved_board(db_session, tmp_path)
+    work_id = board.result_json["strips"][0]["work_id"]
+
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        registered = client.post(
+            f"/productions/{production.id}/monitored-sources",
+            json={
+                "board_id": board.id,
+                "source_url": "https://film.example.gov/permits",
+                "fact_kind": "permit",
+                "location_id": "brooklyn-bridge-park",
+                "query": "Brooklyn film permit hours",
+                "external_monitor_id": "parallel-monitor-1",
+            },
+        )
+        assert registered.status_code == 200, registered.text
+
+        event = client.post(
+            f"/productions/{production.id}/monitor/events",
+            json={
+                "monitored_source_id": registered.json()["id"],
+                "board_id": board.id,
+                "source_url": "https://film.example.gov/permits",
+                "fact_kind": "permit",
+                "old_fingerprint": "old",
+                "new_fingerprint": "new",
+                "affected_work_ids": [work_id],
+                "material": True,
+                "message": "permit hours changed",
+            },
+        )
+        assert event.status_code == 200, event.text
+        assert event.json()["material"] is True
+        assert event.json()["replan_request_id"]
+
+        options = client.post(
+            f"/replan-requests/{event.json()['replan_request_id']}/options",
+            json={"max_options": 1},
+        )
+        assert options.status_code == 200, options.text
+        diff = options.json()[0]
+        assert diff["diff"]["base_board_id"] == board.id
+        assert "required_approvals" in diff
+
+        stale = client.post(
+            f"/productions/{production.id}/monitor/events",
+            json={
+                "monitored_source_id": registered.json()["id"],
+                "board_id": board.id,
+                "source_url": "https://film.example.gov/permits",
+                "fact_kind": "permit",
+                "status": "stale",
+            },
+        )
+        assert stale.status_code == 200, stale.text
+        assert stale.json()["status"] == "stale"
+        assert stale.json()["replan_request_id"] is None
+
+        locked_day = dt.date.fromisoformat(board.result_json["days"][0]["date"])
+        lock_board_day(
+            db_session,
+            board_id=board.id,
+            shoot_date=locked_day,
+            call_sheet_version="CS-RETRO",
+            actor_name="J. Alvarez",
+            actor_role="script_supervisor",
+        )
+        retro = client.post(
+            f"/productions/{production.id}/monitor/events",
+            json={
+                "monitored_source_id": registered.json()["id"],
+                "board_id": board.id,
+                "source_url": "https://film.example.gov/permits",
+                "fact_kind": "permit",
+                "old_fingerprint": "new",
+                "new_fingerprint": "retro",
+                "target_date": locked_day.isoformat(),
+                "material": True,
+                "message": "past permit wording changed",
+            },
+        )
+        assert retro.status_code == 200, retro.text
+        assert retro.json()["status"] == "retroactive_exception"
+        assert retro.json()["replan_request_id"] is None
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.req(
+    "PIK-005",
+    "PIK-006",
+    "PIK-007",
+    "PIK-008",
+    "PIK-009",
+    "PIK-010",
+    "PIK-011",
+    "REV-008",
+    "SOL-004",
+    "SOL-012",
+    "LCK-003",
+)
+def test_pickup_workflow_requires_confirmed_spec_and_preserves_locked_days(
+    db_session: Session, tmp_path
+):
+    production, board = solved_board(db_session, tmp_path)
+    locked_day = dt.date.fromisoformat(board.result_json["days"][0]["date"])
+    first_strip = next(
+        strip for strip in board.result_json["strips"] if strip["shoot_day"] == locked_day.isoformat()
+    )
+    lock_board_day(
+        db_session,
+        board_id=board.id,
+        shoot_date=locked_day,
+        call_sheet_version="CS-LOCKED",
+        actor_name="J. Alvarez",
+        actor_role="script_supervisor",
+    )
+
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        coverage = client.post(
+            f"/productions/{production.id}/coverage-items",
+            json={
+                "scene_id": first_strip["scene_id"],
+                "coverage_key": "scene-1-insert-a",
+                "coverage_type": "insert",
+                "planned": {"shot": "insert"},
+            },
+        )
+        assert coverage.status_code == 200, coverage.text
+        shot = client.post(
+            f"/coverage-items/{coverage.json()['id']}/shot",
+            json={"shot": {"take": "A3", "usable": False}},
+        )
+        assert shot.status_code == 200, shot.text
+        finding = client.post(
+            f"/coverage-items/{coverage.json()['id']}/findings",
+            json={
+                "board_id": board.id,
+                "message": "insert is unusable from camera shake",
+                "actor_name": "S. Patel",
+                "actor_role": "script_supervisor",
+            },
+        )
+        assert finding.status_code == 200, finding.text
+        pickup = client.post(
+            f"/coverage-findings/{finding.json()['id']}/pickup",
+            json={"actor_name": "A. Kowalczyk", "actor_role": "director"},
+        )
+        assert pickup.status_code == 200, pickup.text
+        duplicate = client.post(
+            f"/coverage-findings/{finding.json()['id']}/pickup",
+            json={"actor_name": "A. Kowalczyk", "actor_role": "director"},
+        )
+        assert duplicate.status_code == 200, duplicate.text
+        assert duplicate.json()["id"] == pickup.json()["id"]
+
+        unconfirmed = client.post(
+            f"/pickup-tasks/{pickup.json()['id']}/replan",
+            json={
+                "current_board_id": board.id,
+                "cutoff_at": "2026-09-14T12:00:00-04:00",
+                "lock_policy": "preserve_locked",
+            },
+        )
+        assert unconfirmed.status_code == 400
+
+        confirmed = client.post(
+            f"/pickup-tasks/{pickup.json()['id']}/confirm",
+            json={
+                "actor_name": "R. Okonkwo",
+                "actor_role": "first_ad",
+                "pickup_spec": {
+                    "scene_id": first_strip["scene_id"],
+                    "coverage_type": "insert",
+                    "location_id": first_strip["location_id"],
+                    "cast_ids": first_strip["cast_ids"],
+                    "duration_minutes": 15,
+                    "priority": "must_have",
+                    "day_night": first_strip["day_night"],
+                },
+            },
+        )
+        assert confirmed.status_code == 200, confirmed.text
+        assert confirmed.json()["status"] == "schedulable"
+
+        replan = client.post(
+            f"/pickup-tasks/{pickup.json()['id']}/replan",
+            json={
+                "current_board_id": board.id,
+                "cutoff_at": "2026-09-14T12:00:00-04:00",
+                "lock_policy": "preserve_locked",
+            },
+        )
+        assert replan.status_code == 200, replan.text
+        options = client.post(
+            f"/replan-requests/{replan.json()['id']}/options",
+            json={"max_options": 1},
+        )
+        assert options.status_code == 200, options.text
+        diff = options.json()[0]
+        expected_pickup_work_id = f"pickup-{pickup.json()['id']}"
+        assert expected_pickup_work_id in diff["diff"]["added_pickups"]
+        assert "upm_or_line_producer_cost_approval" in diff["required_approvals"]
+        revised = client.get(f"/boards/{diff['revised_board_id']}")
+        assert revised.status_code == 200, revised.text
+        assert revised.json()["approval_state"] == "pending_cost_approval"
+        locked_work_ids = {
+            assignment["work_id"]
+            for assignment in client.get(f"/productions/{production.id}/locks").json()[0]["locked_assignments"]
+        }
+        locked_day_work_ids = {
+            strip["work_id"]
+            for strip in revised.json()["result"]["strips"]
+            if strip["shoot_day"] == locked_day.isoformat()
+        }
+        assert locked_day_work_ids == locked_work_ids
+    finally:
+        app.dependency_overrides.clear()

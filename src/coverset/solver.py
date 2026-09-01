@@ -28,19 +28,19 @@ from __future__ import annotations
 
 import datetime as dt
 import math
-from dataclasses import dataclass, field
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
 from fractions import Fraction
-from typing import Iterable, Iterator
 
 from ortools.sat.python import cp_model
 
-from .clock import advance, elapsed
 from .board import (
     Assignment,
     Board,
     ObjectiveBreakdown,
     SolverStatus,
 )
+from .clock import advance, elapsed
 from .constraints import (
     AlgorithmSource,
     BlackoutDates,
@@ -154,11 +154,11 @@ class ObjectiveWeights:
         hold = Fraction(self.cast_holding_day).limit_denominator(10_000)
         per_minute = Fraction(self.overtime_hour).limit_denominator(10_000) / 60
         scale = math.lcm(move.denominator, hold.denominator, per_minute.denominator)
-        return (
-            int(move * scale),
-            int(hold * scale),
-            int(per_minute * scale),
-        )
+        coefficients = (move * scale, hold * scale, per_minute * scale)
+        if any(value.denominator != 1 for value in coefficients):
+            raise SolverError("objective weights did not scale to integers")
+        move_coeff, hold_coeff, overtime_coeff = coefficients
+        return (move_coeff.numerator, hold_coeff.numerator, overtime_coeff.numerator)
 
     def __str__(self) -> str:
         return (
@@ -233,7 +233,9 @@ class ScheduleProblem:
                 )
             unknown = sorted(set(w.cast_ids) - {m.id for m in self.roster})
             if unknown:
-                problems.append(f"{w.work_id}: cast not on the roster: {', '.join(unknown)}")
+                problems.append(
+                    f"{w.work_id}: cast not on the roster: {', '.join(unknown)}"
+                )
             if w.day_night in (DayNight.DAWN, DayNight.DUSK):
                 # Twilight is a short, hard window -- civil dawn to sunrise, or golden
                 # hour to civil dusk -- and the model has no representation for it. It
@@ -269,11 +271,12 @@ class ScheduleProblem:
                 expression=DaylightBound(),
                 source=AlgorithmSource(),
                 created_by="coverset.solver (synthesised: exterior day work with no "
-                           "daylight constraint stated)",
+                "daylight constraint stated)",
                 validated_against="coverset.daylight",
             )
             object.__setattr__(
-                self, "constraints",
+                self,
+                "constraints",
                 ConstraintSet(self.constraints.records + (synthesised,)),
             )
 
@@ -306,11 +309,12 @@ class ScheduleProblem:
                     name="coverset.people.Company", version="company-day-1"
                 ),
                 created_by="coverset.solver (synthesised: the production's maximum "
-                           "day, with no day-length constraint stated)",
+                "day, with no day-length constraint stated)",
                 validated_against="coverset.validate",
             )
             object.__setattr__(
-                self, "constraints",
+                self,
+                "constraints",
                 ConstraintSet(self.constraints.records + (company_day,)),
             )
 
@@ -354,7 +358,9 @@ class ConflictSet:
         # Deduplicated: `_structural_diagnosis` names a cause once per offending item,
         # so a three-scene problem repeated the same cause three times and `__len__`
         # reported a conflict larger than it was.
-        object.__setattr__(self, "constraint_ids", tuple(sorted(set(self.constraint_ids))))
+        object.__setattr__(
+            self, "constraint_ids", tuple(sorted(set(self.constraint_ids)))
+        )
         object.__setattr__(
             self, "structural_causes", tuple(sorted(set(self.structural_causes)))
         )
@@ -531,7 +537,9 @@ class _Compiled:
     assumptions: dict[str, cp_model.IntVar]
 
 
-def _compile(problem: ScheduleProblem, *, only: frozenset[str] | None = None) -> _Compiled:
+def _compile(
+    problem: ScheduleProblem, *, only: frozenset[str] | None = None
+) -> _Compiled:
     """Turn the problem into a CP-SAT model.
 
     `only` restricts which binding constraints are enforced, used by the conflict
@@ -542,7 +550,8 @@ def _compile(problem: ScheduleProblem, *, only: frozenset[str] | None = None) ->
     days = problem.production_calendar.days
     items = problem.work_items
     binding = [
-        r for r in problem.constraints.binding
+        r
+        for r in problem.constraints.binding
         if only is None or r.constraint_id in only
     ]
 
@@ -771,19 +780,28 @@ def _compile(problem: ScheduleProblem, *, only: frozenset[str] | None = None) ->
             prefix_terms.append(items[i].estimated_duration_minutes * y)
         sun_hops = m.new_int_var(0, len(location_ids), f"sun_moves_{days[d]}")
         m.add_max_equality(
-            sun_hops, [sum(sun_loc[l, d] for l in location_ids) - 1, 0]
+            sun_hops,
+            [sum(sun_loc[location_id, d] for location_id in location_ids) - 1, 0],
         )
-        prefix = m.new_int_var(0, total_minutes + len(location_ids) * COMPANY_MOVE_MINUTES,
-                               f"sun_prefix_{days[d]}")
+        prefix = m.new_int_var(
+            0,
+            total_minutes + len(location_ids) * COMPANY_MOVE_MINUTES,
+            f"sun_prefix_{days[d]}",
+        )
         m.add(prefix == sum(prefix_terms) + COMPANY_MOVE_MINUTES * sun_hops)
         sun_prefix[d] = prefix
 
         worked = m.new_int_var(
-            0, total_minutes + len(location_ids) * COMPANY_MOVE_MINUTES, f"minutes_{day}"
+            0,
+            total_minutes + len(location_ids) * COMPANY_MOVE_MINUTES,
+            f"minutes_{day}",
         )
         m.add(
             worked
-            == sum(items[i].estimated_duration_minutes * place[i, d] for i in range(len(items)))
+            == sum(
+                items[i].estimated_duration_minutes * place[i, d]
+                for i in range(len(items))
+            )
             + COMPANY_MOVE_MINUTES * within_moves[d]
         )
         day_minutes[d] = worked
@@ -878,8 +896,12 @@ def _compile(problem: ScheduleProblem, *, only: frozenset[str] | None = None) ->
             # report, so nobody can trace or waive it. `ScheduleProblem` synthesises
             # a record when work needs the sun and the set is silent.
             in_scope = [
-                i for i in daylight_items
-                if (r.subject.kind is not SubjectKind.WORK or r.subject.ref == items[i].work_id)
+                i
+                for i in daylight_items
+                if (
+                    r.subject.kind is not SubjectKind.WORK
+                    or r.subject.ref == items[i].work_id
+                )
                 and (
                     r.subject.kind is not SubjectKind.LOCATION
                     or r.subject.ref == items[i].location_id
@@ -898,14 +920,17 @@ def _compile(problem: ScheduleProblem, *, only: frozenset[str] | None = None) ->
                     sunset = _sunset_abs(problem.locations[loc_id], day, epoch)
                     if sunset is None:
                         continue
-                    m.add(
-                        call_abs[d] + sun_prefix[d] <= sunset
-                    ).only_enforce_if([lit, sun_loc[loc_id, d]])
+                    m.add(call_abs[d] + sun_prefix[d] <= sunset).only_enforce_if(
+                        [lit, sun_loc[loc_id, d]]
+                    )
             for i in in_scope:
                 loc = problem.locations[items[i].location_id]
                 for d, day in enumerate(days):
                     available = _daylight_minutes(loc, day)
-                    if available is not None and available < items[i].estimated_duration_minutes:
+                    if (
+                        available is not None
+                        and available < items[i].estimated_duration_minutes
+                    ):
                         m.add(place[i, d] == 0).only_enforce_if(lit)
 
         elif isinstance(expr, MaximumDailyHours):
@@ -921,7 +946,9 @@ def _compile(problem: ScheduleProblem, *, only: frozenset[str] | None = None) ->
                     # conservative in the direction that cannot ship a bad board.
                     worker = works.get((r.subject.ref, d))
                     if worker is not None:
-                        m.add(day_minutes[d] <= expr.minutes).only_enforce_if([lit, worker])
+                        m.add(day_minutes[d] <= expr.minutes).only_enforce_if(
+                            [lit, worker]
+                        )
 
         elif isinstance(expr, MinimumRest):
             # Exact: wrap of one day to call of the next, in absolute minutes. The
@@ -934,11 +961,16 @@ def _compile(problem: ScheduleProblem, *, only: frozenset[str] | None = None) ->
                     continue  # a clear day already exceeds any rest this models
                 guards = [lit, day_used[d], day_used[d + 1]]
                 if r.subject.kind is SubjectKind.CAST:
-                    pair = [works.get((r.subject.ref, d)), works.get((r.subject.ref, d + 1))]
+                    pair = [
+                        works.get((r.subject.ref, d)),
+                        works.get((r.subject.ref, d + 1)),
+                    ]
                     if any(v is None for v in pair):
                         continue
                     guards.extend(v for v in pair if v is not None)
-                m.add(call_abs[d + 1] - wrap_abs[d] >= expr.minutes).only_enforce_if(guards)
+                m.add(call_abs[d + 1] - wrap_abs[d] >= expr.minutes).only_enforce_if(
+                    guards
+                )
 
     move_coeff, hold_coeff, ot_coeff = problem.weights.integer_coefficients()
     m.minimize(
@@ -995,7 +1027,8 @@ def _order_day(
         return (0 if any(w.needs_daylight for w in groups[loc_id]) else 1, loc_id)
 
     middle = sorted(
-        (loc for loc in groups if loc not in (start_location, end_location)), key=sun_first
+        (loc for loc in groups if loc not in (start_location, end_location)),
+        key=sun_first,
     )
     order = [start_location] + middle
     if end_location != start_location:
@@ -1105,7 +1138,6 @@ def _measure_overtime_minutes(
     return total
 
 
-
 def _timeline_drift(
     assignments: tuple[Assignment, ...],
     compiled: _Compiled,
@@ -1131,7 +1163,9 @@ def _timeline_drift(
         ):
             # Both sides are instants, so this compares moments rather than clock
             # faces -- the whole reason the model counts from `epoch`.
-            expected = (epoch + dt.timedelta(minutes=solver.value(model_var))).astimezone(zone)
+            expected = (
+                epoch + dt.timedelta(minutes=solver.value(model_var))
+            ).astimezone(zone)
             if abs(elapsed(expected, actual).total_seconds()) > 60:
                 problems.append(
                     f"{day.isoformat()} {label}: model says {expected:%d %H:%M}, "
@@ -1157,7 +1191,9 @@ def _extract(problem: ScheduleProblem, compiled: _Compiled, solver: cp_model.CpS
     items = problem.work_items
     assignments: list[Assignment] = []
     for d, day in enumerate(days):
-        today = [items[i] for i in range(len(items)) if solver.value(compiled.place[i, d])]
+        today = [
+            items[i] for i in range(len(items)) if solver.value(compiled.place[i, d])
+        ]
         if not today:
             continue
         here = {w.location_id for w in today}
@@ -1231,7 +1267,8 @@ def _structural_diagnosis(problem: ScheduleProblem) -> tuple[list[str], list[str
     daytime = [w for w in items if w.day_night is not DayNight.NIGHT]
     needed = sum(
         -(-sum(w.estimated_duration_minutes for w in group) // max_day)
-        for group in (night, daytime) if group
+        for group in (night, daytime)
+        if group
     )
     if needed > len(days):
         causes.append("STRUCT-DAY-NIGHT-SPLIT")
@@ -1311,7 +1348,9 @@ def _conflict_set(problem: ScheduleProblem, core: list[str]) -> ConflictSet:
 # -- the entry point ------------------------------------------------------------
 
 
-def solve(problem: ScheduleProblem, *, seed: int = 0, budget: float = 120.0) -> SolveResult:
+def solve(
+    problem: ScheduleProblem, *, seed: int = 0, budget: float = 120.0
+) -> SolveResult:
     """Schedule `problem`, or explain irreducibly why it cannot be scheduled.
 
     A board is returned only when the solver proved a solution *and* an independent
@@ -1356,7 +1395,8 @@ def solve(problem: ScheduleProblem, *, seed: int = 0, budget: float = 120.0) -> 
             # renegotiate a bound whose relaxation changes nothing.
             causes, detail = _structural_diagnosis(problem)
             conflict = ConflictSet(
-                structural_causes=tuple(causes), irreducible=False,
+                structural_causes=tuple(causes),
+                irreducible=False,
                 detail="; ".join(detail),
             )
         return SolveResult(
@@ -1422,13 +1462,20 @@ def solve(problem: ScheduleProblem, *, seed: int = 0, budget: float = 120.0) -> 
     measured_overtime_minutes = _measure_overtime_minutes(assignments, problem.weights)
     readings = (
         ("company moves", solver.value(compiled.moves), _measure_moves(assignments)),
-        ("holding days",
-         sum(solver.value(h) for h in compiled.held.values()),
-         sum(holding_days(assignments, work_items=problem.work_items,
-                          roster=problem.roster).values())),
-        ("overtime minutes",
-         sum(solver.value(o) for o in compiled.overtime.values()),
-         measured_overtime_minutes),
+        (
+            "holding days",
+            sum(solver.value(h) for h in compiled.held.values()),
+            sum(
+                holding_days(
+                    assignments, work_items=problem.work_items, roster=problem.roster
+                ).values()
+            ),
+        ),
+        (
+            "overtime minutes",
+            sum(solver.value(o) for o in compiled.overtime.values()),
+            measured_overtime_minutes,
+        ),
     )
     if disagreed := [r for r in readings if r[1] != r[2]]:
         return SolveResult(

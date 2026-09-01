@@ -65,7 +65,7 @@ def run_job_endpoint(job_id: str) -> dict[str, object]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Coverset worker utilities")
     parser.add_argument("command", choices=("run-once",))
-    args = parser.parse_args(argv)
+    parser.parse_args(argv)
     init_db(use_migrations=False)
     with SessionLocal() as session:
         processed = run_once(session)

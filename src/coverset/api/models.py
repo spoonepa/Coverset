@@ -135,6 +135,28 @@ class ConstraintModel(Base):
     )
 
 
+class ConstraintProposalModel(Base):
+    __tablename__ = "constraint_proposals"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    source_text: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(40), default="candidate")
+    confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    payload_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    validation_errors_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_by_name: Mapped[str] = mapped_column(String(120), default="Developer")
+    accepted_by_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    accepted_by_role: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    accepted_constraint_id: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    accepted_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
 class GroundingEvidenceModel(Base):
     __tablename__ = "grounding_evidence"
 
@@ -146,6 +168,32 @@ class GroundingEvidenceModel(Base):
     status: Mapped[str] = mapped_column(String(40), default="complete")
     evidence_json: Mapped[dict] = mapped_column(JSON, default=dict)
     error: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class GroundedValueModel(Base):
+    __tablename__ = "grounded_values"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    evidence_id: Mapped[str] = mapped_column(ForeignKey("grounding_evidence.id"), index=True)
+    fact_kind: Mapped[str] = mapped_column(String(40), nullable=False)
+    location_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    target_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    normalized_value_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    units: Mapped[str] = mapped_column(String(80), nullable=False)
+    source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    source_quote: Mapped[str] = mapped_column(Text, nullable=False)
+    source_span: Mapped[str] = mapped_column(Text, nullable=False)
+    query: Mapped[str] = mapped_column(Text, nullable=False)
+    provider_response_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    derived_from: Mapped[str] = mapped_column(String(40), nullable=False)
+    validator_result_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    covering_date: Mapped[bool] = mapped_column(Boolean, default=False)
+    context_source_urls_json: Mapped[list[str]] = mapped_column(JSON, default=list)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
@@ -240,6 +288,7 @@ class BoardModel(Base):
         ForeignKey("schedule_runs.id"), index=True
     )
     solver_status: Mapped[str] = mapped_column(String(40), nullable=False)
+    approval_state: Mapped[str] = mapped_column(String(40), default="approved")
     stripboard: Mapped[str] = mapped_column(Text, nullable=False)
     result_json: Mapped[dict] = mapped_column(JSON, nullable=False)
     created_at: Mapped[dt.datetime] = mapped_column(
@@ -264,6 +313,50 @@ class LockedDayModel(Base):
     call_sheet_version: Mapped[str] = mapped_column(String(120), nullable=False)
     recorded_by_name: Mapped[str] = mapped_column(String(120), nullable=False)
     recorded_by_role: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class MonitoredSourceModel(Base):
+    __tablename__ = "monitored_sources"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
+    source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    fact_kind: Mapped[str] = mapped_column(String(40), nullable=False)
+    location_id: Mapped[str] = mapped_column(String(120), default="")
+    query: Mapped[str] = mapped_column(Text, default="")
+    provider: Mapped[str] = mapped_column(String(80), default="parallel_monitor")
+    external_monitor_id: Mapped[str] = mapped_column(String(160), default="")
+    status: Mapped[str] = mapped_column(String(40), default="active")
+    last_fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    last_checked_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class MonitorChangeEventModel(Base):
+    __tablename__ = "monitor_change_events"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    monitored_source_id: Mapped[str | None] = mapped_column(
+        ForeignKey("monitored_sources.id"), nullable=True, index=True
+    )
+    board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
+    status: Mapped[str] = mapped_column(String(40), default="processed")
+    material: Mapped[bool] = mapped_column(Boolean, default=False)
+    old_fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    new_fingerprint: Mapped[str] = mapped_column(String(64), default="")
+    payload_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    finding_id: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    replan_request_id: Mapped[str | None] = mapped_column(String(48), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
@@ -304,14 +397,36 @@ class ReplanRequestModel(Base):
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
-    finding_id: Mapped[str] = mapped_column(
-        ForeignKey("monitor_findings.id"), index=True
+    finding_id: Mapped[str | None] = mapped_column(
+        ForeignKey("monitor_findings.id"), nullable=True, index=True
     )
     current_board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
     requester_component: Mapped[str] = mapped_column(String(80), nullable=False)
+    source_kind: Mapped[str] = mapped_column(String(40), default="monitor")
+    source_id: Mapped[str] = mapped_column(String(48), default="")
+    reason: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(40), default="requested")
     affected_work_ids_json: Mapped[list[str]] = mapped_column(JSON, default=list)
     locked_days_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class ScheduleDiffModel(Base):
+    __tablename__ = "schedule_diffs"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    base_board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
+    revised_board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
+    replan_request_id: Mapped[str | None] = mapped_column(
+        ForeignKey("replan_requests.id"), nullable=True, index=True
+    )
+    diff_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    required_approvals_json: Mapped[list[str]] = mapped_column(JSON, default=list)
+    cost_delta: Mapped[float] = mapped_column(Float, default=0.0)
+    rendered_text: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
@@ -344,6 +459,93 @@ class CostApprovalModel(Base):
     cost_delta: Mapped[float] = mapped_column(Float, default=0.0)
     added_shoot_days_json: Mapped[list[str]] = mapped_column(JSON, default=list)
     decision: Mapped[str] = mapped_column(String(40), default="approved")
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class CoverageItemModel(Base):
+    __tablename__ = "coverage_items"
+    __table_args__ = (
+        UniqueConstraint("production_id", "coverage_key", name="uq_coverage_items_key"),
+    )
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    scene_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    coverage_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    coverage_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    planned_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    shot_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(40), default="planned")
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class CoverageFindingModel(Base):
+    __tablename__ = "coverage_findings"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    coverage_item_id: Mapped[str] = mapped_column(ForeignKey("coverage_items.id"), index=True)
+    board_id: Mapped[str | None] = mapped_column(ForeignKey("boards.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(40), default="open")
+    severity: Mapped[str] = mapped_column(String(40), default="medium")
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    raised_by_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    raised_by_role: Mapped[str] = mapped_column(String(80), nullable=False)
+    human_raised: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class PickupTaskModel(Base):
+    __tablename__ = "pickup_tasks"
+    __table_args__ = (
+        UniqueConstraint("finding_id", name="uq_pickup_tasks_finding"),
+    )
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    finding_id: Mapped[str] = mapped_column(ForeignKey("coverage_findings.id"), index=True)
+    coverage_item_id: Mapped[str] = mapped_column(ForeignKey("coverage_items.id"), index=True)
+    board_id: Mapped[str | None] = mapped_column(ForeignKey("boards.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(40), default="requested")
+    scene_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    pickup_spec_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    decision_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    requested_by_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    requested_by_role: Mapped[str] = mapped_column(String(80), nullable=False)
+    confirmed_by_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    confirmed_by_role: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    confirmed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class CallSheetModel(Base):
+    __tablename__ = "call_sheets"
+    __table_args__ = (
+        UniqueConstraint("board_id", "shoot_date", name="uq_call_sheets_board_date"),
+    )
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    board_id: Mapped[str] = mapped_column(ForeignKey("boards.id"), index=True)
+    schedule_run_id: Mapped[str] = mapped_column(String(48), nullable=False)
+    shoot_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    generated_by_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    generated_by_role: Mapped[str] = mapped_column(String(80), nullable=False)
+    payload_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    rendered_text: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )

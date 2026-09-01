@@ -20,8 +20,8 @@ libraries (CST-008), which the brief places after the hackathon.
 from __future__ import annotations
 
 import datetime as dt
-from dataclasses import dataclass, field
-from typing import Iterator
+from collections.abc import Iterator
+from dataclasses import dataclass
 
 from .clock import elapsed
 
@@ -94,7 +94,9 @@ class CastMember:
         if self.contracted_days is not None and self.contracted_days <= 0:
             raise ValueError(f"{self.id}: contracted days must be positive")
         if self.is_minor and self.max_work_hours_per_day is None:
-            object.__setattr__(self, "max_work_hours_per_day", DEFAULT_MINOR_MAX_WORK_HOURS)
+            object.__setattr__(
+                self, "max_work_hours_per_day", DEFAULT_MINOR_MAX_WORK_HOURS
+            )
 
     def __str__(self) -> str:
         return f"{self.name} as {self.character}"

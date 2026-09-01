@@ -18,14 +18,11 @@ import pytest
 from coverset.actors import Actor, Role
 from coverset.board import (
     Assignment,
-    Board,
     ConstraintCheck,
     InvalidBoard,
-    ObjectiveBreakdown,
     SolverStatus,
     ValidationReport,
 )
-from coverset.daylight import daylight_window
 from coverset.constraints import (
     AlgorithmSource,
     BlackoutDates,
@@ -42,16 +39,19 @@ from coverset.constraints import (
     Subject,
     SubjectKind,
 )
+from coverset.daylight import daylight_window
 from coverset.locations import Location, LocationBook
 from coverset.people import AvailabilityWindow, CastMember, Company, Roster
 from coverset.scenes import CandidateStatus, IntExt, SceneRecord
 from coverset.solver import (
     DECLARED_WEIGHTS,
     MODEL_VERSION,
+    ConflictSet,
     ObjectiveWeights,
     ProductionCalendar,
     ScheduleProblem,
     SolverError,
+    SolveResult,
     UndeclaredWeight,
     solve,
 )
@@ -61,47 +61,93 @@ from coverset.work import DayNight
 
 AD = Actor("Dana Whitfield", Role.FIRST_AD)
 
-PARK = Location("Brooklyn Bridge Park", "Brooklyn", "NY",
-                latitude=40.7002, longitude=-73.9967, timezone="America/New_York")
-STUDIO = Location("Silvercup Studios", "Queens", "NY",
-                  latitude=40.7423, longitude=-73.9382, timezone="America/New_York")
+PARK = Location(
+    "Brooklyn Bridge Park",
+    "Brooklyn",
+    "NY",
+    latitude=40.7002,
+    longitude=-73.9967,
+    timezone="America/New_York",
+)
+STUDIO = Location(
+    "Silvercup Studios",
+    "Queens",
+    "NY",
+    latitude=40.7423,
+    longitude=-73.9382,
+    timezone="America/New_York",
+)
 PLACES = LocationBook((PARK, STUDIO))
-ROSTER = Roster((
-    CastMember("SARAH", "S. Idowu", "MAYA"),
-    CastMember("TOM", "D. Whitfield", "DEV"),
-))
+ROSTER = Roster(
+    (
+        CastMember("SARAH", "S. Idowu", "MAYA"),
+        CastMember("TOM", "D. Whitfield", "DEV"),
+    )
+)
 
 D1, D2, D3 = dt.date(2026, 9, 14), dt.date(2026, 9, 15), dt.date(2026, 9, 16)
 
 
 def scene(scene_id, location, day_night, eighths, cast, int_ext=IntExt.EXT):
     return SceneRecord(
-        scene_id=scene_id, scene_number=scene_id, slugline=f"SC {scene_id}",
-        int_ext=int_ext, day_night=day_night, location_ref=location.id,
-        page_eighths=eighths, cast_ids=cast, status=CandidateStatus.ACTIVE,
+        scene_id=scene_id,
+        scene_number=scene_id,
+        slugline=f"SC {scene_id}",
+        int_ext=int_ext,
+        day_night=day_night,
+        location_ref=location.id,
+        page_eighths=eighths,
+        cast_ids=cast,
+        status=CandidateStatus.ACTIVE,
     )
 
 
 DAYLIGHT_RULE = ConstraintRecord(
-    constraint_id="C-DAYLIGHT", family=Family.DAYLIGHT, policy=Policy.HARD,
-    subject=Subject(SubjectKind.SCHEDULE), expression=DaylightBound(),
-    source=AlgorithmSource(), created_by="coverset.daylight",
+    constraint_id="C-DAYLIGHT",
+    family=Family.DAYLIGHT,
+    policy=Policy.HARD,
+    subject=Subject(SubjectKind.SCHEDULE),
+    expression=DaylightBound(),
+    source=AlgorithmSource(),
+    created_by="coverset.daylight",
 )
 
 
 def human(cid, family, subject, expression, said="production rule"):
     return ConstraintRecord(
-        constraint_id=cid, family=family, policy=Policy.HARD, subject=subject,
-        expression=expression, source=HumanSource(AD, said, from_fixture=True),
+        constraint_id=cid,
+        family=family,
+        policy=Policy.HARD,
+        subject=subject,
+        expression=expression,
+        source=HumanSource(AD, said, from_fixture=True),
     )
 
 
-def two_day_problem(*, constraints=(DAYLIGHT_RULE,), days=(D1, D2), weights=DECLARED_WEIGHTS,
-                    company=Company(), problem_id="SOL010"):
+def must_have_conflict(result: SolveResult) -> ConflictSet:
+    assert result.conflict_set is not None
+    return result.conflict_set
+
+
+def must_have_datetime(value: dt.datetime | None) -> dt.datetime:
+    assert value is not None
+    return value
+
+
+def two_day_problem(
+    *,
+    constraints=(DAYLIGHT_RULE,),
+    days=(D1, D2),
+    weights=DECLARED_WEIGHTS,
+    company=Company(),
+    problem_id="SOL010",
+):
     """The `SOL-010` acceptance fixture: two scenes, two days, one day and one night."""
     work = (
         scene("S1", PARK, DayNight.DAY, 16, ("SARAH",)).to_work_item(),
-        scene("S2", STUDIO, DayNight.NIGHT, 24, ("SARAH", "TOM"), IntExt.INT).to_work_item(),
+        scene(
+            "S2", STUDIO, DayNight.NIGHT, 24, ("SARAH", "TOM"), IntExt.INT
+        ).to_work_item(),
     )
     return ScheduleProblem(
         problem_id=problem_id,
@@ -115,8 +161,14 @@ def two_day_problem(*, constraints=(DAYLIGHT_RULE,), days=(D1, D2), weights=DECL
     )
 
 
-PIER = Location("Pier 59", "Manhattan", "NY",
-                latitude=40.7466, longitude=-74.0083, timezone="America/New_York")
+PIER = Location(
+    "Pier 59",
+    "Manhattan",
+    "NY",
+    latitude=40.7466,
+    longitude=-74.0083,
+    timezone="America/New_York",
+)
 
 
 def crowded_problem(*, weights=DECLARED_WEIGHTS, days=8):
@@ -127,12 +179,19 @@ def crowded_problem(*, weights=DECLARED_WEIGHTS, days=8):
     has enough placements to come back `FEASIBLE`.
     """
     places = LocationBook((PARK, STUDIO, PIER))
-    roster = Roster(tuple(CastMember(f"C{i}", f"Perf {i}", f"ROLE{i}") for i in range(6)))
+    roster = Roster(
+        tuple(CastMember(f"C{i}", f"Perf {i}", f"ROLE{i}") for i in range(6))
+    )
     where = (PARK, STUDIO, PIER)
     work = tuple(
-        scene(f"S{i}", where[i % 3], DayNight.NIGHT if i % 5 == 0 else DayNight.DAY,
-              12, tuple(f"C{(i + k) % 6}" for k in range(2)),
-              IntExt.INT if where[i % 3] is STUDIO else IntExt.EXT).to_work_item()
+        scene(
+            f"S{i}",
+            where[i % 3],
+            DayNight.NIGHT if i % 5 == 0 else DayNight.DAY,
+            12,
+            tuple(f"C{(i + k) % 6}" for k in range(2)),
+            IntExt.INT if where[i % 3] is STUDIO else IntExt.EXT,
+        ).to_work_item()
         for i in range(14)
     )
     return ScheduleProblem(
@@ -140,8 +199,11 @@ def crowded_problem(*, weights=DECLARED_WEIGHTS, days=8):
         production_calendar=ProductionCalendar(
             tuple(D1 + dt.timedelta(days=k) for k in range(days))
         ),
-        work_items=work, constraints=ConstraintSet(()),
-        roster=roster, locations=places, weights=weights,
+        work_items=work,
+        constraints=ConstraintSet(()),
+        roster=roster,
+        locations=places,
+        weights=weights,
     )
 
 
@@ -181,7 +243,10 @@ def test_two_day_two_scene_fixture_schedules_and_validates_cleanly():
     assert board.shoot_day_count == 2
     assert len(board.assignments) == 2
     assert board.validation_result.passed
-    assert board.validation_result.constraint_snapshot_hash == board.constraint_snapshot_hash
+    assert (
+        board.validation_result.constraint_snapshot_hash
+        == board.constraint_snapshot_hash
+    )
 
 
 @pytest.mark.req("SOL-010")
@@ -199,8 +264,12 @@ def test_the_same_problem_and_seed_produces_the_same_board():
 def test_a_night_scene_is_called_at_sunset_and_a_day_scene_at_sunrise():
     board = solve(two_day_problem()).board
     by_work = {a.work_id: a for a in board.assignments}
-    assert by_work["W-S2"].planned_call_time.hour >= 18, "night work should call at dusk"
-    assert by_work["W-S1"].planned_call_time.hour <= 8, "daylight work should call at sunrise"
+    assert by_work["W-S2"].planned_call_time.hour >= 18, (
+        "night work should call at dusk"
+    )
+    assert by_work["W-S1"].planned_call_time.hour <= 8, (
+        "daylight work should call at sunrise"
+    )
 
 
 # -- SOL-002 / SOL-007: nothing unvalidated escapes ------------------------------
@@ -209,7 +278,9 @@ def test_a_night_scene_is_called_at_sunset_and_a_day_scene_at_sunrise():
 @pytest.mark.req("SOL-002")
 def test_every_binding_constraint_is_re_checked_on_the_returned_board():
     availability = human(
-        "C-SARAH", Family.CAST, Subject(SubjectKind.CAST, "SARAH"),
+        "C-SARAH",
+        Family.CAST,
+        Subject(SubjectKind.CAST, "SARAH"),
         DateWindows((AvailabilityWindow(D1, D3),)),
     )
     board = solve(two_day_problem(constraints=(DAYLIGHT_RULE, availability))).board
@@ -231,24 +302,36 @@ def test_the_companys_maximum_day_reaches_the_solver_as_a_record():
     for exactly this reason.
     """
     problem = two_day_problem(company=Company(maximum_day_hours=12.0))
-    record = next(r for r in problem.constraints if r.constraint_id == "SYN-COMPANY-DAY")
+    record = next(
+        r for r in problem.constraints if r.constraint_id == "SYN-COMPANY-DAY"
+    )
     assert record.expression == MaximumDailyHours(hours=12.0)
     assert record.subject.kind is SubjectKind.SCHEDULE
 
     # 1. two productions with different maximum days are different problems.
-    assert (problem.constraint_snapshot_hash
-            != two_day_problem(company=Company(maximum_day_hours=16.0)
-                               ).constraint_snapshot_hash)
+    assert (
+        problem.constraint_snapshot_hash
+        != two_day_problem(
+            company=Company(maximum_day_hours=16.0)
+        ).constraint_snapshot_hash
+    )
 
     # 2. the validator is obliged to re-check it, rather than taking the model's word.
     board = solve(problem).board
     assert "SYN-COMPANY-DAY" in board.validation_result.expected_ids
 
     # 3. a production that states its own day length keeps it; nothing is overruled.
-    stated = human("C-DAY", Family.TURNAROUND, Subject(SubjectKind.SCHEDULE),
-                   MaximumDailyHours(hours=14.0), said="fourteens this week")
-    ids = {r.constraint_id for r in two_day_problem(
-        constraints=(DAYLIGHT_RULE, stated)).constraints}
+    stated = human(
+        "C-DAY",
+        Family.TURNAROUND,
+        Subject(SubjectKind.SCHEDULE),
+        MaximumDailyHours(hours=14.0),
+        said="fourteens this week",
+    )
+    ids = {
+        r.constraint_id
+        for r in two_day_problem(constraints=(DAYLIGHT_RULE, stated)).constraints
+    }
     assert "SYN-COMPANY-DAY" not in ids
 
 
@@ -260,23 +343,41 @@ def test_a_schedule_impossible_only_because_of_the_company_day_names_it():
     — structure being, by definition, what no relaxation can fix. Authorising a
     fourteen-hour day fixes it, so it was never structural.
     """
-    long_scene = scene("L1", STUDIO, DayNight.DAY, 104, ("SARAH",), IntExt.INT).to_work_item()
+    long_scene = scene(
+        "L1", STUDIO, DayNight.DAY, 104, ("SARAH",), IntExt.INT
+    ).to_work_item()
     assert long_scene.estimated_duration_minutes == 780, "meant to be a 13h scene"
-    result = solve(ScheduleProblem(
-        problem_id="LONGDAY", production_calendar=ProductionCalendar((D1, D2)),
-        work_items=(long_scene,), constraints=ConstraintSet(()), roster=ROSTER,
-        locations=PLACES, company=Company(maximum_day_hours=12.0),
-    ))
+    result = solve(
+        ScheduleProblem(
+            problem_id="LONGDAY",
+            production_calendar=ProductionCalendar((D1, D2)),
+            work_items=(long_scene,),
+            constraints=ConstraintSet(()),
+            roster=ROSTER,
+            locations=PLACES,
+            company=Company(maximum_day_hours=12.0),
+        )
+    )
     assert result.status is SolverStatus.INFEASIBLE
-    assert result.conflict_set.constraint_ids == ("SYN-COMPANY-DAY",)
-    assert result.conflict_set.irreducible
+    conflict = must_have_conflict(result)
+    assert conflict.constraint_ids == ("SYN-COMPANY-DAY",)
+    assert conflict.irreducible
 
     # Relaxing exactly what it named is what makes the difference.
-    assert solve(ScheduleProblem(
-        problem_id="LONGDAY", production_calendar=ProductionCalendar((D1, D2)),
-        work_items=(long_scene,), constraints=ConstraintSet(()), roster=ROSTER,
-        locations=PLACES, company=Company(maximum_day_hours=14.0),
-    )).status is SolverStatus.OPTIMAL
+    assert (
+        solve(
+            ScheduleProblem(
+                problem_id="LONGDAY",
+                production_calendar=ProductionCalendar((D1, D2)),
+                work_items=(long_scene,),
+                constraints=ConstraintSet(()),
+                roster=ROSTER,
+                locations=PLACES,
+                company=Company(maximum_day_hours=14.0),
+            )
+        ).status
+        is SolverStatus.OPTIMAL
+    )
 
 
 @pytest.mark.req("SOL-007")
@@ -308,19 +409,32 @@ def test_every_objective_term_is_read_a_second_time_off_the_board():
 
 @pytest.mark.req("SOL-007")
 def test_a_board_cannot_be_constructed_from_an_unproven_solve():
-    report = ValidationReport(checks=(), expected_ids=frozenset(), constraint_snapshot_hash="h")
+    report = ValidationReport(
+        checks=(), expected_ids=frozenset(), constraint_snapshot_hash="h"
+    )
     good = solve(two_day_problem()).board
     with pytest.raises(InvalidBoard, match="no solution was proven"):
-        dataclasses.replace(good, solver_status=SolverStatus.UNKNOWN, validation_result=report,
-                            constraint_snapshot_hash="h")
+        dataclasses.replace(
+            good,
+            solver_status=SolverStatus.UNKNOWN,
+            validation_result=report,
+            constraint_snapshot_hash="h",
+        )
 
 
 @pytest.mark.req("SOL-007")
 def test_a_board_cannot_be_constructed_when_validation_fails():
     good = solve(two_day_problem()).board
     failed = ValidationReport(
-        checks=(ConstraintCheck("C-X", Family.CAST, Policy.HARD, satisfied=False,
-                                detail="scheduled outside availability"),),
+        checks=(
+            ConstraintCheck(
+                "C-X",
+                Family.CAST,
+                Policy.HARD,
+                satisfied=False,
+                detail="scheduled outside availability",
+            ),
+        ),
         expected_ids=frozenset({"C-X"}),
         constraint_snapshot_hash=good.constraint_snapshot_hash,
     )
@@ -331,7 +445,9 @@ def test_a_board_cannot_be_constructed_when_validation_fails():
 @pytest.mark.req("SOL-007")
 def test_a_board_validated_against_a_different_snapshot_is_rejected():
     good = solve(two_day_problem()).board
-    stale = dataclasses.replace(good.validation_result, constraint_snapshot_hash="0" * 64)
+    stale = dataclasses.replace(
+        good.validation_result, constraint_snapshot_hash="0" * 64
+    )
     with pytest.raises(InvalidBoard, match="different problem"):
         dataclasses.replace(good, validation_result=stale)
 
@@ -404,7 +520,8 @@ def test_a_zero_weight_does_not_unpin_the_term_it_weights():
         days_in_order = board.days
         within = sum(d.company_moves for d in days_in_order)
         overnight = sum(
-            1 for before, after in zip(days_in_order, days_in_order[1:])
+            1
+            for before, after in zip(days_in_order, days_in_order[1:])
             if before.location_ids[-1] != after.location_ids[0]
         )
         assert board.objective_breakdown.company_moves == within + overnight
@@ -434,15 +551,20 @@ def test_a_board_cannot_claim_optimal_while_carrying_a_gap():
 def test_a_negative_gap_is_refused():
     good = solve(two_day_problem()).board
     with pytest.raises(InvalidBoard, match="negative optimality gap"):
-        dataclasses.replace(good, solver_status=SolverStatus.FEASIBLE, optimality_gap=-0.1)
+        dataclasses.replace(
+            good, solver_status=SolverStatus.FEASIBLE, optimality_gap=-0.1
+        )
 
 
 @pytest.mark.req("SOL-013")
 def test_an_unproven_board_states_how_far_from_optimal_it_may_be():
     good = solve(two_day_problem()).board
     unproven = dataclasses.replace(
-        good, solver_status=SolverStatus.FEASIBLE,
-        solver_objective_value=500.0, solver_best_bound=400.0, optimality_gap=0.2,
+        good,
+        solver_status=SolverStatus.FEASIBLE,
+        solver_objective_value=500.0,
+        solver_best_bound=400.0,
+        optimality_gap=0.2,
     )
     assert not unproven.is_proven_optimal
     assert "within 20.0% of optimal" in unproven.cost_bracket
@@ -478,14 +600,30 @@ def test_the_solve_budget_is_deterministic_rather_than_wall_clock():
 
 def conflicting_problem():
     """One scene needing two performers whose availability windows are disjoint."""
-    work = (scene("S2", STUDIO, DayNight.NIGHT, 24, ("SARAH", "TOM"), IntExt.INT).to_work_item(),)
+    work = (
+        scene(
+            "S2", STUDIO, DayNight.NIGHT, 24, ("SARAH", "TOM"), IntExt.INT
+        ).to_work_item(),
+    )
     constraints = (
-        human("C-SARAH", Family.CAST, Subject(SubjectKind.CAST, "SARAH"),
-              DateWindows((AvailabilityWindow(D1, D1),))),
-        human("C-TOM", Family.CAST, Subject(SubjectKind.CAST, "TOM"),
-              DateWindows((AvailabilityWindow(D2, D2),))),
-        human("C-STUDIO", Family.LOCATION, Subject(SubjectKind.LOCATION, STUDIO.id),
-              DateWindows((AvailabilityWindow(D1, D2),))),
+        human(
+            "C-SARAH",
+            Family.CAST,
+            Subject(SubjectKind.CAST, "SARAH"),
+            DateWindows((AvailabilityWindow(D1, D1),)),
+        ),
+        human(
+            "C-TOM",
+            Family.CAST,
+            Subject(SubjectKind.CAST, "TOM"),
+            DateWindows((AvailabilityWindow(D2, D2),)),
+        ),
+        human(
+            "C-STUDIO",
+            Family.LOCATION,
+            Subject(SubjectKind.LOCATION, STUDIO.id),
+            DateWindows((AvailabilityWindow(D1, D2),)),
+        ),
     )
     return ScheduleProblem(
         problem_id="CONFLICT",
@@ -509,7 +647,7 @@ def test_impossible_cast_availability_returns_the_expected_conflict_ids():
 def test_the_conflict_set_is_irreducible():
     """Removing any one member must make the conflict no longer provable."""
     result = solve(conflicting_problem())
-    conflict = result.conflict_set
+    conflict = must_have_conflict(result)
     assert conflict.irreducible
 
     from coverset.solver import _infeasible_with
@@ -532,8 +670,9 @@ def test_constraints_unrelated_to_the_conflict_are_filtered_out():
     against rather than the class it tolerates.
     """
     result = solve(conflicting_problem())
-    assert "C-STUDIO" not in result.conflict_set.constraint_ids
-    assert "reduced from" in result.conflict_set.detail
+    conflict = must_have_conflict(result)
+    assert "C-STUDIO" not in conflict.constraint_ids
+    assert "reduced from" in conflict.detail
 
 
 # -- SOL-005: declared weights ---------------------------------------------------
@@ -541,8 +680,11 @@ def test_constraints_unrelated_to_the_conflict_are_filtered_out():
 
 @pytest.mark.req("SOL-005")
 def test_the_declared_weights_match_the_specification():
-    assert (DECLARED_WEIGHTS.company_move, DECLARED_WEIGHTS.cast_holding_day,
-            DECLARED_WEIGHTS.overtime_hour) == (3.0, 1.0, 0.5)
+    assert (
+        DECLARED_WEIGHTS.company_move,
+        DECLARED_WEIGHTS.cast_holding_day,
+        DECLARED_WEIGHTS.overtime_hour,
+    ) == (3.0, 1.0, 0.5)
 
 
 @pytest.mark.req("SOL-005")
@@ -571,16 +713,24 @@ def test_changing_the_weights_changes_which_board_wins():
     )
 
     def board_for(weights):
-        return solve(ScheduleProblem(
-            problem_id="W", production_calendar=ProductionCalendar((D1, D2, D3)),
-            work_items=work, constraints=ConstraintSet((DAYLIGHT_RULE,)),
-            roster=ROSTER, locations=PLACES, weights=weights,
-        )).board
+        return solve(
+            ScheduleProblem(
+                problem_id="W",
+                production_calendar=ProductionCalendar((D1, D2, D3)),
+                work_items=work,
+                constraints=ConstraintSet((DAYLIGHT_RULE,)),
+                roster=ROSTER,
+                locations=PLACES,
+                weights=weights,
+            )
+        ).board
 
-    move_averse = board_for(ObjectiveWeights(company_move=50.0, cast_holding_day=1.0,
-                                             overtime_hour=0.5))
-    cast_averse = board_for(ObjectiveWeights(company_move=0.0, cast_holding_day=50.0,
-                                             overtime_hour=0.5))
+    move_averse = board_for(
+        ObjectiveWeights(company_move=50.0, cast_holding_day=1.0, overtime_hour=0.5)
+    )
+    cast_averse = board_for(
+        ObjectiveWeights(company_move=0.0, cast_holding_day=50.0, overtime_hour=0.5)
+    )
     assert move_averse.objective_breakdown.company_moves <= (
         cast_averse.objective_breakdown.company_moves
     )
@@ -593,12 +743,16 @@ def test_changing_the_weights_changes_which_board_wins():
 def test_cast_availability_moves_the_board():
     """Sarah is in both scenes, and both are hers to be available for."""
     not_the_first_day = human(
-        "C-SARAH", Family.CAST, Subject(SubjectKind.CAST, "SARAH"),
+        "C-SARAH",
+        Family.CAST,
+        Subject(SubjectKind.CAST, "SARAH"),
         DateWindows((AvailabilityWindow(D2, D3),)),
     )
-    board = solve(two_day_problem(
-        constraints=(DAYLIGHT_RULE, not_the_first_day), days=(D1, D2, D3)
-    )).board
+    board = solve(
+        two_day_problem(
+            constraints=(DAYLIGHT_RULE, not_the_first_day), days=(D1, D2, D3)
+        )
+    ).board
     assert board.day_of("W-S1") in (D2, D3)
     assert board.day_of("W-S2") in (D2, D3)
 
@@ -606,7 +760,9 @@ def test_cast_availability_moves_the_board():
 @pytest.mark.req("SOL-006")
 def test_a_location_blackout_moves_the_board():
     closed = human(
-        "C-PARK", Family.PERMIT, Subject(SubjectKind.LOCATION, PARK.id),
+        "C-PARK",
+        Family.PERMIT,
+        Subject(SubjectKind.LOCATION, PARK.id),
         BlackoutDates((D2,)),
     )
     board = solve(two_day_problem(constraints=(DAYLIGHT_RULE, closed))).board
@@ -616,7 +772,10 @@ def test_a_location_blackout_moves_the_board():
 @pytest.mark.req("SOL-006")
 def test_a_lock_pins_work_to_its_day():
     pinned = human(
-        "C-LOCK", Family.LOCK, Subject(SubjectKind.WORK, "W-S1"), PinnedDay(D1),
+        "C-LOCK",
+        Family.LOCK,
+        Subject(SubjectKind.WORK, "W-S1"),
+        PinnedDay(D1),
     )
     board = solve(two_day_problem(constraints=(DAYLIGHT_RULE, pinned))).board
     assert board.day_of("W-S1") == D1
@@ -629,14 +788,21 @@ def test_a_company_move_is_counted_and_costs_shooting_time():
         scene("B1", PARK, DayNight.DAY, 8, ("SARAH",)).to_work_item(),
         scene("B2", STUDIO, DayNight.DAY, 8, ("SARAH",), IntExt.INT).to_work_item(),
     )
-    board = solve(ScheduleProblem(
-        problem_id="MOVE", production_calendar=ProductionCalendar((D1,)),
-        work_items=work, constraints=ConstraintSet((DAYLIGHT_RULE,)),
-        roster=ROSTER, locations=PLACES,
-    )).board
+    board = solve(
+        ScheduleProblem(
+            problem_id="MOVE",
+            production_calendar=ProductionCalendar((D1,)),
+            work_items=work,
+            constraints=ConstraintSet((DAYLIGHT_RULE,)),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    ).board
     assert board.objective_breakdown.company_moves == 1
     day = board.days[0]
-    gap = day.length - sum((dt.timedelta(minutes=60), dt.timedelta(minutes=60)), dt.timedelta())
+    gap = day.length - sum(
+        (dt.timedelta(minutes=60), dt.timedelta(minutes=60)), dt.timedelta()
+    )
     assert gap >= dt.timedelta(minutes=60), "a move must consume shooting time"
 
 
@@ -651,12 +817,18 @@ def test_a_day_shoot_and_a_night_shoot_do_not_share_a_day():
 
 @pytest.mark.req("SOL-006")
 def test_a_maximum_day_length_constrains_the_board():
-    long_scene = scene("L1", STUDIO, DayNight.DAY, 90, ("SARAH",), IntExt.INT).to_work_item()
+    long_scene = scene(
+        "L1", STUDIO, DayNight.DAY, 90, ("SARAH",), IntExt.INT
+    ).to_work_item()
     short = scene("L2", STUDIO, DayNight.DAY, 8, ("SARAH",), IntExt.INT).to_work_item()
     problem = ScheduleProblem(
-        problem_id="LEN", production_calendar=ProductionCalendar((D1, D2)),
-        work_items=(long_scene, short), constraints=ConstraintSet((DAYLIGHT_RULE,)),
-        roster=ROSTER, locations=PLACES, company=Company(maximum_day_hours=12.0),
+        problem_id="LEN",
+        production_calendar=ProductionCalendar((D1, D2)),
+        work_items=(long_scene, short),
+        constraints=ConstraintSet((DAYLIGHT_RULE,)),
+        roster=ROSTER,
+        locations=PLACES,
+        company=Company(maximum_day_hours=12.0),
     )
     board = solve(problem).board
     for day in board.days:
@@ -669,7 +841,9 @@ def test_a_maximum_day_length_constrains_the_board():
 @pytest.mark.req("CST-010")
 def test_a_cast_availability_constraint_is_evaluable_against_a_finished_board():
     availability = human(
-        "C-SARAH", Family.CAST, Subject(SubjectKind.CAST, "SARAH"),
+        "C-SARAH",
+        Family.CAST,
+        Subject(SubjectKind.CAST, "SARAH"),
         DateWindows((AvailabilityWindow(D1, D1),)),
     )
     problem = ScheduleProblem(
@@ -677,17 +851,23 @@ def test_a_cast_availability_constraint_is_evaluable_against_a_finished_board():
         production_calendar=ProductionCalendar((D1, D2)),
         work_items=(
             scene("S1", PARK, DayNight.DAY, 16, ("SARAH",)).to_work_item(),
-            scene("S2", STUDIO, DayNight.NIGHT, 24, ("TOM",), IntExt.INT).to_work_item(),
+            scene(
+                "S2", STUDIO, DayNight.NIGHT, 24, ("TOM",), IntExt.INT
+            ).to_work_item(),
         ),
         constraints=ConstraintSet((DAYLIGHT_RULE, availability)),
-        roster=ROSTER, locations=PLACES,
+        roster=ROSTER,
+        locations=PLACES,
     )
     board = solve(problem).board
     assert board.day_of("W-S1") == D1
 
     honest = validate_board(
-        board.assignments, constraints=problem.constraints, work_items=problem.work_items,
-        locations=PLACES, roster=ROSTER,
+        board.assignments,
+        constraints=problem.constraints,
+        work_items=problem.work_items,
+        locations=PLACES,
+        roster=ROSTER,
     )
     assert honest.passed
 
@@ -699,12 +879,16 @@ def test_a_cast_availability_constraint_is_evaluable_against_a_finished_board():
             planned_call_time=a.planned_call_time.replace(day=D2.day),
             planned_wrap_time=a.planned_wrap_time.replace(day=D2.day),
         )
-        if a.work_id == "W-S1" else a
+        if a.work_id == "W-S1"
+        else a
         for a in board.assignments
     )
     caught = validate_board(
-        moved, constraints=problem.constraints, work_items=problem.work_items,
-        locations=PLACES, roster=ROSTER,
+        moved,
+        constraints=problem.constraints,
+        work_items=problem.work_items,
+        locations=PLACES,
+        roster=ROSTER,
     )
     assert not caught.passed
     assert "C-SARAH" in {v.constraint_id for v in caught.violations}
@@ -713,13 +897,19 @@ def test_a_cast_availability_constraint_is_evaluable_against_a_finished_board():
 @pytest.mark.req("CST-010")
 def test_a_minor_work_hour_limit_is_evaluable_against_a_finished_board():
     limit = human(
-        "C-MINOR", Family.CAST, Subject(SubjectKind.CAST, "SARAH"), MaximumDailyHours(1.0),
+        "C-MINOR",
+        Family.CAST,
+        Subject(SubjectKind.CAST, "SARAH"),
+        MaximumDailyHours(1.0),
     )
     problem = two_day_problem(constraints=(DAYLIGHT_RULE,))
     board = solve(problem).board
     report = validate_board(
-        board.assignments, constraints=ConstraintSet((limit,)),
-        work_items=problem.work_items, locations=PLACES, roster=ROSTER,
+        board.assignments,
+        constraints=ConstraintSet((limit,)),
+        work_items=problem.work_items,
+        locations=PLACES,
+        roster=ROSTER,
     )
     assert not report.passed, "a two-hour strip must breach a one-hour daily limit"
 
@@ -729,8 +919,11 @@ def test_a_daylight_constraint_is_evaluable_against_a_finished_board():
     problem = two_day_problem()
     board = solve(problem).board
     report = validate_board(
-        board.assignments, constraints=problem.constraints, work_items=problem.work_items,
-        locations=PLACES, roster=ROSTER,
+        board.assignments,
+        constraints=problem.constraints,
+        work_items=problem.work_items,
+        locations=PLACES,
+        roster=ROSTER,
     )
     assert report.passed
 
@@ -740,12 +933,16 @@ def test_a_daylight_constraint_is_evaluable_against_a_finished_board():
             planned_call_time=a.planned_call_time.replace(hour=21, minute=0),
             planned_wrap_time=a.planned_wrap_time.replace(hour=23, minute=0),
         )
-        if a.work_id == "W-S1" else a
+        if a.work_id == "W-S1"
+        else a
         for a in board.assignments
     )
     caught = validate_board(
-        after_dark, constraints=problem.constraints, work_items=problem.work_items,
-        locations=PLACES, roster=ROSTER,
+        after_dark,
+        constraints=problem.constraints,
+        work_items=problem.work_items,
+        locations=PLACES,
+        roster=ROSTER,
     )
     assert not caught.passed
     assert "outside daylight" in caught.violations[0].detail
@@ -777,14 +974,20 @@ def test_the_validator_cannot_reach_the_compiler_it_is_checking():
 def test_a_constraint_the_validator_cannot_read_refuses_to_certify_the_board():
     """Skipping an unknown constraint would certify a board nobody examined."""
     odd = human(
-        "C-ODD", Family.TURNAROUND, Subject(SubjectKind.LOCATION, PARK.id), MinimumRest(12),
+        "C-ODD",
+        Family.TURNAROUND,
+        Subject(SubjectKind.LOCATION, PARK.id),
+        MinimumRest(12),
     )
     problem = two_day_problem()
     board = solve(problem).board
     with pytest.raises(UncheckableConstraint, match="C-ODD"):
         validate_board(
-            board.assignments, constraints=ConstraintSet((odd,)),
-            work_items=problem.work_items, locations=PLACES, roster=ROSTER,
+            board.assignments,
+            constraints=ConstraintSet((odd,)),
+            work_items=problem.work_items,
+            locations=PLACES,
+            roster=ROSTER,
         )
 
 
@@ -795,11 +998,15 @@ def test_a_constraint_the_validator_cannot_read_refuses_to_certify_the_board():
 def test_daylight_is_recomputed_per_date_rather_than_stored():
     """A stored sunset is a sunset for whichever date it was stored on."""
     september = solve(two_day_problem(days=(D1, D2))).board
-    december = solve(two_day_problem(days=(dt.date(2026, 12, 14), dt.date(2026, 12, 15)))).board
-    sept_call = min(a.planned_call_time.time() for a in september.assignments
-                    if a.work_id == "W-S1")
-    dec_call = min(a.planned_call_time.time() for a in december.assignments
-                   if a.work_id == "W-S1")
+    december = solve(
+        two_day_problem(days=(dt.date(2026, 12, 14), dt.date(2026, 12, 15)))
+    ).board
+    sept_call = min(
+        a.planned_call_time.time() for a in september.assignments if a.work_id == "W-S1"
+    )
+    dec_call = min(
+        a.planned_call_time.time() for a in december.assignments if a.work_id == "W-S1"
+    )
     assert sept_call != dec_call, "sunrise must differ between September and December"
 
 
@@ -836,8 +1043,13 @@ def test_the_objective_breakdown_reports_each_term_separately():
     assert breakdown.holding_days == 0
     assert breakdown.overtime_hours == 0
     rendered = "\n".join(breakdown.lines())
-    for term in ("company moves", "cast holding days", "overtime hours",
-                 "added shoot days", "weather risk cost"):
+    for term in (
+        "company moves",
+        "cast holding days",
+        "overtime hours",
+        "added shoot days",
+        "weather risk cost",
+    ):
         assert term in rendered
 
 
@@ -850,26 +1062,41 @@ def test_holding_days_are_measured_off_the_board_not_read_back_from_the_model():
         scene("H3", STUDIO, DayNight.DAY, 8, ("SARAH",), IntExt.INT).to_work_item(),
     )
     pins = tuple(
-        human(f"C-PIN-{i}", Family.LOCK, Subject(SubjectKind.WORK, w.work_id), PinnedDay(d))
+        human(
+            f"C-PIN-{i}",
+            Family.LOCK,
+            Subject(SubjectKind.WORK, w.work_id),
+            PinnedDay(d),
+        )
         for i, (w, d) in enumerate(zip(work, (D1, D2, D3)))
     )
-    board = solve(ScheduleProblem(
-        problem_id="HOLD", production_calendar=ProductionCalendar((D1, D2, D3)),
-        work_items=work, constraints=ConstraintSet(pins),
-        roster=ROSTER, locations=PLACES,
-    )).board
+    board = solve(
+        ScheduleProblem(
+            problem_id="HOLD",
+            production_calendar=ProductionCalendar((D1, D2, D3)),
+            work_items=work,
+            constraints=ConstraintSet(pins),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    ).board
     assert board.objective_breakdown.holding_days == 1
 
 
 @pytest.mark.req("SOL-002")
 def test_a_problem_naming_unknown_cast_or_locations_refuses_to_be_built():
     bad = dataclasses.replace(
-        scene("S1", PARK, DayNight.DAY, 8, ("SARAH",)).to_work_item(), cast_ids=("SARA",)
+        scene("S1", PARK, DayNight.DAY, 8, ("SARAH",)).to_work_item(),
+        cast_ids=("SARA",),
     )
     with pytest.raises(SolverError, match="SARA"):
         ScheduleProblem(
-            problem_id="BAD", production_calendar=ProductionCalendar((D1,)),
-            work_items=(bad,), constraints=ConstraintSet(), roster=ROSTER, locations=PLACES,
+            problem_id="BAD",
+            production_calendar=ProductionCalendar((D1,)),
+            work_items=(bad,),
+            constraints=ConstraintSet(),
+            roster=ROSTER,
+            locations=PLACES,
         )
 
 
@@ -880,7 +1107,9 @@ def test_a_problem_naming_unknown_cast_or_locations_refuses_to_be_built():
 def test_the_stripboard_lists_days_work_scenes_locations_cast_and_call_windows():
     problem = two_day_problem()
     board = solve(problem).board
-    rendered = stripboard(board, work_items=problem.work_items, locations=PLACES, roster=ROSTER)
+    rendered = stripboard(
+        board, work_items=problem.work_items, locations=PLACES, roster=ROSTER
+    )
     assert "Mon 14 Sep 2026" in rendered and "Tue 15 Sep 2026" in rendered
     assert "sc S1" in rendered and "sc S2" in rendered
     assert PARK.name in rendered and STUDIO.name in rendered
@@ -893,7 +1122,9 @@ def test_the_stripboard_lists_days_work_scenes_locations_cast_and_call_windows()
 @pytest.mark.req("AUD-001")
 def test_a_strip_traces_to_the_active_constraints_that_bounded_it():
     availability = human(
-        "C-SARAH", Family.CAST, Subject(SubjectKind.CAST, "SARAH"),
+        "C-SARAH",
+        Family.CAST,
+        Subject(SubjectKind.CAST, "SARAH"),
         DateWindows((AvailabilityWindow(D1, D3),)),
     )
     problem = two_day_problem(constraints=(DAYLIGHT_RULE, availability))
@@ -909,7 +1140,9 @@ def test_a_strip_traces_to_the_active_constraints_that_bounded_it():
 @pytest.mark.req("AUD-001")
 def test_an_inactive_constraint_is_not_offered_as_a_reason():
     availability = human(
-        "C-SARAH", Family.CAST, Subject(SubjectKind.CAST, "SARAH"),
+        "C-SARAH",
+        Family.CAST,
+        Subject(SubjectKind.CAST, "SARAH"),
         DateWindows((AvailabilityWindow(D1, D3),)),
     ).deactivate()
     problem = two_day_problem(constraints=(DAYLIGHT_RULE, availability))
@@ -938,12 +1171,18 @@ def test_structural_infeasibility_is_named_rather_than_returned_empty():
     and offers nothing to change.
     """
     huge = scene("X1", STUDIO, DayNight.DAY, 200, ("SARAH",), IntExt.INT).to_work_item()
-    result = solve(ScheduleProblem(
-        problem_id="STRUCT", production_calendar=ProductionCalendar((D1, D2)),
-        work_items=(huge,), constraints=ConstraintSet(()), roster=ROSTER, locations=PLACES,
-    ))
+    result = solve(
+        ScheduleProblem(
+            problem_id="STRUCT",
+            production_calendar=ProductionCalendar((D1, D2)),
+            work_items=(huge,),
+            constraints=ConstraintSet(()),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    )
     assert result.status is SolverStatus.INFEASIBLE
-    conflict = result.conflict_set
+    conflict = must_have_conflict(result)
     assert conflict.structural_causes, "structural infeasibility must be named"
     assert any("day" in cause.lower() for cause in conflict.structural_causes)
     assert "W-X1" in conflict.detail
@@ -958,28 +1197,42 @@ def test_a_relaxable_constraint_is_not_blamed_for_structural_infeasibility():
     project designs against in values, moved into the diagnosis.
     """
     huge = scene("X1", STUDIO, DayNight.DAY, 200, ("SARAH",), IntExt.INT).to_work_item()
-    result = solve(ScheduleProblem(
-        problem_id="BLAME", production_calendar=ProductionCalendar((D1, D2)),
-        work_items=(huge,), constraints=ConstraintSet((DAYLIGHT_RULE,)),
-        roster=ROSTER, locations=PLACES,
-    ))
+    result = solve(
+        ScheduleProblem(
+            problem_id="BLAME",
+            production_calendar=ProductionCalendar((D1, D2)),
+            work_items=(huge,),
+            constraints=ConstraintSet((DAYLIGHT_RULE,)),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    )
     assert result.status is SolverStatus.INFEASIBLE
-    assert "C-DAYLIGHT" not in result.conflict_set.constraint_ids
+    conflict = must_have_conflict(result)
+    assert "C-DAYLIGHT" not in conflict.constraint_ids
 
 
 @pytest.mark.req("SOL-003")
 def test_a_day_and_a_night_scene_on_one_available_day_is_named():
     """Split days are refused by the model, so one calendar day cannot hold both."""
     day_work = scene("Y1", PARK, DayNight.DAY, 8, ("SARAH",)).to_work_item()
-    night_work = scene("Y2", STUDIO, DayNight.NIGHT, 8, ("TOM",), IntExt.INT).to_work_item()
-    result = solve(ScheduleProblem(
-        problem_id="SPLIT", production_calendar=ProductionCalendar((D1,)),
-        work_items=(day_work, night_work), constraints=ConstraintSet(()),
-        roster=ROSTER, locations=PLACES,
-    ))
+    night_work = scene(
+        "Y2", STUDIO, DayNight.NIGHT, 8, ("TOM",), IntExt.INT
+    ).to_work_item()
+    result = solve(
+        ScheduleProblem(
+            problem_id="SPLIT",
+            production_calendar=ProductionCalendar((D1,)),
+            work_items=(day_work, night_work),
+            constraints=ConstraintSet(()),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    )
     assert result.status is SolverStatus.INFEASIBLE
-    assert result.conflict_set.structural_causes
-    assert any("night" in cause.lower() for cause in result.conflict_set.structural_causes)
+    conflict = must_have_conflict(result)
+    assert conflict.structural_causes
+    assert any("night" in cause.lower() for cause in conflict.structural_causes)
 
 
 @pytest.mark.req("SOL-003")
@@ -990,7 +1243,9 @@ def test_a_conflict_set_that_names_nothing_cannot_be_constructed():
     with pytest.raises(SolverError, match="names nothing"):
         ConflictSet(constraint_ids=(), structural_causes=())
     with pytest.raises(SolverError, match="irreducibility is a claim"):
-        ConflictSet(constraint_ids=(), structural_causes=("STRUCT-X",), irreducible=True)
+        ConflictSet(
+            constraint_ids=(), structural_causes=("STRUCT-X",), irreducible=True
+        )
 
 
 @pytest.mark.req("DAY-008")
@@ -1004,9 +1259,12 @@ def test_daylight_cannot_bind_without_a_constraint_record_saying_so():
     december = (dt.date(2026, 12, 14), dt.date(2026, 12, 15))
     long_exterior = scene("Z1", PARK, DayNight.DAY, 88, ("SARAH",)).to_work_item()
     problem = ScheduleProblem(
-        problem_id="SYN", production_calendar=ProductionCalendar(december),
-        work_items=(long_exterior,), constraints=ConstraintSet(()),
-        roster=ROSTER, locations=PLACES,
+        problem_id="SYN",
+        production_calendar=ProductionCalendar(december),
+        work_items=(long_exterior,),
+        constraints=ConstraintSet(()),
+        roster=ROSTER,
+        locations=PLACES,
     )
     # The bound must have been made explicit rather than applied invisibly.
     daylight_records = [r for r in problem.constraints if r.family is Family.DAYLIGHT]
@@ -1015,15 +1273,22 @@ def test_daylight_cannot_bind_without_a_constraint_record_saying_so():
 
     result = solve(problem)
     assert result.status is SolverStatus.INFEASIBLE
-    assert daylight_records[0].constraint_id in result.conflict_set.constraint_ids
+    conflict = must_have_conflict(result)
+    assert daylight_records[0].constraint_id in conflict.constraint_ids
 
 
 @pytest.mark.req("DAY-008")
 def test_a_problem_with_no_daylight_work_gets_no_synthetic_daylight_record():
-    interior = scene("I1", STUDIO, DayNight.NIGHT, 8, ("TOM",), IntExt.INT).to_work_item()
+    interior = scene(
+        "I1", STUDIO, DayNight.NIGHT, 8, ("TOM",), IntExt.INT
+    ).to_work_item()
     problem = ScheduleProblem(
-        problem_id="NOSUN", production_calendar=ProductionCalendar((D1,)),
-        work_items=(interior,), constraints=ConstraintSet(()), roster=ROSTER, locations=PLACES,
+        problem_id="NOSUN",
+        production_calendar=ProductionCalendar((D1,)),
+        work_items=(interior,),
+        constraints=ConstraintSet(()),
+        roster=ROSTER,
+        locations=PLACES,
     )
     assert not [r for r in problem.constraints if r.family is Family.DAYLIGHT]
 
@@ -1040,14 +1305,22 @@ def test_an_overnight_move_is_counted_when_the_day_ends_away_from_where_the_next
     a = scene("M1", PARK, DayNight.DAY, 8, ("SARAH",)).to_work_item()
     b = scene("M2", STUDIO, DayNight.DAY, 8, ("SARAH",), IntExt.INT).to_work_item()
     c = scene("M3", PARK, DayNight.DAY, 8, ("SARAH",)).to_work_item()
-    board = solve(ScheduleProblem(
-        problem_id="MOVES", production_calendar=ProductionCalendar((D1, D2)),
-        work_items=(a, b, c),
-        constraints=ConstraintSet((
-            _pin("P1", "W-M1", D1), _pin("P2", "W-M2", D1), _pin("P3", "W-M3", D2),
-        )),
-        roster=ROSTER, locations=PLACES,
-    )).board
+    board = solve(
+        ScheduleProblem(
+            problem_id="MOVES",
+            production_calendar=ProductionCalendar((D1, D2)),
+            work_items=(a, b, c),
+            constraints=ConstraintSet(
+                (
+                    _pin("P1", "W-M1", D1),
+                    _pin("P2", "W-M2", D1),
+                    _pin("P3", "W-M3", D2),
+                )
+            ),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    ).board
 
     first, second = board.days
     if first.location_ids[-1] != second.location_ids[0]:
@@ -1070,33 +1343,56 @@ def test_minimum_rest_is_compiled_rather_than_only_caught_after_the_fact():
     simply never represented the bound. The solver should either place the work
     legally or report the rest constraint as the reason it cannot.
     """
-    night = scene("R1", STUDIO, DayNight.NIGHT, 40, ("SARAH",), IntExt.INT).to_work_item()
+    night = scene(
+        "R1", STUDIO, DayNight.NIGHT, 40, ("SARAH",), IntExt.INT
+    ).to_work_item()
     day = scene("R2", PARK, DayNight.DAY, 16, ("SARAH",)).to_work_item()
-    rest = human("C-REST", Family.TURNAROUND, Subject(SubjectKind.SCHEDULE), MinimumRest(12.0))
-    result = solve(ScheduleProblem(
-        problem_id="REST", production_calendar=ProductionCalendar((D1, D2)),
-        work_items=(night, day),
-        constraints=ConstraintSet((rest, _pin("P1", "W-R1", D1), _pin("P2", "W-R2", D2))),
-        roster=ROSTER, locations=PLACES,
-    ))
+    rest = human(
+        "C-REST", Family.TURNAROUND, Subject(SubjectKind.SCHEDULE), MinimumRest(12.0)
+    )
+    result = solve(
+        ScheduleProblem(
+            problem_id="REST",
+            production_calendar=ProductionCalendar((D1, D2)),
+            work_items=(night, day),
+            constraints=ConstraintSet(
+                (rest, _pin("P1", "W-R1", D1), _pin("P2", "W-R2", D2))
+            ),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    )
     assert result.status is not SolverStatus.ERROR, (
-        "a bound the model never represented is not a miscompile: " + str(result.diagnostics)
+        "a bound the model never represented is not a miscompile: "
+        + str(result.diagnostics)
     )
     assert result.status is SolverStatus.INFEASIBLE
-    assert "C-REST" in result.conflict_set.constraint_ids
+    conflict = must_have_conflict(result)
+    assert "C-REST" in conflict.constraint_ids
 
 
 @pytest.mark.req("CST-007")
 def test_minimum_rest_is_satisfiable_when_the_solver_is_free_to_order_the_days():
-    night = scene("R1", STUDIO, DayNight.NIGHT, 40, ("SARAH",), IntExt.INT).to_work_item()
+    night = scene(
+        "R1", STUDIO, DayNight.NIGHT, 40, ("SARAH",), IntExt.INT
+    ).to_work_item()
     day = scene("R2", PARK, DayNight.DAY, 16, ("SARAH",)).to_work_item()
-    rest = human("C-REST", Family.TURNAROUND, Subject(SubjectKind.SCHEDULE), MinimumRest(12.0))
-    board = solve(ScheduleProblem(
-        problem_id="RESTOK", production_calendar=ProductionCalendar((D1, D2)),
-        work_items=(night, day), constraints=ConstraintSet((rest,)),
-        roster=ROSTER, locations=PLACES,
-    )).board
-    gap = board.days[1].call_time - board.days[0].wrap_time
+    rest = human(
+        "C-REST", Family.TURNAROUND, Subject(SubjectKind.SCHEDULE), MinimumRest(12.0)
+    )
+    board = solve(
+        ScheduleProblem(
+            problem_id="RESTOK",
+            production_calendar=ProductionCalendar((D1, D2)),
+            work_items=(night, day),
+            constraints=ConstraintSet((rest,)),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    ).board
+    gap = must_have_datetime(board.days[1].call_time) - must_have_datetime(
+        board.days[0].wrap_time
+    )
     assert gap >= dt.timedelta(hours=12)
 
 
@@ -1119,14 +1415,21 @@ def test_a_calendar_with_a_dark_day_schedules():
     """
     a = scene("G1", STUDIO, DayNight.DAY, 8, ("SARAH",), IntExt.INT).to_work_item()
     b = scene("G2", STUDIO, DayNight.DAY, 8, ("SARAH",), IntExt.INT).to_work_item()
-    result = solve(ScheduleProblem(
-        problem_id="DARK", production_calendar=ProductionCalendar(DARK_DAY_CALENDAR),
-        work_items=(a, b),
-        constraints=ConstraintSet((
-            _pin("P1", "W-G1", DARK_DAY_CALENDAR[0]), _pin("P2", "W-G2", DARK_DAY_CALENDAR[1]),
-        )),
-        roster=ROSTER, locations=PLACES,
-    ))
+    result = solve(
+        ScheduleProblem(
+            problem_id="DARK",
+            production_calendar=ProductionCalendar(DARK_DAY_CALENDAR),
+            work_items=(a, b),
+            constraints=ConstraintSet(
+                (
+                    _pin("P1", "W-G1", DARK_DAY_CALENDAR[0]),
+                    _pin("P2", "W-G2", DARK_DAY_CALENDAR[1]),
+                )
+            ),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    )
     assert result.status is not SolverStatus.ERROR, result.diagnostics
     board = result.board
     for a_ in board.assignments:
@@ -1144,14 +1447,21 @@ def test_a_performer_held_across_a_dark_day_is_paid_for_it():
     """
     a = scene("G1", STUDIO, DayNight.DAY, 8, ("SARAH",), IntExt.INT).to_work_item()
     b = scene("G2", STUDIO, DayNight.DAY, 8, ("SARAH",), IntExt.INT).to_work_item()
-    board = solve(ScheduleProblem(
-        problem_id="HOLDDARK", production_calendar=ProductionCalendar(DARK_DAY_CALENDAR),
-        work_items=(a, b),
-        constraints=ConstraintSet((
-            _pin("P1", "W-G1", DARK_DAY_CALENDAR[0]), _pin("P2", "W-G2", DARK_DAY_CALENDAR[1]),
-        )),
-        roster=ROSTER, locations=PLACES,
-    )).board
+    board = solve(
+        ScheduleProblem(
+            problem_id="HOLDDARK",
+            production_calendar=ProductionCalendar(DARK_DAY_CALENDAR),
+            work_items=(a, b),
+            constraints=ConstraintSet(
+                (
+                    _pin("P1", "W-G1", DARK_DAY_CALENDAR[0]),
+                    _pin("P2", "W-G2", DARK_DAY_CALENDAR[1]),
+                )
+            ),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    ).board
     assert board.objective_breakdown.holding_days == 1, (
         "Sarah works the 14th and the 16th, so she is held through the 15th"
     )
@@ -1165,20 +1475,26 @@ def test_daylight_bounds_where_the_work_actually_falls_in_the_day():
     load happens: an exterior scene queued behind a seven-hour interior wraps well
     after sunset while the aggregate still fits.
     """
-    interior = scene("D1", STUDIO, DayNight.DAY, 54, ("SARAH",), IntExt.INT).to_work_item()
+    interior = scene(
+        "D1", STUDIO, DayNight.DAY, 54, ("SARAH",), IntExt.INT
+    ).to_work_item()
     exterior = scene("D2", PARK, DayNight.DAY, 16, ("SARAH",)).to_work_item()
     problem = ScheduleProblem(
-        problem_id="DEC", production_calendar=ProductionCalendar(DECEMBER),
-        work_items=(interior, exterior), constraints=ConstraintSet(()),
-        roster=ROSTER, locations=PLACES,
+        problem_id="DEC",
+        production_calendar=ProductionCalendar(DECEMBER),
+        work_items=(interior, exterior),
+        constraints=ConstraintSet(()),
+        roster=ROSTER,
+        locations=PLACES,
     )
     result = solve(problem)
     assert result.status is not SolverStatus.ERROR, result.diagnostics
     board = result.board
 
     window = daylight_window(PARK, DECEMBER[0])
+    sunset = must_have_datetime(window.sunset)
     placed = {a.work_id: a for a in board.assignments}
-    assert placed["W-D2"].planned_wrap_time <= window.sunset, (
+    assert placed["W-D2"].planned_wrap_time <= sunset, (
         "the exterior scene must finish before sunset"
     )
     assert placed["W-D2"].sequence < placed["W-D1"].sequence, (
@@ -1186,7 +1502,7 @@ def test_daylight_bounds_where_the_work_actually_falls_in_the_day():
     )
     # And the interior work is free to run past sunset, which is the whole point of
     # bounding the daylight prefix rather than the whole day.
-    assert placed["W-D1"].planned_wrap_time > window.sunset
+    assert placed["W-D1"].planned_wrap_time > sunset
 
 
 @pytest.mark.req("CST-010")
@@ -1200,16 +1516,25 @@ def test_a_cast_hour_limit_counts_time_on_set_not_minutes_of_camera():
     here = scene("H1", PARK, DayNight.DAY, 16, ("SARAH",)).to_work_item()
     there = scene("H2", STUDIO, DayNight.DAY, 16, ("SARAH",), IntExt.INT).to_work_item()
     limit = human(
-        "C-MINOR", Family.CAST, Subject(SubjectKind.CAST, "SARAH"), MaximumDailyHours(4.5)
+        "C-MINOR",
+        Family.CAST,
+        Subject(SubjectKind.CAST, "SARAH"),
+        MaximumDailyHours(4.5),
     )
-    result = solve(ScheduleProblem(
-        problem_id="MINOR", production_calendar=ProductionCalendar((D1,)),
-        work_items=(here, there), constraints=ConstraintSet((limit,)),
-        roster=ROSTER, locations=PLACES,
-    ))
+    result = solve(
+        ScheduleProblem(
+            problem_id="MINOR",
+            production_calendar=ProductionCalendar((D1,)),
+            work_items=(here, there),
+            constraints=ConstraintSet((limit,)),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    )
     assert result.status is not SolverStatus.ERROR, result.diagnostics
     assert result.status is SolverStatus.INFEASIBLE
-    assert "C-MINOR" in result.conflict_set.constraint_ids
+    conflict = must_have_conflict(result)
+    assert "C-MINOR" in conflict.constraint_ids
 
 
 @pytest.mark.req("CST-010")
@@ -1217,13 +1542,21 @@ def test_a_cast_hour_limit_that_time_on_set_does_meet_is_schedulable():
     here = scene("H1", PARK, DayNight.DAY, 16, ("SARAH",)).to_work_item()
     there = scene("H2", STUDIO, DayNight.DAY, 16, ("SARAH",), IntExt.INT).to_work_item()
     limit = human(
-        "C-MINOR", Family.CAST, Subject(SubjectKind.CAST, "SARAH"), MaximumDailyHours(5.0)
+        "C-MINOR",
+        Family.CAST,
+        Subject(SubjectKind.CAST, "SARAH"),
+        MaximumDailyHours(5.0),
     )
-    board = solve(ScheduleProblem(
-        problem_id="MINOROK", production_calendar=ProductionCalendar((D1,)),
-        work_items=(here, there), constraints=ConstraintSet((limit,)),
-        roster=ROSTER, locations=PLACES,
-    )).board
+    board = solve(
+        ScheduleProblem(
+            problem_id="MINOROK",
+            production_calendar=ProductionCalendar((D1,)),
+            work_items=(here, there),
+            constraints=ConstraintSet((limit,)),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    ).board
     assert board.days[0].length <= dt.timedelta(hours=5)
 
 
@@ -1239,8 +1572,12 @@ def test_twilight_work_is_refused_rather_than_called_at_seven_in_the_morning(twi
     item = scene("W1", PARK, twilight, 16, ("SARAH",)).to_work_item()
     with pytest.raises(SolverError, match="twilight window"):
         ScheduleProblem(
-            problem_id="TWILIGHT", production_calendar=ProductionCalendar((D1,)),
-            work_items=(item,), constraints=ConstraintSet(()), roster=ROSTER, locations=PLACES,
+            problem_id="TWILIGHT",
+            production_calendar=ProductionCalendar((D1,)),
+            work_items=(item,),
+            constraints=ConstraintSet(()),
+            roster=ROSTER,
+            locations=PLACES,
         )
 
 
@@ -1255,23 +1592,31 @@ def test_a_board_spanning_a_dst_boundary_keeps_local_call_times():
     """
     days = (dt.date(2026, 10, 31), dt.date(2026, 11, 1), dt.date(2026, 11, 2))
     work = tuple(
-        scene(f"T{i}", PARK, DayNight.DAY, 8, ("SARAH",)).to_work_item() for i in range(3)
+        scene(f"T{i}", PARK, DayNight.DAY, 8, ("SARAH",)).to_work_item()
+        for i in range(3)
     )
-    pins = ConstraintSet(tuple(
-        _pin(f"P{i}", w.work_id, d) for i, (w, d) in enumerate(zip(work, days))
-    ))
-    result = solve(ScheduleProblem(
-        problem_id="DST", production_calendar=ProductionCalendar(days),
-        work_items=work, constraints=pins, roster=ROSTER, locations=PLACES,
-    ))
+    pins = ConstraintSet(
+        tuple(_pin(f"P{i}", w.work_id, d) for i, (w, d) in enumerate(zip(work, days)))
+    )
+    result = solve(
+        ScheduleProblem(
+            problem_id="DST",
+            production_calendar=ProductionCalendar(days),
+            work_items=work,
+            constraints=pins,
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    )
     assert result.status is not SolverStatus.ERROR, result.diagnostics
     board = result.board
     for day in board.days:
-        expected = daylight_window(PARK, day.date).sunrise
-        assert abs((day.call_time - expected).total_seconds()) < 120, (
-            f"{day.date} called at {day.call_time:%H:%M %Z}, sunrise is {expected:%H:%M %Z}"
+        call_time = must_have_datetime(day.call_time)
+        expected = must_have_datetime(daylight_window(PARK, day.date).sunrise)
+        assert abs((call_time - expected).total_seconds()) < 120, (
+            f"{day.date} called at {call_time:%H:%M %Z}, sunrise is {expected:%H:%M %Z}"
         )
-    offsets = {day.call_time.utcoffset() for day in board.days}
+    offsets = {must_have_datetime(day.call_time).utcoffset() for day in board.days}
     assert len(offsets) == 2, "the board should straddle the change, not flatten it"
 
 
@@ -1289,25 +1634,36 @@ def test_a_day_spanning_the_clocks_going_back_is_measured_in_real_hours():
     independent validator both subtracted the same way and agreed with each other,
     which is the shared misconception `CLAUDE.md` warns cross-checks are blind to.
     """
-    fall_back = dt.date(2026, 10, 31)   # clocks go back at 02:00 on 1 November
-    ordinary = dt.date(2026, 10, 24)    # same shape, no transition
-    night = scene("N1", STUDIO, DayNight.NIGHT, 96, ("SARAH",), IntExt.INT).to_work_item()
-    assert night.estimated_duration_minutes == 720, "the fixture is meant to be a 12h night"
+    fall_back = dt.date(2026, 10, 31)  # clocks go back at 02:00 on 1 November
+    ordinary = dt.date(2026, 10, 24)  # same shape, no transition
+    night = scene(
+        "N1", STUDIO, DayNight.NIGHT, 96, ("SARAH",), IntExt.INT
+    ).to_work_item()
+    assert night.estimated_duration_minutes == 720, (
+        "the fixture is meant to be a 12h night"
+    )
 
     for day in (ordinary, fall_back):
-        board = solve(ScheduleProblem(
-            problem_id=f"DST-{day}", production_calendar=ProductionCalendar((day,)),
-            work_items=(night,), constraints=ConstraintSet(()), roster=ROSTER,
-            locations=PLACES, company=Company(maximum_day_hours=12.0),
-        )).board
+        board = solve(
+            ScheduleProblem(
+                problem_id=f"DST-{day}",
+                production_calendar=ProductionCalendar((day,)),
+                work_items=(night,),
+                constraints=ConstraintSet(()),
+                roster=ROSTER,
+                locations=PLACES,
+                company=Company(maximum_day_hours=12.0),
+            )
+        ).board
         shoot_day = board.days[0]
-        real = (
-            shoot_day.wrap_time.astimezone(dt.timezone.utc)
-            - shoot_day.call_time.astimezone(dt.timezone.utc)
+        shoot_day_call = must_have_datetime(shoot_day.call_time)
+        shoot_day_wrap = must_have_datetime(shoot_day.wrap_time)
+        real = shoot_day_wrap.astimezone(dt.timezone.utc) - shoot_day_call.astimezone(
+            dt.timezone.utc
         )
         assert real == dt.timedelta(hours=12), (
-            f"{day}: called {shoot_day.call_time:%H:%M %Z}, wrapped "
-            f"{shoot_day.wrap_time:%H:%M %Z}, which is {real} of real time"
+            f"{day}: called {shoot_day_call:%H:%M %Z}, wrapped "
+            f"{shoot_day_wrap:%H:%M %Z}, which is {real} of real time"
         )
         assert shoot_day.length == real, "the board must report the hours it really ran"
         assert board.objective_breakdown.overtime_hours == 2.0, (
@@ -1315,12 +1671,19 @@ def test_a_day_spanning_the_clocks_going_back_is_measured_in_real_hours():
         )
 
     # The transition really is inside the night, or the test proves nothing.
-    spanning = solve(ScheduleProblem(
-        problem_id="DST-span", production_calendar=ProductionCalendar((fall_back,)),
-        work_items=(night,), constraints=ConstraintSet(()), roster=ROSTER,
-        locations=PLACES,
-    )).board.days[0]
-    assert spanning.call_time.utcoffset() != spanning.wrap_time.utcoffset()
+    spanning = solve(
+        ScheduleProblem(
+            problem_id="DST-span",
+            production_calendar=ProductionCalendar((fall_back,)),
+            work_items=(night,),
+            constraints=ConstraintSet(()),
+            roster=ROSTER,
+            locations=PLACES,
+        )
+    ).board.days[0]
+    spanning_call = must_have_datetime(spanning.call_time)
+    spanning_wrap = must_have_datetime(spanning.wrap_time)
+    assert spanning_call.utcoffset() != spanning_wrap.utcoffset()
 
 
 @pytest.mark.req("CST-007")
@@ -1330,28 +1693,50 @@ def test_turnaround_is_measured_in_real_hours_across_the_clocks_going_forward():
     The performer is an hour short and every wall-clock reading says they are not.
     """
     zone = STUDIO.zone
+
     def at(day, hour):
         return dt.datetime(2026, 3, day, hour, tzinfo=zone)
 
     # Clocks go forward at 02:00 on 8 March 2026, inside this gap.
     assignments = (
-        Assignment(work_id="W1", shoot_day=dt.date(2026, 3, 7), sequence=0,
-                   location_id=STUDIO.id, planned_call_time=at(7, 15),
-                   planned_wrap_time=at(7, 23)),
-        Assignment(work_id="W2", shoot_day=dt.date(2026, 3, 8), sequence=0,
-                   location_id=STUDIO.id, planned_call_time=at(8, 11),
-                   planned_wrap_time=at(8, 19)),
+        Assignment(
+            work_id="W1",
+            shoot_day=dt.date(2026, 3, 7),
+            sequence=0,
+            location_id=STUDIO.id,
+            planned_call_time=at(7, 15),
+            planned_wrap_time=at(7, 23),
+        ),
+        Assignment(
+            work_id="W2",
+            shoot_day=dt.date(2026, 3, 8),
+            sequence=0,
+            location_id=STUDIO.id,
+            planned_call_time=at(8, 11),
+            planned_wrap_time=at(8, 19),
+        ),
     )
     work = tuple(
         scene(w, STUDIO, DayNight.DAY, 64, ("SARAH",), IntExt.INT).to_work_item()
         for w in ("W1", "W2")
     )
-    work = tuple(dataclasses.replace(w, work_id=wid)
-                 for w, wid in zip(work, ("W1", "W2")))
-    rest = human("C-REST", Family.TURNAROUND, Subject(SubjectKind.SCHEDULE),
-                 MinimumRest(hours=12.0), said="twelve hours turnaround")
-    report = validate_board(assignments, constraints=ConstraintSet((rest,)),
-                            work_items=work, locations=PLACES, roster=ROSTER)
+    work = tuple(
+        dataclasses.replace(w, work_id=wid) for w, wid in zip(work, ("W1", "W2"))
+    )
+    rest = human(
+        "C-REST",
+        Family.TURNAROUND,
+        Subject(SubjectKind.SCHEDULE),
+        MinimumRest(hours=12.0),
+        said="twelve hours turnaround",
+    )
+    report = validate_board(
+        assignments,
+        constraints=ConstraintSet((rest,)),
+        work_items=work,
+        locations=PLACES,
+        roster=ROSTER,
+    )
     assert not report.passed, (
         "23:00 to 11:00 across the spring forward is eleven hours of rest, not twelve"
     )

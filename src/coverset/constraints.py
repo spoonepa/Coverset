@@ -25,9 +25,10 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Iterator, TypeAlias
+from typing import TypeAlias
 
 from .actors import Actor
 from .daylight import ALGORITHM
@@ -306,6 +307,7 @@ class GroundedSource:
     evidence_id: str
     source_urls: tuple[str, ...]
     grounded_value_id: str = ""
+    source_mode: DerivedFrom = DerivedFrom.EXCERPT
 
     def __post_init__(self) -> None:
         if not self.evidence_id.strip():
@@ -315,10 +317,15 @@ class GroundedSource:
                 "a grounded constraint must cite at least one source URL; without one "
                 "the value is a guess with a citation field"
             )
+        if self.source_mode not in (DerivedFrom.FULL_CONTENT, DerivedFrom.EXCERPT):
+            raise ConstraintError(
+                "a grounded constraint must say whether it came from full content "
+                "or excerpts"
+            )
 
     @property
     def derived_from(self) -> DerivedFrom:
-        return DerivedFrom.EXCERPT
+        return self.source_mode
 
     def describe(self) -> str:
         return f"evidence {self.evidence_id} ({len(self.source_urls)} source(s))"
@@ -493,7 +500,7 @@ class ConstraintSet:
             seen.add(r.constraint_id)
 
     def __iter__(self) -> Iterator[ConstraintRecord]:
-        return iter(self.records)
+        yield from self.records
 
     def __len__(self) -> int:
         return len(self.records)

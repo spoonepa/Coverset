@@ -35,6 +35,7 @@ let locations = [] as Array<Record<string, unknown>>;
 let calendar = [] as string[];
 let candidates: Candidate[] = [];
 let jobs = [] as Array<Record<string, unknown>>;
+let callSheets = [] as Array<Record<string, unknown>>;
 
 const readyCandidate: Candidate = {
   id: "scene_ready",
@@ -88,12 +89,78 @@ function json(payload: unknown, status = 200) {
   };
 }
 
+function mockCallSheet(shootDate: string): Record<string, unknown> {
+  return {
+    id: "cs_1",
+    production_id: "prod_1",
+    board_id: "board_1",
+    schedule_run_id: "sched_1",
+    shoot_date: shootDate,
+    generated_by_name: "T. Nguyen",
+    generated_by_role: "second_ad",
+    created_at: "2026-09-01T00:00:00Z",
+    rendered_text: "CALL SHEET CS-20260914-board1\nRecipients read_only\n",
+    payload: {
+      call_sheet_version: "CS-20260914-board1",
+      shoot_date: shootDate,
+      crew_call: "2026-09-14T07:00:00-04:00",
+      wrap_estimate: "2026-09-14T08:00:00-04:00",
+      scenes: [
+        {
+          scene_id: "BRK-001",
+          location_name: "Maya's Apartment",
+          planned_call_time: "2026-09-14T07:00:00-04:00",
+          planned_wrap_time: "2026-09-14T08:00:00-04:00",
+          cast: [{ character: "MAYA" }],
+          flags: {},
+        },
+      ],
+      cast_calls: [
+        {
+          cast_id: "cast-maya",
+          performer: "A. Idowu",
+          character: "MAYA",
+          call_time: "2026-09-14T07:00:00-04:00",
+          wrap_time: "2026-09-14T08:00:00-04:00",
+          is_minor: false,
+          work_hours: 1,
+        },
+      ],
+      daylight_windows: [
+        {
+          location_name: "Maya's Apartment",
+          sunrise: "2026-09-14T06:35:00-04:00",
+          sunset: "2026-09-14T19:05:00-04:00",
+          algorithm: "astral",
+        },
+      ],
+      turnaround_notes: [
+        {
+          display: "Crew",
+          rest_hours: 12,
+          minimum_hours: 10,
+          satisfied: true,
+        },
+      ],
+      permit_notes: [],
+      recipients: [
+        {
+          recipient_type: "crew",
+          display_name: "Crew distribution",
+          authority: "read_only",
+        },
+      ],
+    },
+  };
+}
+
 async function mockApi(page: Page) {
   cast = [];
   locations = [];
   calendar = [];
   candidates = [];
   jobs = [];
+  callSheets = [];
   await page.route("**/api/coverset/**", async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -289,6 +356,30 @@ async function mockApi(page: Page) {
         }),
       );
     }
+    if (path === "/boards/board_1/call-sheets" && method === "GET") {
+      return route.fulfill(json(callSheets));
+    }
+    if (path === "/boards/board_1/call-sheets" && method === "POST") {
+      const payload = request.postDataJSON() as {
+        shoot_date: string;
+        actor_role: string;
+      };
+      if (payload.actor_role !== "second_ad") {
+        return route.fulfill(
+          json({ detail: "may not generate call sheet" }, 403),
+        );
+      }
+      const sheet = mockCallSheet(payload.shoot_date);
+      callSheets = [sheet];
+      return route.fulfill(json(sheet));
+    }
+    if (path === "/call-sheets/cs_1/export" && method === "GET") {
+      return route.fulfill({
+        status: 200,
+        contentType: "text/plain",
+        body: "CALL SHEET CS-20260914-board1\n",
+      });
+    }
     if (path === "/boards/board_1" && method === "GET") {
       return route.fulfill(
         json({
@@ -449,4 +540,17 @@ test("production setup, candidate edit, accept, and solve flow", async ({
     page.getByText("Maya's Apartment", { exact: true }),
   ).toBeVisible();
   await expect(page.getByText("Constraint explanation traces")).toBeVisible();
+
+  await page.getByRole("button", { name: "Generate call sheet" }).click();
+  await expect(
+    page.getByText("Call sheet generated for read-only distribution."),
+  ).toBeVisible();
+  await expect(
+    page.locator("strong", { hasText: "CS-20260914-board1" }),
+  ).toBeVisible();
+  await expect(page.getByText("Cast calls")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Text export" })).toHaveAttribute(
+    "href",
+    "/api/coverset/call-sheets/cs_1/export?format=text",
+  );
 });
