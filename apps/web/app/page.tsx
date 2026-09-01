@@ -136,6 +136,7 @@ type ExplanationTrace = {
 
 type Board = {
     id: string;
+    production_id: string;
     solver_status: string;
     stripboard: string;
     result: {
@@ -920,7 +921,11 @@ export default function Home() {
                 method: "POST",
             });
             setBoard(demoBoard);
-            setStatus("Fixture demo solved.");
+            window.localStorage.setItem(STORAGE_KEY, demoBoard.production_id);
+            setStatus("Fixture demo solved. Opening board cockpit...");
+            window.location.assign(
+                `/productions/${demoBoard.production_id}/board/${demoBoard.id}`,
+            );
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setStatus("Demo failed.");
@@ -1188,12 +1193,12 @@ export default function Home() {
     return (
         <main className="shell">
             <section className="hero">
-                <p className="eyebrow">Coverset implementation</p>
-                <h1>Screenplay to reviewed, deterministic stripboard.</h1>
+                <p className="eyebrow">Coverset operations cockpit</p>
+                <h1>Launch the stripboard command center.</h1>
                 <p>
-                    Gemini proposes candidate scenes, production facts resolve
-                    them, explicit review accepts them, and the deterministic
-                    scheduler remains the deciding authority.
+                    Run the fixture demo to create a production and jump into
+                    the v4-style workflow shell: left rail navigation, grounded
+                    facts, replans, call sheets, audit, and cost approval.
                 </p>
             </section>
 
@@ -1281,7 +1286,7 @@ export default function Home() {
                     <h2>Fast smoke</h2>
                     <p>
                         Runs the authored fixture through the API, database, and
-                        scheduler.
+                        scheduler, then opens the new board cockpit.
                     </p>
                     <button type="button" onClick={runFixtureDemo}>
                         Run fixture demo

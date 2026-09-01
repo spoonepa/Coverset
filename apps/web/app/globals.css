@@ -1,10 +1,31 @@
 :root {
   color-scheme: dark;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #131313;
+  color: #e5e2e1;
+  --background: #131313;
+  --surface: #131313;
+  --surface-container-lowest: #0e0e0e;
+  --surface-container-low: #1c1b1b;
+  --surface-container: #201f1f;
+  --surface-container-high: #2a2a2a;
+  --surface-container-highest: #353534;
+  --surface-bright: #393939;
+  --surface-variant: #353534;
+  --outline: #8e9196;
+  --outline-variant: #43474c;
+  --primary: #b8c8da;
+  --primary-container: #8292a3;
+  --secondary-container: #434655;
+  --on-primary: #223240;
+  --on-surface: #e5e2e1;
+  --on-surface-variant: #c4c7cc;
+  --error: #ffb4ab;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --rail-width: 64px;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+    "Hanken Grotesk", Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * {
@@ -14,12 +35,12 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(
-    circle at top left,
-    #1e293b 0,
-    #0f172a 45%,
-    #020617 100%
-  );
+  color: var(--on-surface);
+  background:
+    radial-gradient(circle at top left, rgba(67, 70, 85, 0.28), transparent 34rem),
+    var(--background);
+  font-size: 14px;
+  line-height: 20px;
 }
 
 button,
@@ -44,44 +65,45 @@ pre {
 }
 
 .shell {
-  max-width: 1280px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 48px 24px;
+  padding: 36px 24px;
 }
 
 .hero {
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 
 .hero h1 {
   max-width: 920px;
   margin: 0;
-  font-size: clamp(2.2rem, 5vw, 4.8rem);
-  line-height: 0.95;
-  letter-spacing: -0.06em;
+  font-size: clamp(2rem, 4vw, 4rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
 }
 
 .hero p:not(.eyebrow) {
   max-width: 780px;
-  color: #cbd5e1;
-  font-size: 1.1rem;
+  color: var(--on-surface-variant);
+  font-size: 1rem;
 }
 
 .eyebrow {
-  margin: 0 0 12px;
-  color: #38bdf8;
+  margin: 0 0 8px;
+  color: var(--primary);
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .panel {
-  margin: 18px 0;
-  padding: 22px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 24px;
-  background: rgba(15, 23, 42, 0.78);
-  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.38);
+  margin: 12px 0;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 72%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-container) 92%, transparent);
+  box-shadow: none;
 }
 
 .grid {
@@ -113,7 +135,7 @@ label {
   display: grid;
   gap: 8px;
   margin: 14px 0;
-  color: #cbd5e1;
+  color: var(--on-surface-variant);
 }
 
 label.inline {
@@ -131,11 +153,11 @@ input,
 select,
 textarea {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid rgba(148, 163, 184, 0.38);
-  border-radius: 14px;
-  color: #e2e8f0;
-  background: rgba(2, 6, 23, 0.62);
+  padding: 10px 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 6px;
+  color: var(--on-surface);
+  background: var(--surface-container-lowest);
 }
 
 textarea {
@@ -145,28 +167,28 @@ textarea {
 
 button {
   margin-top: 12px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: 0;
-  border-radius: 999px;
-  color: #020617;
-  background: linear-gradient(135deg, #67e8f9, #a7f3d0);
+  border-radius: 12px;
+  color: var(--on-primary);
+  background: var(--primary);
   font-weight: 800;
 }
 
 button.secondary {
-  color: #dbeafe;
-  background: rgba(30, 41, 59, 0.95);
-  border: 1px solid rgba(148, 163, 184, 0.32);
+  color: var(--on-surface-variant);
+  background: var(--surface-container-high);
+  border: 1px solid var(--outline-variant);
 }
 
 .status {
-  color: #e0f2fe;
+  color: var(--primary);
 }
 
 .error,
 .errorText,
 .errorList {
-  color: #fecaca;
+  color: var(--error);
 }
 
 .errorList {
@@ -175,19 +197,19 @@ button.secondary {
 }
 
 .muted {
-  color: #94a3b8;
+  color: var(--outline);
 }
 
 .meta {
-  color: #bfdbfe;
+  color: var(--primary);
 }
 
 .meta span,
 .scene,
 .dayCard {
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 16px;
-  background: rgba(30, 41, 59, 0.74);
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 64%, transparent);
+  border-radius: 8px;
+  background: var(--surface-container-high);
 }
 
 .meta span {
@@ -199,7 +221,7 @@ button.secondary {
   gap: 6px;
   margin: 14px 0 0;
   padding-left: 18px;
-  color: #dbeafe;
+  color: var(--on-surface-variant);
   font-size: 0.94rem;
 }
 
@@ -215,25 +237,25 @@ button.secondary {
 }
 
 .scene.accepted {
-  border-color: rgba(34, 197, 94, 0.62);
+  border-color: color-mix(in srgb, var(--success) 62%, transparent);
 }
 
 .scene.ready {
-  border-color: rgba(56, 189, 248, 0.52);
+  border-color: color-mix(in srgb, var(--primary) 58%, transparent);
 }
 
 .scene.blocked {
-  border-color: rgba(251, 191, 36, 0.52);
+  border-color: color-mix(in srgb, var(--warning) 62%, transparent);
 }
 
 .scene.rejected {
-  border-color: rgba(248, 113, 113, 0.52);
+  border-color: color-mix(in srgb, var(--error) 58%, transparent);
   opacity: 0.72;
 }
 
 .scene small,
 summary {
-  color: #cbd5e1;
+  color: var(--on-surface-variant);
 }
 
 summary {
@@ -247,19 +269,20 @@ summary {
 
 .pill {
   padding: 4px 8px;
-  border-radius: 999px;
-  color: #cbd5e1;
-  background: rgba(15, 23, 42, 0.86);
+  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  color: var(--on-surface-variant);
+  background: var(--surface-container-lowest);
   font-size: 0.78rem;
   font-weight: 800;
 }
 
 .pill.good {
-  color: #bbf7d0;
+  color: var(--success);
 }
 
 .pill.warn {
-  color: #fde68a;
+  color: var(--warning);
 }
 
 .candidateForm {
@@ -296,9 +319,9 @@ summary {
 .callSheetPanel {
   margin: 18px 0;
   padding: 18px;
-  border: 1px solid rgba(103, 232, 249, 0.28);
-  border-radius: 18px;
-  background: rgba(8, 47, 73, 0.34);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  border-radius: 8px;
+  background: var(--surface-container-low);
 }
 
 .callSheetPanel label {
@@ -321,9 +344,9 @@ summary {
   display: grid;
   gap: 14px;
   padding: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 64%, transparent);
+  border-radius: 8px;
+  background: var(--surface-container);
 }
 
 .callSheetColumns {
@@ -347,16 +370,185 @@ summary {
 .board pre {
   padding: 18px;
   overflow: auto;
-  border-radius: 18px;
-  background: #020617;
-  color: #dbeafe;
+  border-radius: 8px;
+  background: var(--surface-container-lowest);
+  color: var(--on-surface-variant);
 }
 
-.routeHero h1 {
-  max-width: 1040px;
+.appFrame {
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+  color: var(--on-surface);
+  background: var(--background);
 }
 
-.screenNav,
+.sideRail {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+  display: flex;
+  width: var(--rail-width);
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 8px;
+  border-right: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+}
+
+.railBrand,
+.railFooter {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--outline-variant);
+  border-radius: 999px;
+  color: var(--primary);
+  background: var(--surface-container-highest);
+  font-size: 18px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.railBrand {
+  margin-bottom: 24px;
+}
+
+.railFooter {
+  width: 32px;
+  height: 32px;
+  margin-top: auto;
+  color: var(--on-surface-variant);
+  font-size: 11px;
+}
+
+.railNav {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.railNav a {
+  position: relative;
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--on-surface-variant);
+  text-decoration: none;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.railNav a:hover,
+.railNav a:focus-visible,
+.railNav a.active,
+.railNav a[aria-current="page"] {
+  color: var(--primary);
+  background: var(--secondary-container);
+}
+
+.railNav a:active {
+  transform: scale(0.95);
+}
+
+.railIcon {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.railLabel {
+  position: absolute;
+  left: 56px;
+  top: 50%;
+  z-index: 60;
+  display: none;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  border: 1px solid var(--outline-variant);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: var(--on-surface);
+  background: var(--surface-container-highest);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.railNav a:hover .railLabel,
+.railNav a:focus-visible .railLabel {
+  display: block;
+}
+
+.routeShell {
+  width: calc(100% - var(--rail-width));
+  min-height: 100vh;
+  margin-left: var(--rail-width);
+  padding: 0 24px 32px;
+  overflow: auto;
+}
+
+.routeTopbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 -24px 16px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--outline-variant);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.routeTopbar h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 24px;
+}
+
+.routeTopbar p:not(.eyebrow) {
+  max-width: 780px;
+  margin: 2px 0 0;
+  color: var(--on-surface-variant);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.routeTopbarActions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.routeTopbarActions button,
+.routeTopbarActions .buttonLink {
+  margin-top: 0;
+}
+
+.routeStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .routeCards,
 .actorControl,
 .metricGrid,
@@ -365,23 +557,18 @@ summary {
   gap: 12px;
 }
 
-.screenNav {
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
-  margin: 0 0 18px;
-}
-
 .screenNav a,
 .routeCards a,
 .buttonLink {
   display: inline-flex;
+  min-height: 42px;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
   padding: 10px 12px;
-  border: 1px solid rgba(103, 232, 249, 0.28);
-  border-radius: 999px;
-  color: #cffafe;
-  background: rgba(8, 47, 73, 0.38);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  border-radius: 12px;
+  color: var(--primary);
+  background: var(--surface-container-low);
   font-weight: 800;
   text-decoration: none;
 }
@@ -389,15 +576,15 @@ summary {
 .screenNav a:hover,
 .routeCards a:hover,
 .buttonLink:hover {
-  border-color: rgba(103, 232, 249, 0.72);
-  background: rgba(14, 116, 144, 0.34);
+  border-color: color-mix(in srgb, var(--primary) 72%, transparent);
+  background: var(--surface-container-high);
 }
 
 .buttonLink.secondary,
 .routeCards.compact a {
-  color: #dbeafe;
-  background: rgba(30, 41, 59, 0.95);
-  border-color: rgba(148, 163, 184, 0.32);
+  color: var(--on-surface-variant);
+  background: var(--surface-container-high);
+  border-color: var(--outline-variant);
 }
 
 .routeCards {
@@ -419,23 +606,23 @@ summary {
 
 .metricCard {
   padding: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 16px;
-  background: rgba(2, 6, 23, 0.38);
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 64%, transparent);
+  border-radius: 8px;
+  background: var(--surface-container-lowest);
 }
 
 .metricCard span {
   display: block;
   margin-bottom: 6px;
-  color: #94a3b8;
-  font-size: 0.78rem;
+  color: var(--outline);
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .metricCard strong {
-  color: #f8fafc;
+  color: var(--on-surface);
 }
 
 .miniBoard {
@@ -450,9 +637,9 @@ summary {
   display: grid;
   gap: 8px;
   padding: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 56%, transparent);
+  border-radius: 6px;
+  background: var(--surface-container-low);
 }
 
 .stripRow {
@@ -475,19 +662,73 @@ summary {
   max-height: 260px;
   padding: 14px;
   overflow: auto;
-  border-radius: 14px;
-  color: #dbeafe;
-  background: rgba(2, 6, 23, 0.82);
+  border-radius: 8px;
+  color: var(--on-surface-variant);
+  background: var(--surface-container-lowest);
   font-size: 0.82rem;
 }
 
 .emptyState {
   padding: 14px;
-  border: 1px dashed rgba(148, 163, 184, 0.28);
-  border-radius: 16px;
+  border: 1px dashed color-mix(in srgb, var(--outline-variant) 72%, transparent);
+  border-radius: 8px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 760px) {
+  .appFrame {
+    display: block;
+    overflow: auto;
+  }
+
+  .sideRail {
+    position: sticky;
+    inset: 0;
+    width: 100%;
+    height: 64px;
+    flex-direction: row;
+    justify-content: flex-start;
+    border-right: 0;
+    border-bottom: 1px solid var(--outline-variant);
+    overflow-x: auto;
+  }
+
+  .railBrand {
+    flex: 0 0 auto;
+    margin: 0 12px 0 0;
+  }
+
+  .railFooter {
+    display: none;
+  }
+
+  .railNav {
+    flex-direction: row;
+    width: auto;
+  }
+
+  .railNav a {
+    flex: 0 0 auto;
+  }
+
+  .sideRail .railLabel {
+    display: none;
+  }
+
+  .routeShell {
+    width: 100%;
+    min-height: calc(100vh - 64px);
+    margin-left: 0;
+    padding: 0 16px 24px;
+  }
+
+  .routeTopbar {
+    position: static;
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 0 -16px 12px;
+    padding: 16px;
+  }
+
   .stripRow,
   .timelineRow {
     grid-template-columns: 1fr;

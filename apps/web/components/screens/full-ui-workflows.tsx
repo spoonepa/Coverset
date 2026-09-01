@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import {
   coversetFetch,
   exportPath,
   formatError,
-  textExcerpt,
 } from "../../shared/coverset-api";
 import type {
   Actor,
@@ -252,47 +252,77 @@ function ScreenShell({
   onRefresh: () => void;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const base = `/productions/${productionId}`;
   const query = boardId ? `?boardId=${encodeURIComponent(boardId)}` : "";
   const nav = [
-    ["Overview", base],
-    ["Board", boardNav(productionId, boardId)],
-    ["Breakdown", `${base}/breakdown${query}`],
-    ["Constraints", `${base}/constraints${query}`],
-    ["Grounding", `${base}/grounding${query}`],
-    ["Replans", `${base}/replans${query}`],
-    ["Coverage", `${base}/coverage${query}`],
-    ["Call sheets", `${base}/call-sheets${query}`],
-    ["Audit", `${base}/audit${query}`],
-    ["Infeasible", `${base}/infeasible${query}`],
-    ["Costs", `${base}/costs${query}`],
+    { label: "Dashboard", icon: "▦", href: boardNav(productionId, boardId) },
+    { label: "Breakdown", icon: "☷", href: `${base}/breakdown${query}` },
+    { label: "Constraints", icon: "◇", href: `${base}/constraints${query}` },
+    { label: "Sources", icon: "◎", href: `${base}/grounding${query}` },
+    { label: "Replan", icon: "⇄", href: `${base}/replans${query}` },
+    { label: "Coverage", icon: "◉", href: `${base}/coverage${query}` },
+    { label: "Call sheets", icon: "▤", href: `${base}/call-sheets${query}` },
+    { label: "Audit", icon: "↺", href: `${base}/audit${query}` },
+    { label: "Costs", icon: "$", href: `${base}/costs${query}` },
+    { label: "Infeasible", icon: "!", href: `${base}/infeasible${query}` },
   ];
 
   return (
-    <main className="shell">
-      <section className="hero routeHero">
-        <p className="eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </section>
-      <nav className="screenNav" aria-label="Coverset workflow screens">
-        {nav.map(([label, href]) => (
-          <a key={href} href={href}>
-            {label}
-          </a>
-        ))}
-      </nav>
-      <section className="panel status sectionHeader">
-        <div>
+    <div className="appFrame">
+      <aside className="sideRail" aria-label="Coverset workflow screens">
+        <a className="railBrand" href={base} aria-label="Production overview">
+          CS
+        </a>
+        <nav className="railNav">
+          {nav.map((item) => {
+            const itemPath = item.href.split("?")[0];
+            const active = pathname === itemPath;
+            return (
+              <a
+                key={item.href}
+                aria-current={active ? "page" : undefined}
+                className={active ? "active" : undefined}
+                href={item.href}
+                title={item.label}
+              >
+                <span className="railIcon" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span className="railLabel">{item.label}</span>
+              </a>
+            );
+          })}
+        </nav>
+        <div className="railFooter" title="Assistant director cockpit">
+          AD
+        </div>
+      </aside>
+
+      <main className="routeShell">
+        <header className="routeTopbar">
+          <div>
+            <p className="eyebrow">{eyebrow}</p>
+            <h1>{title}</h1>
+            <p>{description}</p>
+          </div>
+          <div className="routeTopbarActions">
+            <a className="buttonLink secondary" href={base}>
+              Overview
+            </a>
+            <button className="secondary" type="button" onClick={onRefresh}>
+              Refresh
+            </button>
+          </div>
+        </header>
+
+        <section className="panel status routeStatus">
           <strong>Status:</strong> {status}
           {error && <pre className="error">{error}</pre>}
-        </div>
-        <button className="secondary" type="button" onClick={onRefresh}>
-          Refresh
-        </button>
-      </section>
-      {children}
-    </main>
+        </section>
+        {children}
+      </main>
+    </div>
   );
 }
 
