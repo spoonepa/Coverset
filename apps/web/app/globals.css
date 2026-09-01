@@ -351,3 +351,145 @@ summary {
   background: #020617;
   color: #dbeafe;
 }
+
+.routeHero h1 {
+  max-width: 1040px;
+}
+
+.screenNav,
+.routeCards,
+.actorControl,
+.metricGrid,
+.timeline {
+  display: grid;
+  gap: 12px;
+}
+
+.screenNav {
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  margin: 0 0 18px;
+}
+
+.screenNav a,
+.routeCards a,
+.buttonLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid rgba(103, 232, 249, 0.28);
+  border-radius: 999px;
+  color: #cffafe;
+  background: rgba(8, 47, 73, 0.38);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.screenNav a:hover,
+.routeCards a:hover,
+.buttonLink:hover {
+  border-color: rgba(103, 232, 249, 0.72);
+  background: rgba(14, 116, 144, 0.34);
+}
+
+.buttonLink.secondary,
+.routeCards.compact a {
+  color: #dbeafe;
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(148, 163, 184, 0.32);
+}
+
+.routeCards {
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+}
+
+.routeCards.compact {
+  grid-template-columns: 1fr;
+}
+
+.actorControl {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.metricGrid {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  margin: 14px 0;
+}
+
+.metricCard {
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.38);
+}
+
+.metricCard span {
+  display: block;
+  margin-bottom: 6px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.metricCard strong {
+  color: #f8fafc;
+}
+
+.miniBoard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.stripRow,
+.timelineRow {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.stripRow {
+  grid-template-columns: 0.5fr 1fr 0.7fr 1.1fr;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.timelineRow {
+  grid-template-columns: minmax(140px, 0.35fr) 1fr;
+  align-items: start;
+}
+
+.compactHeader {
+  margin-bottom: 8px;
+}
+
+.diffCard pre,
+.jsonBlock {
+  max-height: 260px;
+  padding: 14px;
+  overflow: auto;
+  border-radius: 14px;
+  color: #dbeafe;
+  background: rgba(2, 6, 23, 0.82);
+  font-size: 0.82rem;
+}
+
+.emptyState {
+  padding: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  border-radius: 16px;
+}
+
+@media (max-width: 700px) {
+  .stripRow,
+  .timelineRow {
+    grid-template-columns: 1fr;
+  }
+}

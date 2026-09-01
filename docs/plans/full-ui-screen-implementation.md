@@ -7,8 +7,6 @@ product_contract_source: ce-plan-bootstrap
 execution: code
 ---
 
-# Full UI Screen Implementation Plan
-
 ## Goal Capsule
 
 | Field | Value |
@@ -36,14 +34,14 @@ The implementation should close that gap by making the app navigable and task-or
 
 ### Requirements
 
-**Application shell and navigation**
+#### Application shell and navigation
 
 - R1. The web app must expose a persistent production operations shell with navigation to every v4 reference screen category.
 - R2. The app must support deep links for each screen so a reviewer can open a specific workflow directly.
 - R3. The app must keep the existing fast demo path so a new user can seed a production and reach a solved board quickly.
 - R4. The UI must preserve the dark dense cockpit visual language from `docs/ui-sling/*.v4.html` without copying prototype-only architecture into production code.
 
-**Screen parity**
+#### Screen parity
 
 - R5. The stripboard dashboard must show shoot days, ordered work, scene ids, location, cast, day/night, call/wrap, company moves, schedule objective summary, snapshot hash, board selection state, and lock state.
 - R6. The scene breakdown/review screen must support screenplay upload, candidate discrepancy review, candidate edit, advisory status, and human accept/reject decisions.
@@ -57,14 +55,14 @@ The implementation should close that gap by making the app navigable and task-or
 - R14. The lock day/actuals screen must record actuals/shot coverage, lock shot days, show immutable locked assignments, and route findings to human review.
 - R15. The cost approval screen must show boards pending cost approval, schedule diff cost exposure, added shoot days, and UPM/Line Producer approval/rejection.
 
-**Authority and provenance**
+#### Authority and provenance
 
 - R16. UI actions must make actor role explicit for authority-gated API calls instead of hiding role defaults.
 - R17. Unauthorized actions must surface the API rejection in production terms, not as generic errors.
 - R18. Advisory outputs from Gemini/Parallel/monitoring must be labelled advisory and visually separated from human decisions.
 - R19. Grounded values and constraints must display source mode, derived-from family, source URL/span/hash/validator metadata when available.
 
-**State, resilience, and usability**
+#### State, resilience, and usability
 
 - R20. Shared production state must be refreshed consistently after mutations without forcing a full page reload.
 - R21. Long-running jobs must keep the current poll/hydrate behavior and show terminal success/failure clearly.
@@ -95,7 +93,7 @@ The implementation should close that gap by making the app navigable and task-or
 
 ### Scope Boundaries
 
-**In scope**
+#### In scope
 
 - Implement production Next.js routes/components corresponding to the eleven v4 reference screens.
 - Reuse and refactor the current root UI behavior instead of starting from an unrelated frontend architecture.
@@ -103,14 +101,14 @@ The implementation should close that gap by making the app navigable and task-or
 - Add Playwright coverage for route navigation and each feature-bearing UI workflow.
 - Keep the reference archive and `scripts/check_ui_reference.py` intact as design-regression protection.
 
-**Deferred for later**
+#### Deferred for later
 
 - Real authentication, session management, and per-user authorization. The current actor/role selectors remain explicit demo controls.
 - A full production design system package. This plan creates shared components inside `apps/web/` only.
 - Rich collaborative editing, websocket updates, or background subscriptions. Polling/manual refresh is acceptable.
 - Implementing missing backend infeasibility-detail APIs if not already available; the frontend should render a truthful placeholder until a backend unit adds it.
 
-**Outside this product's identity**
+#### Outside this product's identity
 
 - Browser-side scheduling or browser-side selection of advisory candidates.
 - Treating static `docs/ui-sling` HTML as runtime code.
@@ -133,7 +131,7 @@ The implementation should close that gap by making the app navigable and task-or
 ### Key Technical Decisions
 
 - KTD1. Route-based UI, not static comp embedding. Implement each reference screen as a real app route under `apps/web/app`, while preserving `/` as a dashboard/demo entry. Static HTML files remain references only because `docs/ui-sling/validation.md` explicitly says they are prototype/reference code, not production frontend architecture.
-- KTD2. Shared typed API client. Move `jsonFetch` and response types out of `apps/web/app/page.tsx` into `apps/web/lib/coverset-api.ts` and `apps/web/lib/coverset-types.ts` so every route uses one error-handling and proxy path convention.
+- KTD2. Shared typed API client. Move `jsonFetch` and response types out of `apps/web/app/page.tsx` into `apps/web/shared/coverset-api.ts` and `apps/web/shared/coverset-types.ts` so every route uses one error-handling and proxy path convention.
 - KTD3. Server-rendered shell with client workflow islands. Keep route files thin and put mutation-heavy workflows in client components under `apps/web/components/screens/`. This matches the current Next App Router structure while allowing forms, polling, and local UI state.
 - KTD4. Production context is URL-addressable. Use `productionId`, `boardId`, `replanRequestId`, and related ids in route params or query params where possible, with graceful empty states when an id is missing. Avoid hidden singleton state that makes demos brittle.
 - KTD5. API authority remains authoritative. The UI may disable obviously unauthorized controls based on selected role, but it must still call the API for final enforcement and display 403/400 responses in domain language.
@@ -221,7 +219,7 @@ flowchart TB
 
 - **Goal:** Split the current single-page UI into maintainable frontend infrastructure without losing the existing demo/setup flow.
 - **Requirements:** R1, R2, R3, R4, R20, R21, R22, R24.
-- **Files:** `apps/web/app/page.tsx`, `apps/web/app/layout.tsx`, `apps/web/app/globals.css`, `apps/web/lib/coverset-api.ts`, `apps/web/lib/coverset-types.ts`, `apps/web/components/app-shell.tsx`, `apps/web/components/ui/*`, `apps/web/components/actor-role-control.tsx`.
+- **Files:** `apps/web/app/page.tsx`, `apps/web/app/layout.tsx`, `apps/web/app/globals.css`, `apps/web/shared/coverset-api.ts`, `apps/web/shared/coverset-types.ts`, `apps/web/components/app-shell.tsx`, `apps/web/components/ui/*`, `apps/web/components/actor-role-control.tsx`.
 - **Approach:** Extract API fetch/error handling, existing response types, polling helpers, status class helpers, and common formatting from `page.tsx`. Create a `ProductionShell` with navigation slots, selected production/board summary, actor controls, and empty states. Keep the root route focused on setup/demo and redirect/deep-link cards to the new routes once ids exist.
 - **Patterns:** Reuse the existing proxy route `apps/web/app/api/coverset/[...path]/route.ts`; preserve existing `jsonFetch` error semantics; keep dark theme tokens from `globals.css` and v4 reference screens.
 - **Test Scenarios:**
