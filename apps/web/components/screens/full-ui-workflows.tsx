@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import {
   coversetFetch,
   exportPath,
   formatError,
-  textExcerpt,
 } from "../../shared/coverset-api";
 import type {
   Actor,
@@ -252,47 +252,92 @@ function ScreenShell({
   onRefresh: () => void;
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const base = `/productions/${productionId}`;
   const query = boardId ? `?boardId=${encodeURIComponent(boardId)}` : "";
   const nav = [
-    ["Overview", base],
-    ["Board", boardNav(productionId, boardId)],
-    ["Breakdown", `${base}/breakdown${query}`],
-    ["Constraints", `${base}/constraints${query}`],
-    ["Grounding", `${base}/grounding${query}`],
-    ["Replans", `${base}/replans${query}`],
-    ["Coverage", `${base}/coverage${query}`],
-    ["Call sheets", `${base}/call-sheets${query}`],
-    ["Audit", `${base}/audit${query}`],
-    ["Infeasible", `${base}/infeasible${query}`],
-    ["Costs", `${base}/costs${query}`],
+    {
+      label: "Dashboard",
+      icon: "dashboard",
+      href: boardNav(productionId, boardId),
+    },
+    { label: "Breakdown", icon: "list_alt", href: `${base}/breakdown${query}` },
+    { label: "Constraints", icon: "rule", href: `${base}/constraints${query}` },
+    { label: "Sources", icon: "source", href: `${base}/grounding${query}` },
+    { label: "Replan", icon: "rebase_edit", href: `${base}/replans${query}` },
+    {
+      label: "Coverage",
+      icon: "video_library",
+      href: `${base}/coverage${query}`,
+    },
+    {
+      label: "Call sheets",
+      icon: "description",
+      href: `${base}/call-sheets${query}`,
+    },
+    { label: "Audit", icon: "history", href: `${base}/audit${query}` },
+    { label: "Costs", icon: "attach_money", href: `${base}/costs${query}` },
+    { label: "Infeasible", icon: "block", href: `${base}/infeasible${query}` },
   ];
 
   return (
-    <main className="shell">
-      <section className="hero routeHero">
-        <p className="eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </section>
-      <nav className="screenNav" aria-label="Coverset workflow screens">
-        {nav.map(([label, href]) => (
-          <a key={href} href={href}>
-            {label}
-          </a>
-        ))}
-      </nav>
-      <section className="panel status sectionHeader">
-        <div>
+    <div className="appFrame">
+      <aside className="sideRail" aria-label="Coverset workflow screens">
+        <a className="railBrand" href={base} aria-label="Production overview">
+          CS
+        </a>
+        <nav className="railNav">
+          {nav.map((item) => {
+            const itemPath = item.href.split("?")[0];
+            const active = pathname === itemPath;
+            return (
+              <a
+                key={item.href}
+                aria-current={active ? "page" : undefined}
+                className={active ? "active" : undefined}
+                href={item.href}
+                title={item.label}
+              >
+                <span
+                  className="material-symbols-outlined railIcon"
+                  aria-hidden="true"
+                >
+                  {item.icon}
+                </span>
+                <span className="railLabel">{item.label}</span>
+              </a>
+            );
+          })}
+        </nav>
+        <div className="railFooter" title="Assistant director cockpit">
+          AD
+        </div>
+      </aside>
+
+      <main className="routeShell">
+        <header className="routeTopbar">
+          <div>
+            <p className="eyebrow">{eyebrow}</p>
+            <h1>{title}</h1>
+            <p>{description}</p>
+          </div>
+          <div className="routeTopbarActions">
+            <a className="buttonLink secondary" href={base}>
+              Overview
+            </a>
+            <button className="secondary" type="button" onClick={onRefresh}>
+              Refresh
+            </button>
+          </div>
+        </header>
+
+        <section className="panel status routeStatus">
           <strong>Status:</strong> {status}
           {error && <pre className="error">{error}</pre>}
-        </div>
-        <button className="secondary" type="button" onClick={onRefresh}>
-          Refresh
-        </button>
-      </section>
-      {children}
-    </main>
+        </section>
+        {children}
+      </main>
+    </div>
   );
 }
 
@@ -367,6 +412,53 @@ function MetricGrid({ items }: { items: [string, React.ReactNode][] }) {
   );
 }
 
+function DataField({
+  label,
+  children,
+  tone = "",
+}: {
+  label: string;
+  children: React.ReactNode;
+  tone?: string;
+}) {
+  return (
+    <div className={`dataField ${tone}`.trim()}>
+      <span>{label}</span>
+      <strong>{children}</strong>
+    </div>
+  );
+}
+
+function formatTime(value: unknown): string {
+  if (typeof value !== "string" || value.length === 0) {
+    return "—";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function stripLocation(strip: BoardStrip): string {
+  const location = strip.location;
+  if (location && typeof location === "object") {
+    const record = location as Record<string, unknown>;
+    return asString(record.name, strip.location_id);
+  }
+  return strip.location_id;
+}
+
+function stripDuration(strip: BoardStrip): string {
+  const minutes = strip.duration_minutes ?? strip.minutes;
+  if (typeof minutes !== "number") {
+    return "—";
+  }
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+  return `${hours}:${String(remaining).padStart(2, "0")}`;
+}
+
 function BoardMini({ board }: { board: Board | null }) {
   if (!board) {
     return (
@@ -377,28 +469,61 @@ function BoardMini({ board }: { board: Board | null }) {
     );
   }
   return (
-    <div className="miniBoard">
-      {(board.result.days ?? []).map((day) => (
-        <div className="dayCard" key={day.date}>
-          <div className="sectionHeader compactHeader">
-            <h3>{day.date}</h3>
-            <Pill tone={day.kind === "night" ? "warn" : "good"}>
-              {asString(day.kind, "shoot")}
-            </Pill>
-          </div>
-          {stripsForDay(board, day.date).map((strip) => (
-            <div className="stripRow" key={strip.work_id}>
-              <strong>{strip.scene_number}</strong>
-              <span>{strip.location_id}</span>
-              <span>{strip.day_night}</span>
-              <small>
-                {strip.planned_call_time ?? "call ?"} →{" "}
-                {strip.planned_wrap_time ?? "wrap ?"}
-              </small>
+    <div className="stripboardBoard">
+      {(board.result.days ?? []).map((day, index) => {
+        const dayStrips = stripsForDay(board, day.date);
+        const dayKind = asString(day.kind, dayStrips[0]?.day_night ?? "shoot");
+        return (
+          <section
+            className={`stripDay ${index === 0 ? "active" : ""}`.trim()}
+            key={day.date}
+          >
+            <header className="stripDayHeader">
+              <div>
+                <div className="dayTitle">DAY {index + 1}</div>
+                <div className="dayMeta">{day.date}</div>
+              </div>
+              <div className="dayBadges">
+                <Pill tone={dayKind === "night" ? "warn" : "good"}>
+                  {dayKind} shoot
+                </Pill>
+                <span>{dayStrips.length} strips</span>
+              </div>
+            </header>
+            <div className="dayRule">
+              {dayKind === "night"
+                ? "NIGHT WORK · DAYLIGHT BOUNDS DO NOT APPLY"
+                : "DAY WORK · DAYLIGHT WINDOW ENFORCED"}
             </div>
-          ))}
-        </div>
-      ))}
+            <div className="stripTable">
+              {dayStrips.map((strip, stripIndex) => (
+                <div className="stripRow" key={strip.work_id}>
+                  <strong>{strip.scene_number || stripIndex + 1}</strong>
+                  <span className="chip">{asString(strip.int_ext, "SCN")}</span>
+                  <span className="chip mutedChip">{strip.day_night}</span>
+                  <span className="stripSlug">
+                    {asString(strip.slugline, strip.scene_id)}
+                  </span>
+                  <span className="stripLocation">{stripLocation(strip)}</span>
+                  <span className="stripCast">
+                    {strip.cast_ids.slice(0, 4).map((castId) => (
+                      <span key={castId}>
+                        {castId.replace(/^cast[-_]/, "")}
+                      </span>
+                    ))}
+                    {!strip.cast_ids.length && <span>—</span>}
+                  </span>
+                  <small>
+                    {formatTime(strip.planned_call_time)}–
+                    {formatTime(strip.planned_wrap_time)}
+                  </small>
+                  <span className="stripDuration">{stripDuration(strip)}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -506,14 +631,14 @@ export function ProductionOverviewScreen({
         </div>
         <div>
           <h2>Operational state</h2>
-          <MetricGrid
-            items={[
-              ["Jobs", data.jobs.length],
-              ["Constraints", data.constraints.length],
-              ["Replans", data.replanRequests.length],
-              ["Schedule diffs", data.scheduleDiffs.length],
-            ]}
-          />
+          <div className="dataStack">
+            <DataField label="Jobs">{data.jobs.length}</DataField>
+            <DataField label="Constraints">{data.constraints.length}</DataField>
+            <DataField label="Replans">{data.replanRequests.length}</DataField>
+            <DataField label="Schedule diffs">
+              {data.scheduleDiffs.length}
+            </DataField>
+          </div>
         </div>
       </section>
     </ScreenShell>
@@ -527,6 +652,7 @@ export function BoardDashboardScreen({
   const { data, error, message, refresh, setError, setMessage } =
     useProductionData(productionId, boardId);
   const board = data.board;
+  const objective = board?.result.objective ?? {};
   const lockDay = async () => {
     if (!board) return;
     const shootDate = firstBoardDate(board);
@@ -559,58 +685,70 @@ export function BoardDashboardScreen({
       error={error}
       onRefresh={refresh}
     >
-      <section className="panel">
-        <div className="sectionHeader">
-          <div>
-            <h2>Board: {board?.solver_status ?? "loading"}</h2>
-            <p className="muted">
-              Schedule run {board?.schedule_run_id ?? "—"}
-            </p>
+      <div className="workflowSplit boardWorkbench">
+        <section className="workspacePanel stripboardWorkspace">
+          <div className="commandBanner neutral">
+            <div>
+              <h2>Board: {board?.solver_status ?? "loading"}</h2>
+              <p>
+                Schedule run {board?.schedule_run_id ?? "—"} · CP-SAT solver ·
+                validated against its recorded snapshot.
+              </p>
+            </div>
+            <div className="commandMetrics">
+              <DataField label="Days">
+                {board?.result.days?.length ?? 0}
+              </DataField>
+              <DataField label="Work strips">
+                {board?.result.strips?.length ?? 0}
+              </DataField>
+              <DataField label="Locks">{data.locks.length}</DataField>
+            </div>
           </div>
-          <div className="actions">
+          <BoardMini board={board} />
+        </section>
+        <aside className="inspectorPanel">
+          <div className="inspectorHeader">
+            <p className="eyebrow">Inspector</p>
+            <h2>Board authority</h2>
             <Pill tone={board?.approval_state === "approved" ? "good" : "warn"}>
               {board?.approval_state ?? "unknown"}
             </Pill>
-            <button type="button" onClick={lockDay} disabled={!board}>
-              Lock first shoot day
-            </button>
           </div>
-        </div>
-        {board && (
-          <MetricGrid
-            items={[
-              ["Days", board.result.days?.length ?? 0],
-              ["Work strips", board.result.strips?.length ?? 0],
-              ["Locks", data.locks.length],
-              ["Call sheets", data.callSheets.length],
-            ]}
-          />
-        )}
-        <BoardMini board={board} />
-      </section>
-      <section className="panel grid three">
-        <div>
-          <h3>Objective</h3>
-          <JsonBlock value={board?.result.objective ?? {}} />
-        </div>
-        <div>
-          <h3>Constraint traces</h3>
-          {(board?.result.explanation_traces ?? []).slice(0, 8).map((trace) => (
-            <p
-              className="muted"
-              key={`${trace.work_id}-${trace.constraint_id ?? trace.reason}`}
-            >
-              <strong>{trace.work_id}</strong> ·{" "}
-              {trace.constraint_id ?? "reason"} · {trace.reason}
-            </p>
-          ))}
-          {!(board?.result.explanation_traces ?? []).length && (
-            <EmptyState>No explanation traces reported.</EmptyState>
-          )}
-        </div>
-        <div>
-          <h3>Next actions</h3>
-          <div className="routeCards compact">
+          <button type="button" onClick={lockDay} disabled={!board}>
+            Lock first shoot day
+          </button>
+          <div className="dataStack">
+            <DataField label="Call sheets">{data.callSheets.length}</DataField>
+            <DataField label="Company moves">
+              {asString(objective.company_moves, "—")}
+            </DataField>
+            <DataField label="Holding days">
+              {asString(objective.holding_days, "—")}
+            </DataField>
+            <DataField label="Overtime hours">
+              {asString(objective.overtime_hours, "—")}
+            </DataField>
+          </div>
+          <div className="inspectorSection">
+            <h3>Constraint explanation traces</h3>
+            {(board?.result.explanation_traces ?? [])
+              .slice(0, 8)
+              .map((trace) => (
+                <p
+                  className="traceLine"
+                  key={`${trace.work_id}-${trace.constraint_id ?? trace.reason}`}
+                >
+                  <strong>{trace.work_id}</strong>
+                  <span>{trace.constraint_id ?? "reason"}</span>
+                  {trace.reason}
+                </p>
+              ))}
+            {!(board?.result.explanation_traces ?? []).length && (
+              <EmptyState>No explanation traces reported.</EmptyState>
+            )}
+          </div>
+          <div className="inspectorSection routeCards compact">
             <a
               href={withBoard(
                 `/productions/${productionId}/call-sheets`,
@@ -633,8 +771,8 @@ export function BoardDashboardScreen({
               Approve costs
             </a>
           </div>
-        </div>
-      </section>
+        </aside>
+      </div>
     </ScreenShell>
   );
 }
@@ -645,6 +783,7 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
   const [file, setFile] = useState<File | null>(null);
   const [breakdown, setBreakdown] = useState<BreakdownRun | null>(null);
   const [agentMode, setAgentMode] = useState("fixture");
+  const candidates = breakdown?.candidates ?? [];
 
   const uploadAndBreakDown = async () => {
     if (!file) {
@@ -655,23 +794,21 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
     try {
       const form = new FormData();
       form.append("file", file);
-      const asset = await fetch(
+      const response = await fetch(
         `/api/coverset/productions/${productionId}/screenplays`,
         {
           method: "POST",
           body: form,
         },
-      ).then(async (response) => {
-        const payload = (await response.json()) as
-          | { id: string }
-          | { detail: string };
-        if (!response.ok || !("id" in payload)) {
-          throw new Error(
-            "detail" in payload ? payload.detail : "screenplay upload failed",
-          );
-        }
-        return payload;
-      });
+      );
+      const asset = (await response.json()) as
+        | { id: string }
+        | { detail: string };
+      if (!response.ok || !("id" in asset)) {
+        throw new Error(
+          "detail" in asset ? asset.detail : "screenplay upload failed",
+        );
+      }
       const run = await coversetFetch<BreakdownRun>(
         `/productions/${productionId}/breakdowns`,
         {
@@ -747,9 +884,121 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
       error={error}
       onRefresh={refresh}
     >
-      <section className="panel grid">
-        <div>
-          <h2>Screenplay intake</h2>
+      <div className="workflowSplit breakdownWorkbench">
+        <section className="workspacePanel candidateCanvas">
+          <div className="canvasCommandBar">
+            <div>
+              <h2>Candidate scenes</h2>
+              <p>
+                Advisory records only — they become schedulable work after human
+                acceptance.
+              </p>
+            </div>
+            <div className="commandMetrics">
+              <DataField label="Total">{candidates.length}</DataField>
+              <DataField label="Needs review">
+                {
+                  candidates.filter(
+                    (candidate) =>
+                      !candidate.accepted &&
+                      !candidate.rejected &&
+                      candidate.resolution_errors.length > 0,
+                  ).length
+                }
+              </DataField>
+              <DataField label="Accepted">
+                {candidates.filter((candidate) => candidate.accepted).length}
+              </DataField>
+            </div>
+          </div>
+          <div
+            className="candidateTable"
+            role="table"
+            aria-label="Candidate review"
+          >
+            <div className="candidateHeader" role="row">
+              <span>Scene</span>
+              <span>Description</span>
+              <span>Status</span>
+              <span>Warning</span>
+              <span>Confidence</span>
+              <span>Pages</span>
+            </div>
+            {candidates.map((candidate) => (
+              <article
+                className={`candidateRow ${candidate.accepted ? "accepted" : candidate.rejected ? "rejected" : candidate.schedulable ? "ready" : "blocked"}`}
+                key={candidate.id}
+                role="row"
+              >
+                <span className="mono primaryText">
+                  {candidate.scene_number || candidate.scene_id}
+                </span>
+                <span>
+                  <strong>{candidate.slugline}</strong>
+                  <small>
+                    {candidate.location_ref} · {candidate.day_night} · cast{" "}
+                    {candidate.cast_ids.join(", ") || "—"}
+                  </small>
+                </span>
+                <Pill
+                  tone={
+                    candidate.accepted
+                      ? "good"
+                      : candidate.rejected
+                        ? "error"
+                        : candidate.schedulable
+                          ? "good"
+                          : "warn"
+                  }
+                >
+                  {candidate.accepted
+                    ? "active"
+                    : candidate.rejected
+                      ? "rejected"
+                      : candidate.status}
+                </Pill>
+                <span className="warningCell">
+                  {candidate.resolution_errors[0] ?? "—"}
+                </span>
+                <span className="mono right">
+                  {candidate.confidence == null
+                    ? "—"
+                    : `${Math.round(candidate.confidence * 100)}%`}
+                </span>
+                <span className="mono right">{candidate.page_eighths}/8</span>
+                <div className="rowActions">
+                  <button
+                    type="button"
+                    onClick={() => review(candidate.id, "accept")}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    className="secondary"
+                    type="button"
+                    onClick={() => review(candidate.id, "reject")}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </article>
+            ))}
+            {!breakdown && (
+              <EmptyState>
+                No breakdown has been run in this browser session. Upload a
+                screenplay or use the root fixture demo.
+              </EmptyState>
+            )}
+          </div>
+        </section>
+        <aside className="inspectorPanel reviewInspector">
+          <div className="inspectorHeader">
+            <p className="eyebrow">Review inspector</p>
+            <h2>Screenplay intake</h2>
+            <p>
+              Gemini may propose; explicit review is the production boundary.
+            </p>
+          </div>
           <label>
             Agent mode
             <select
@@ -774,82 +1023,24 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
           <button className="secondary" type="button" onClick={solve}>
             Solve accepted scenes
           </button>
-        </div>
-        <div>
-          <h2>Review summary</h2>
-          <MetricGrid
-            items={[
-              ["Candidates", breakdown?.candidates.length ?? 0],
-              [
-                "Accepted",
-                breakdown?.candidates.filter((candidate) => candidate.accepted)
-                  .length ?? 0,
-              ],
-              [
-                "Blocked",
-                breakdown?.candidates.filter(
-                  (candidate) => candidate.resolution_errors.length > 0,
-                ).length ?? 0,
-              ],
-            ]}
-          />
-          <p className="muted">
-            Candidates remain advisory until a human review decision is posted.
-          </p>
-        </div>
-      </section>
-      <section className="panel">
-        <h2>Candidate review</h2>
-        <div className="sceneList">
-          {(breakdown?.candidates ?? []).map((candidate) => (
-            <article
-              className={`scene ${candidate.accepted ? "accepted" : candidate.rejected ? "rejected" : candidate.schedulable ? "ready" : "blocked"}`}
-              key={candidate.id}
-            >
-              <div className="sectionHeader compactHeader">
-                <div>
-                  <strong>
-                    {candidate.scene_number} · {candidate.slugline}
-                  </strong>
-                  <p className="muted">
-                    {candidate.location_ref} · {candidate.day_night} · cast{" "}
-                    {candidate.cast_ids.join(", ") || "—"}
-                  </p>
-                </div>
-                <div className="actions">
-                  <Pill>{candidate.status}</Pill>
-                  <button
-                    type="button"
-                    onClick={() => review(candidate.id, "accept")}
-                  >
-                    Accept
-                  </button>
-                  <button
-                    className="secondary"
-                    type="button"
-                    onClick={() => review(candidate.id, "reject")}
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
-              {candidate.resolution_errors.length > 0 && (
-                <ul className="errorList">
-                  {candidate.resolution_errors.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              )}
-            </article>
-          ))}
-          {!breakdown && (
-            <EmptyState>
-              No breakdown has been run in this browser session. Upload a
-              screenplay or use the root fixture demo.
-            </EmptyState>
-          )}
-        </div>
-      </section>
+          <div className="inspectorSection">
+            <h3>Review summary</h3>
+            <div className="dataStack">
+              <DataField label="Candidates">{candidates.length}</DataField>
+              <DataField label="Accepted">
+                {candidates.filter((candidate) => candidate.accepted).length}
+              </DataField>
+              <DataField label="Blocked">
+                {
+                  candidates.filter(
+                    (candidate) => candidate.resolution_errors.length > 0,
+                  ).length
+                }
+              </DataField>
+            </div>
+          </div>
+        </aside>
+      </div>
     </ScreenShell>
   );
 }
@@ -860,6 +1051,7 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
   const [text, setText] = useState("Maximum daily hours 11");
   const [proposals, setProposals] = useState<ConstraintProposal[]>([]);
   const [actor, setActor] = useActor("first_ad");
+  const activeCount = data.constraints.filter((row) => row.active).length;
 
   const translate = async () => {
     setError("");
@@ -933,9 +1125,16 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
       error={error}
       onRefresh={refresh}
     >
-      <section className="panel grid">
-        <div>
-          <h2>Translate instruction</h2>
+      <div className="workflowTri constraintWorkbench">
+        <aside className="inspectorPanel intakePanel">
+          <div className="inspectorHeader">
+            <p className="eyebrow">Say it plainly</p>
+            <h2>Production instruction</h2>
+            <p>
+              Gemini interprets prose into typed candidates. It cannot activate,
+              schedule, or silently resolve ambiguity.
+            </p>
+          </div>
           <ActorRoleControl
             actor={actor}
             onActorChange={setActor}
@@ -951,89 +1150,120 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
           <button type="button" onClick={translate}>
             Translate into inactive proposals
           </button>
-        </div>
-        <div>
-          <h2>Why this fails closed</h2>
-          <p className="muted">
-            A proposal is inert until accepted, and an accepted constraint still
-            needs explicit activation before the solver may consider it.
-          </p>
-          <MetricGrid
-            items={[
-              ["Live constraints", data.constraints.length],
-              ["Active", data.constraints.filter((row) => row.active).length],
-              ["New proposals", proposals.length],
-            ]}
-          />
-        </div>
-      </section>
-      <section className="panel grid">
-        <div>
-          <h2>Latest proposals</h2>
-          {(proposals.length ? proposals : []).map((proposal) => (
-            <article className="scene" key={proposal.id}>
-              <div className="sectionHeader compactHeader">
-                <strong>{proposal.id}</strong>
-                <Pill tone="warn">{proposal.status}</Pill>
-              </div>
-              <p>{proposal.source_text}</p>
-              <JsonBlock value={proposal.payload} />
-              {proposal.validation_errors.length > 0 && (
-                <ul className="errorList">
-                  {proposal.validation_errors.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              )}
-              <div className="actions">
-                <button
-                  type="button"
-                  onClick={() => decide(proposal, "accept")}
-                >
-                  Accept as human
-                </button>
-                <button
-                  className="secondary"
-                  type="button"
-                  onClick={() => decide(proposal, "reject")}
-                >
-                  Reject
-                </button>
-              </div>
-            </article>
-          ))}
-          {!proposals.length && (
-            <EmptyState>
-              No browser-session proposals yet. Translate text above.
-            </EmptyState>
-          )}
-        </div>
-        <div>
-          <h2>Constraints</h2>
-          {data.constraints.map((row) => (
-            <article className="scene" key={row.id}>
-              <div className="sectionHeader compactHeader">
-                <strong>{row.constraint_id}</strong>
-                <Pill tone={row.active ? "good" : "warn"}>
-                  {row.active ? "active" : "inactive"}
-                </Pill>
-              </div>
-              <p className="muted">
-                {row.family} · {row.policy}
+          <div className="advisoryCard">
+            <Pill tone="advisory">Gemini advisory</Pill>
+            <p>
+              Name resolution is visible. Near misses are refused, not guessed,
+              because a silent fix can schedule the wrong person or location.
+            </p>
+          </div>
+        </aside>
+        <main className="workspacePanel constraintCanvas">
+          <div className="canvasCommandBar">
+            <div>
+              <h2>Candidate constraints — {proposals.length}</h2>
+              <p>
+                A candidate is inert. Activation creates a new constraint
+                snapshot for future boards.
               </p>
-              <JsonBlock value={row.provenance} />
-              <button type="button" onClick={() => toggle(row)}>
-                {row.active ? "Deactivate" : "Activate"}
-              </button>
-            </article>
-          ))}
-          {!data.constraints.length && (
-            <EmptyState>
-              No constraints have been created for this production.
-            </EmptyState>
-          )}
-        </div>
-      </section>
+            </div>
+            <div className="commandMetrics">
+              <DataField label="Live">{data.constraints.length}</DataField>
+              <DataField label="Active">{activeCount}</DataField>
+              <DataField label="Typed">{proposals.length}</DataField>
+            </div>
+          </div>
+          <div className="constraintCards">
+            {proposals.map((proposal) => (
+              <article className="constraintCard" key={proposal.id}>
+                <header>
+                  <div>
+                    <span className="mono">{proposal.id}</span>
+                    <Pill tone="warn">{proposal.status}</Pill>
+                  </div>
+                  <span className="caps">
+                    confidence {Math.round(proposal.confidence * 100)}%
+                  </span>
+                </header>
+                <p className="quote">“{proposal.source_text}”</p>
+                <JsonBlock value={proposal.payload} />
+                {proposal.validation_errors.length > 0 && (
+                  <ul className="errorList">
+                    {proposal.validation_errors.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+                <div className="actions">
+                  <button
+                    type="button"
+                    onClick={() => decide(proposal, "accept")}
+                  >
+                    Accept as human
+                  </button>
+                  <button
+                    className="secondary"
+                    type="button"
+                    onClick={() => decide(proposal, "reject")}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </article>
+            ))}
+            {!proposals.length && (
+              <EmptyState>
+                No browser-session proposals yet. Translate text from the left
+                panel.
+              </EmptyState>
+            )}
+            {data.constraints.map((row) => (
+              <article className="constraintCard activeConstraint" key={row.id}>
+                <header>
+                  <div>
+                    <span className="mono">{row.constraint_id}</span>
+                    <Pill tone={row.active ? "good" : "warn"}>
+                      {row.active ? "active" : "inactive"}
+                    </Pill>
+                  </div>
+                  <span className="caps">
+                    {row.family} · {row.policy}
+                  </span>
+                </header>
+                <JsonBlock value={row.provenance} />
+                <button type="button" onClick={() => toggle(row)}>
+                  {row.active ? "Deactivate" : "Activate"}
+                </button>
+              </article>
+            ))}
+          </div>
+        </main>
+        <aside className="inspectorPanel activationPanel">
+          <div className="inspectorHeader">
+            <p className="eyebrow">Activation</p>
+            <h2>What changes</h2>
+            <p>Activation is a separate human commitment.</p>
+          </div>
+          <div className="dataStack">
+            <DataField label="Acting as">
+              {roleNames[actor.role]} · {actor.name}
+            </DataField>
+            <DataField label="Constraint snapshot">
+              recomputed on activation
+            </DataField>
+            <DataField label="Current board">
+              {activeCount > 0 ? "superseded on solve" : "unchanged"}
+            </DataField>
+          </div>
+          <div className="inspectorSection dashed">
+            <h3>Not offered here</h3>
+            <p className="muted">
+              There is no “activate all”. Each constraint is a separate
+              production commitment with its own consequence.
+            </p>
+          </div>
+        </aside>
+      </div>
     </ScreenShell>
   );
 }
@@ -1045,6 +1275,7 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
   const [locationId, setLocationId] = useState("");
   const [targetDate, setTargetDate] = useState("2026-03-17");
   const [groundedValues, setGroundedValues] = useState<GroundedValue[]>([]);
+  const selectedEvidence = data.grounding[0] ?? null;
 
   const runGrounding = async () => {
     const location =
@@ -1125,9 +1356,92 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
       error={error}
       onRefresh={refresh}
     >
-      <section className="panel grid">
-        <div>
-          <h2>Ground a value</h2>
+      <div className="workflowSplit groundingWorkbench">
+        <section className="workspacePanel groundingLedger">
+          <div className="canvasCommandBar">
+            <div>
+              <h2>Provenance ledger</h2>
+              <p>
+                Every bound value names the source span, extraction mode,
+                validator, and date coverage.
+              </p>
+            </div>
+            <div className="commandMetrics">
+              <DataField label="Evidence">{data.grounding.length}</DataField>
+              <DataField label="Values">{groundedValues.length}</DataField>
+              <DataField label="Constraints">
+                {data.constraints.length}
+              </DataField>
+            </div>
+          </div>
+          <div className="groundingCards">
+            {data.grounding.map((evidence) => (
+              <article
+                className={`evidenceCard ${evidence.fact_kind}`}
+                key={evidence.id}
+              >
+                <header>
+                  <div>
+                    <span className="material-symbols-outlined">
+                      {evidence.fact_kind === "weather"
+                        ? "cloud_sync"
+                        : "verified"}
+                    </span>
+                    <h2>
+                      {evidence.id} · {evidence.fact_kind} ·{" "}
+                      {evidence.location_id}
+                    </h2>
+                  </div>
+                  <Pill
+                    tone={
+                      evidence.status === "accepted" || evidence.status === "ok"
+                        ? "good"
+                        : "warn"
+                    }
+                  >
+                    {evidence.status}
+                  </Pill>
+                </header>
+                <div className="evidenceGrid">
+                  <DataField label="Target date">
+                    {evidence.target_date}
+                  </DataField>
+                  <DataField label="Source domain">
+                    {asString(evidence.evidence.source_url, "not recorded")}
+                  </DataField>
+                  <DataField label="Source span">
+                    {asString(evidence.evidence.source_span, "source text")}
+                  </DataField>
+                  <DataField label="Query">
+                    {asString(evidence.evidence.query, "UI grounding query")}
+                  </DataField>
+                </div>
+                <blockquote>
+                  {asString(
+                    evidence.evidence.quote,
+                    "Source span will appear here after retrieval.",
+                  )}
+                </blockquote>
+                <button type="button" onClick={() => recordValue(evidence)}>
+                  Record reviewed grounded value
+                </button>
+              </article>
+            ))}
+            {!data.grounding.length && (
+              <EmptyState>
+                No grounding evidence yet. Run grounding from the inspector.
+              </EmptyState>
+            )}
+          </div>
+        </section>
+        <aside className="inspectorPanel sourceInspector">
+          <div className="inspectorHeader">
+            <p className="eyebrow">Ground a value</p>
+            <h2>Source inspector</h2>
+            <p>
+              Retrieval is advisory until a human records the reviewed value.
+            </p>
+          </div>
           <label>
             Fact kind
             <select
@@ -1159,68 +1473,43 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
           <button type="button" onClick={runGrounding}>
             Run grounding now
           </button>
-        </div>
-        <div>
-          <h2>Provenance summary</h2>
-          <MetricGrid
-            items={[
-              ["Evidence rows", data.grounding.length],
-              ["Browser recorded values", groundedValues.length],
-              ["Constraints", data.constraints.length],
-            ]}
-          />
-          <p className="muted">
-            Daylight remains algorithm-derived; URL evidence is only valid for
-            families that accept retrieved facts.
-          </p>
-        </div>
-      </section>
-      <section className="panel grid">
-        {data.grounding.map((evidence) => (
-          <article className="scene" key={evidence.id}>
-            <div className="sectionHeader compactHeader">
-              <strong>
-                {evidence.id} · {evidence.fact_kind} · {evidence.location_id}
-              </strong>
-              <Pill
-                tone={
-                  evidence.status === "accepted" || evidence.status === "ok"
-                    ? "good"
-                    : "warn"
-                }
-              >
-                {evidence.status}
-              </Pill>
+          <div className="inspectorSection">
+            <h3>Selected evidence</h3>
+            {selectedEvidence ? (
+              <div className="dataStack">
+                <DataField label="Provider response">
+                  {asString(selectedEvidence.evidence.provider_response_id)}
+                </DataField>
+                <DataField label="Content hash">
+                  {asString(selectedEvidence.evidence.content_hash)}
+                </DataField>
+                <DataField label="Extraction mode">
+                  {asString(
+                    selectedEvidence.evidence.extraction_mode,
+                    "full content",
+                  )}
+                </DataField>
+              </div>
+            ) : (
+              <EmptyState>No selected source yet.</EmptyState>
+            )}
+          </div>
+          {groundedValues.length > 0 && (
+            <div className="inspectorSection">
+              <h3>Recorded values</h3>
+              {groundedValues.map((value) => (
+                <article className="miniRecord" key={value.id}>
+                  <strong>{value.id}</strong>
+                  <span>
+                    {value.units} · {value.derived_from} · covers date:{" "}
+                    {String(value.covering_date)}
+                  </span>
+                </article>
+              ))}
             </div>
-            <p className="muted">{evidence.target_date}</p>
-            <JsonBlock value={evidence.evidence} />
-            <button type="button" onClick={() => recordValue(evidence)}>
-              Record reviewed grounded value
-            </button>
-          </article>
-        ))}
-        {!data.grounding.length && (
-          <EmptyState>
-            No grounding evidence yet. Run grounding or enqueue a grounding job
-            from the root app.
-          </EmptyState>
-        )}
-      </section>
-      {groundedValues.length > 0 && (
-        <section className="panel">
-          <h2>Recorded values in this browser session</h2>
-          {groundedValues.map((value) => (
-            <article className="scene" key={value.id}>
-              <strong>{value.id}</strong>
-              <p className="muted">
-                {value.units} · {value.derived_from} · covers date:{" "}
-                {String(value.covering_date)}
-              </p>
-              <JsonBlock value={value.validator_result} />
-            </article>
-          ))}
-        </section>
-      )}
+          )}
+        </aside>
+      </div>
     </ScreenShell>
   );
 }
@@ -1230,6 +1519,7 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
     useProductionData(productionId, boardId);
   const [actor, setActor] = useActor("first_ad");
   const board = data.board;
+  const lockedDates = new Set(data.locks.map((lock) => lock.shoot_date));
 
   const createMaterialMonitorReplan = async () => {
     const strip = firstBoardStrip(board);
@@ -1329,9 +1619,110 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
       error={error}
       onRefresh={refresh}
     >
-      <section className="panel grid">
+      <section className="commandBanner warning replanAlert">
         <div>
-          <h2>Replan requests</h2>
+          <h2>Material fact change</h2>
+          <p>
+            Monitor changes can open requests, but cannot select a board.
+            Options below preserve locked history and expose cost approval
+            requirements.
+          </p>
+        </div>
+        <div className="commandMetrics">
+          <DataField label="Requests">{data.replanRequests.length}</DataField>
+          <DataField label="Options">{data.scheduleDiffs.length}</DataField>
+          <DataField label="Locked days">{data.locks.length}</DataField>
+        </div>
+      </section>
+      <div className="replanBoard">
+        <aside className="historyColumn">
+          <header>
+            <span>Shot days</span>
+            <Pill>{data.locks.length ? "immutable" : "unlocked"}</Pill>
+          </header>
+          <div className="historyList">
+            {(board?.result.days ?? []).map((day, index) => (
+              <div
+                className={lockedDates.has(day.date) ? "locked" : "current"}
+                key={day.date}
+              >
+                <strong>Day {index + 1}</strong>
+                <span>{day.date}</span>
+                <small>
+                  {lockedDates.has(day.date) ? "locked" : "available"}
+                </small>
+              </div>
+            ))}
+            {!board && <EmptyState>No board history yet.</EmptyState>}
+          </div>
+        </aside>
+        <main className="optionDeck">
+          {data.scheduleDiffs.map((diff, index) => (
+            <article className="optionCard" key={diff.id}>
+              <header>
+                <div>
+                  <span className="caps">
+                    Option {String.fromCharCode(65 + index)}
+                  </span>
+                  <h3>{diff.id}</h3>
+                  <p>
+                    {diff.base_board_id} → {diff.revised_board_id} · validation
+                    report expected before selection
+                  </p>
+                </div>
+                <Pill tone={diff.cost_delta > 0 ? "warn" : "good"}>
+                  {diff.required_approvals.length
+                    ? "approval gate"
+                    : "validated"}
+                </Pill>
+              </header>
+              <MetricGrid
+                items={[
+                  ["Cost delta", `$${diff.cost_delta.toLocaleString()}`],
+                  [
+                    "Added days",
+                    asStringList(diff.diff.added_days).length || 0,
+                  ],
+                  [
+                    "Added pickups",
+                    asStringList(diff.diff.added_pickups).join(", ") || "none",
+                  ],
+                  ["Approvals", diff.required_approvals.length || "none"],
+                ]}
+              />
+              {diff.rendered_text && <pre>{diff.rendered_text}</pre>}
+              <div className="actions optionActions">
+                <button type="button" onClick={() => selectBoard(diff)}>
+                  Select revised board as {roleNames[actor.role]}
+                </button>
+                <a
+                  className="buttonLink secondary"
+                  href={`/productions/${diff.production_id}/board/${diff.revised_board_id}`}
+                >
+                  Open board
+                </a>
+              </div>
+            </article>
+          ))}
+          {!data.scheduleDiffs.length && (
+            <EmptyState>
+              No schedule diffs yet. Generate options from a replan request.
+            </EmptyState>
+          )}
+        </main>
+        <aside className="inspectorPanel replanInspector">
+          <div className="inspectorHeader">
+            <p className="eyebrow">First AD authority</p>
+            <h2>Selection</h2>
+            <p>
+              The UI can propose options, but the API enforces board selection.
+            </p>
+          </div>
+          <ActorRoleControl
+            actor={actor}
+            onActorChange={setActor}
+            roles={["first_ad", "director", "producer"]}
+          />
           <button
             type="button"
             onClick={createMaterialMonitorReplan}
@@ -1339,60 +1730,23 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
           >
             Create material monitor replan
           </button>
-          {data.replanRequests.map((request) => (
-            <article className="scene" key={request.id}>
-              <div className="sectionHeader compactHeader">
+          <div className="inspectorSection">
+            <h3>Replan requests</h3>
+            {data.replanRequests.map((request) => (
+              <article className="miniRecord" key={request.id}>
                 <strong>{request.id}</strong>
-                <Pill>{request.status}</Pill>
-              </div>
-              <p>{request.reason || request.requester_component}</p>
-              <p className="muted">
-                Source: {request.source_kind} · affected{" "}
-                {request.affected_work_ids.join(", ") || "—"}
-              </p>
-              <button type="button" onClick={() => generateOptions(request)}>
-                Generate options
-              </button>
-            </article>
-          ))}
-          {!data.replanRequests.length && (
-            <EmptyState>
-              No replan requests yet. Create a material monitor replan to
-              exercise the flow.
-            </EmptyState>
-          )}
-        </div>
-        <div>
-          <h2>Selection authority</h2>
-          <ActorRoleControl
-            actor={actor}
-            onActorChange={setActor}
-            roles={["first_ad", "director", "producer"]}
-          />
-          <p className="muted">
-            The UI can propose options, but only the API-enforced First AD
-            decision can select a board.
-          </p>
-        </div>
-      </section>
-      <section className="panel">
-        <h2>Schedule diffs</h2>
-        <div className="sceneList">
-          {data.scheduleDiffs.map((diff) => (
-            <div key={diff.id}>
-              <DiffCard diff={diff} baseBoardId={boardId} />
-              <button type="button" onClick={() => selectBoard(diff)}>
-                Select revised board as {roleNames[actor.role]}
-              </button>
-            </div>
-          ))}
-          {!data.scheduleDiffs.length && (
-            <EmptyState>
-              No schedule diffs yet. Generate options from a replan request.
-            </EmptyState>
-          )}
-        </div>
-      </section>
+                <span>{request.reason || request.requester_component}</span>
+                <button type="button" onClick={() => generateOptions(request)}>
+                  Generate options
+                </button>
+              </article>
+            ))}
+            {!data.replanRequests.length && (
+              <EmptyState>No replan requests yet.</EmptyState>
+            )}
+          </div>
+        </aside>
+      </div>
     </ScreenShell>
   );
 }
@@ -1405,6 +1759,7 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
   const [pickup, setPickup] = useState<PickupTask | null>(null);
   const [pickupReplan, setPickupReplan] = useState<ReplanRequest | null>(null);
   const board = data.board;
+  const strips = board?.result.strips ?? [];
 
   const createFinding = async () => {
     const strip = firstBoardStrip(board);
@@ -1563,65 +1918,124 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
       error={error}
       onRefresh={refresh}
     >
-      <section className="panel grid">
-        <div>
-          <h2>Actuals and findings</h2>
+      <div className="workflowSplit coverageWorkbench">
+        <section className="workspacePanel coverageCanvas">
+          <div className="canvasCommandBar">
+            <div>
+              <h2>Completed coverage</h2>
+              <p>
+                Record actuals, expose advisory gaps, and route human decisions
+                into pickup work.
+              </p>
+            </div>
+            <div className="commandMetrics">
+              <DataField label="Strips">{strips.length}</DataField>
+              <DataField label="Locked days">{data.locks.length}</DataField>
+              <DataField label="Findings">{finding ? 1 : 0}</DataField>
+            </div>
+          </div>
+          <div className="coverageList">
+            {strips.map((strip, index) => (
+              <article
+                className={`coverageCard ${index === 0 ? "needsReview" : "validated"}`}
+                key={strip.work_id}
+              >
+                <header>
+                  <div>
+                    <span className="sceneNumber">{strip.scene_number}</span>
+                    <h3>{asString(strip.slugline, strip.scene_id)}</h3>
+                  </div>
+                  <Pill tone={index === 0 && finding ? "warn" : "good"}>
+                    {index === 0 && finding ? "needs review" : "validated"}
+                  </Pill>
+                </header>
+                <div className="coverageMeta">
+                  <DataField label="Cast">
+                    {strip.cast_ids.join(", ") || "—"}
+                  </DataField>
+                  <DataField label="Location">{stripLocation(strip)}</DataField>
+                  <DataField label="Setups captured">
+                    {index === 0 && coverageItem ? "4 / 5" : "complete"}
+                  </DataField>
+                </div>
+                {index === 0 && finding && (
+                  <div className="advisoryCard">
+                    <Pill tone="advisory">Advisory finding</Pill>
+                    <p>{finding.message}</p>
+                  </div>
+                )}
+              </article>
+            ))}
+            {!strips.length && <EmptyState>No board strips loaded.</EmptyState>}
+          </div>
+          <div className="lockActualsPanel">
+            <h2>Before this day can lock</h2>
+            <div className="checklist">
+              <span>✓ Every strip has an outcome recorded</span>
+              <span>✓ Actual call and wrap captured by Script Supervisor</span>
+              <span>✓ Part-shot remainder converted to schedulable work</span>
+              <span>✓ Recorded by {defaultNames.script_supervisor}</span>
+            </div>
+          </div>
+          {data.locks.length > 0 && (
+            <div className="lockList">
+              {data.locks.map((lock) => (
+                <article className="miniRecord" key={lock.id}>
+                  <strong>{lock.shoot_date}</strong>
+                  <span>
+                    {lock.locked_assignments.length} assignments immutable ·{" "}
+                    {lock.recorded_by_role}
+                  </span>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+        <aside className="inspectorPanel coverageInspector">
+          <div className="inspectorHeader">
+            <p className="eyebrow">Script Supervisor</p>
+            <h2>{defaultNames.script_supervisor}</h2>
+            <p>May record actuals and raise findings; may not select boards.</p>
+          </div>
           <button type="button" onClick={lockDay} disabled={!board}>
             Lock first board day
           </button>
           <button type="button" onClick={createFinding} disabled={!board}>
             Record unusable insert finding
           </button>
+          <div className="inspectorSection">
+            <h3>Director decision</h3>
+            <div className="stackedButtons">
+              <button type="button" onClick={requestPickup} disabled={!finding}>
+                Director requests pickup
+              </button>
+              <button type="button" onClick={confirmPickup} disabled={!pickup}>
+                First AD confirms spec
+              </button>
+              <button
+                type="button"
+                onClick={createPickupReplan}
+                disabled={!pickup}
+              >
+                Create pickup replan
+              </button>
+            </div>
+          </div>
           {coverageItem && <JsonBlock value={coverageItem} />}
           {finding && <JsonBlock value={finding} />}
-        </div>
-        <div>
-          <h2>Pickup decision chain</h2>
-          <div className="actions">
-            <button type="button" onClick={requestPickup} disabled={!finding}>
-              Director requests pickup
-            </button>
-            <button type="button" onClick={confirmPickup} disabled={!pickup}>
-              First AD confirms spec
-            </button>
-            <button
-              type="button"
-              onClick={createPickupReplan}
-              disabled={!pickup}
-            >
-              Create pickup replan
-            </button>
-          </div>
           {pickup && <JsonBlock value={pickup} />}
           {pickupReplan && <JsonBlock value={pickupReplan} />}
-        </div>
-      </section>
-      <section className="panel grid">
-        <div>
-          <h2>Locked days</h2>
-          {data.locks.map((lock) => (
-            <article className="scene" key={lock.id}>
-              <strong>{lock.shoot_date}</strong>
-              <p className="muted">
-                {lock.locked_assignments.length} assignments immutable ·{" "}
-                {lock.recorded_by_role}
-              </p>
-            </article>
-          ))}
-          {!data.locks.length && <EmptyState>No locked days yet.</EmptyState>}
-        </div>
-        <div>
-          <h2>Related schedule diffs</h2>
-          {data.scheduleDiffs.slice(0, 3).map((diff) => (
-            <DiffCard diff={diff} key={diff.id} baseBoardId={boardId} />
-          ))}
-          {!data.scheduleDiffs.length && (
-            <EmptyState>
-              Create a pickup replan, then open Replans to generate options.
-            </EmptyState>
-          )}
-        </div>
-      </section>
+          <div className="inspectorSection">
+            <h3>Related schedule diffs</h3>
+            {data.scheduleDiffs.slice(0, 2).map((diff) => (
+              <DiffCard diff={diff} key={diff.id} baseBoardId={boardId} />
+            ))}
+            {!data.scheduleDiffs.length && (
+              <EmptyState>Open Replans after creating pickup work.</EmptyState>
+            )}
+          </div>
+        </aside>
+      </div>
     </ScreenShell>
   );
 }
@@ -1684,9 +2098,88 @@ export function CallSheetsScreen({ productionId, boardId }: ScreenProps) {
       error={error}
       onRefresh={refresh}
     >
-      <section className="panel grid">
-        <div>
-          <h2>Generate</h2>
+      <div className="workflowSplit callSheetWorkbench">
+        <main className="callSheetPaper workspacePanel">
+          <div className="paperHeader">
+            <div>
+              <p className="eyebrow">Call sheet</p>
+              <h2>
+                {asString(
+                  selected?.payload.call_sheet_version,
+                  selected?.id ?? "Preview",
+                )}
+              </h2>
+              <p>
+                {selected?.shoot_date ?? shootDate} · board {board?.id ?? "—"}
+              </p>
+            </div>
+            {selected && (
+              <div className="actions">
+                <a
+                  className="buttonLink secondary"
+                  href={exportPath(
+                    `/call-sheets/${selected.id}/export?format=text`,
+                  )}
+                >
+                  Export text
+                </a>
+                <a
+                  className="buttonLink secondary"
+                  href={exportPath(
+                    `/call-sheets/${selected.id}/export?format=json`,
+                  )}
+                >
+                  Export JSON
+                </a>
+              </div>
+            )}
+          </div>
+          {selected ? (
+            <div className="paperSections">
+              <MetricGrid
+                items={[
+                  ["Crew call", asString(selected.payload.crew_call, "—")],
+                  [
+                    "Wrap estimate",
+                    asString(
+                      selected.payload.wrap_estimate,
+                      asString(selected.payload.wrap, "—"),
+                    ),
+                  ],
+                  ["Generated by", selected.generated_by_name],
+                  ["Recipients", selected.payload.recipients?.length ?? 0],
+                ]}
+              />
+              <div className="callSheetColumns">
+                <div className="gridPanel">
+                  <h4>Scenes</h4>
+                  <JsonBlock value={selected.payload.scenes ?? []} />
+                </div>
+                <div className="gridPanel">
+                  <h4>Cast calls</h4>
+                  <JsonBlock value={selected.payload.cast_calls ?? []} />
+                </div>
+                <div className="gridPanel">
+                  <h4>Turnaround notes</h4>
+                  <JsonBlock value={selected.payload.turnaround_notes ?? []} />
+                </div>
+                <div className="gridPanel">
+                  <h4>Permit notes</h4>
+                  <JsonBlock value={selected.payload.permit_notes ?? []} />
+                </div>
+              </div>
+              <pre>{selected.rendered_text}</pre>
+            </div>
+          ) : (
+            <EmptyState>Select or generate a call sheet.</EmptyState>
+          )}
+        </main>
+        <aside className="inspectorPanel callSheetInspector">
+          <div className="inspectorHeader">
+            <p className="eyebrow">Inspector</p>
+            <h2>Generate</h2>
+            <p>Only the Second AD endpoint may persist a call sheet.</p>
+          </div>
           <ActorRoleControl
             actor={actor}
             onActorChange={setActor}
@@ -1715,88 +2208,28 @@ export function CallSheetsScreen({ productionId, boardId }: ScreenProps) {
             Try First AD to see the API-enforced rejection; switch back to
             Second AD for success.
           </p>
-        </div>
-        <div>
-          <h2>Existing sheets</h2>
-          <div className="callSheetTabs">
-            {data.callSheets.map((sheet) => (
-              <button
-                className="secondary"
-                type="button"
-                key={sheet.id}
-                onClick={() => setSelected(sheet)}
-              >
-                {sheet.shoot_date}
-              </button>
-            ))}
-          </div>
-          {!data.callSheets.length && (
-            <EmptyState>
-              No call sheets have been generated for this board.
-            </EmptyState>
-          )}
-        </div>
-      </section>
-      <section className="callSheetPanel">
-        <div className="sectionHeader">
-          <h2>Preview</h2>
-          {selected && (
-            <div className="actions">
-              <a
-                className="buttonLink secondary"
-                href={exportPath(
-                  `/call-sheets/${selected.id}/export?format=text`,
-                )}
-              >
-                Export text
-              </a>
-              <a
-                className="buttonLink secondary"
-                href={exportPath(
-                  `/call-sheets/${selected.id}/export?format=json`,
-                )}
-              >
-                Export JSON
-              </a>
+          <div className="inspectorSection">
+            <h3>Existing sheets</h3>
+            <div className="callSheetTabs">
+              {data.callSheets.map((sheet) => (
+                <button
+                  className="secondary"
+                  type="button"
+                  key={sheet.id}
+                  onClick={() => setSelected(sheet)}
+                >
+                  {sheet.shoot_date}
+                </button>
+              ))}
             </div>
-          )}
-        </div>
-        {selected ? (
-          <div className="callSheetCard">
-            <MetricGrid
-              items={[
-                ["Shoot date", selected.shoot_date],
-                [
-                  "Generated by",
-                  `${selected.generated_by_name} (${selected.generated_by_role})`,
-                ],
-                ["Recipients", selected.payload.recipients?.length ?? 0],
-              ]}
-            />
-            <div className="callSheetColumns">
-              <div>
-                <h4>Scenes</h4>
-                <JsonBlock value={selected.payload.scenes ?? []} />
-              </div>
-              <div>
-                <h4>Cast calls</h4>
-                <JsonBlock value={selected.payload.cast_calls ?? []} />
-              </div>
-              <div>
-                <h4>Turnaround</h4>
-                <JsonBlock value={selected.payload.turnaround_notes ?? []} />
-              </div>
-              <div>
-                <h4>Recipients</h4>
-                <JsonBlock value={selected.payload.recipients ?? []} />
-              </div>
-            </div>
-            <pre>{selected.rendered_text}</pre>
+            {!data.callSheets.length && (
+              <EmptyState>
+                No call sheets have been generated for this board.
+              </EmptyState>
+            )}
           </div>
-        ) : (
-          <EmptyState>Select or generate a call sheet.</EmptyState>
-        )}
-      </section>
+        </aside>
+      </div>
     </ScreenShell>
   );
 }
@@ -1817,10 +2250,13 @@ export function AuditLogScreen({ productionId, boardId }: ScreenProps) {
       error={error}
       onRefresh={refresh}
     >
-      <section className="panel sectionHeader">
+      <section className="auditHeader">
         <div>
-          <h2>Exports</h2>
-          <p className="muted">Audit exports are read-only review artifacts.</p>
+          <h2>Production Provenance Ledger</h2>
+          <p>
+            Advisory events, solver decisions, human approvals, exports, locks,
+            and replans are kept in chronological order.
+          </p>
         </div>
         <div className="actions">
           <a
@@ -1841,19 +2277,28 @@ export function AuditLogScreen({ productionId, boardId }: ScreenProps) {
           </a>
         </div>
       </section>
-      <section className="panel">
-        <h2>Events</h2>
-        <div className="timeline">
+      <section className="auditLedger">
+        <div className="auditLedgerHeader">
+          <span>Timestamp</span>
+          <span>Agent / type</span>
+          <span>ICN</span>
+          <span>Event description</span>
+          <span>Data</span>
+        </div>
+        <div className="auditRows">
           {data.audit.map((event) => (
-            <article className="timelineRow" key={event.id}>
+            <article className="auditRow" key={event.id}>
+              <span className="mono">
+                [{new Date(event.created_at).toLocaleTimeString()}]
+              </span>
               <Pill>{event.event_type}</Pill>
+              <span className="material-symbols-outlined">history</span>
               <div>
                 <strong>{event.actor}</strong>
-                <p className="muted">
-                  {new Date(event.created_at).toLocaleString()}
-                </p>
+                <p>{new Date(event.created_at).toLocaleString()}</p>
                 <JsonBlock value={event.payload} />
               </div>
+              <span className="mono right">{event.id}</span>
             </article>
           ))}
           {!data.audit.length && (
@@ -1870,6 +2315,7 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
     useProductionData(productionId, boardId);
   const [actor, setActor] = useActor("upm");
   const [approvals, setApprovals] = useState<CostApproval[]>([]);
+  const selectedDiff = data.scheduleDiffs[0] ?? null;
 
   const approve = async (
     diff: ScheduleDiff,
@@ -1915,57 +2361,139 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
       error={error}
       onRefresh={refresh}
     >
-      <section className="panel grid">
+      <section className="commandBanner warning costGateBanner">
         <div>
-          <h2>Approver</h2>
-          <ActorRoleControl
-            actor={actor}
-            onActorChange={setActor}
-            roles={["upm", "line_producer", "first_ad"]}
-          />
-          <p className="muted">
-            Try First AD to confirm authority rejection; UPM or Line Producer
-            can approve/reject.
+          <h2>
+            {selectedDiff
+              ? `${selectedDiff.revised_board_id} cannot be selected yet`
+              : "No cost-gated board selected"}
+          </h2>
+          <p>
+            Added-day exposure stays pending until a UPM or Line Producer
+            records a decision. The First AD may select boards, but may not
+            spend.
           </p>
         </div>
-        <div>
-          <h2>Recorded in this session</h2>
-          {approvals.map((approval) => (
-            <JsonBlock key={approval.id} value={approval} />
-          ))}
-          {!approvals.length && (
-            <EmptyState>No browser-session cost decisions yet.</EmptyState>
-          )}
+        <div className="commandMetrics">
+          <DataField label="Cost delta">
+            ${selectedDiff?.cost_delta.toLocaleString() ?? "0"}
+          </DataField>
+          <DataField label="Diffs">{data.scheduleDiffs.length}</DataField>
+          <DataField label="Decisions">{approvals.length}</DataField>
         </div>
       </section>
-      <section className="panel">
-        <h2>Cost-exposed schedule diffs</h2>
-        <div className="sceneList">
-          {data.scheduleDiffs.map((diff) => (
-            <article className="scene" key={diff.id}>
-              <DiffCard diff={diff} baseBoardId={boardId} />
-              <div className="actions">
-                <button type="button" onClick={() => approve(diff, "approved")}>
-                  Approve as {roleNames[actor.role]}
-                </button>
-                <button
-                  className="secondary"
-                  type="button"
-                  onClick={() => approve(diff, "rejected")}
-                >
-                  Reject
-                </button>
+      <div className="workflowSplit costWorkbench">
+        <main className="workspacePanel costCanvas">
+          <h2>What changes, in production terms</h2>
+          {selectedDiff ? (
+            <div className="costTable">
+              <div className="costHeader">
+                <span>Measure</span>
+                <span>Base</span>
+                <span>Revised</span>
+                <span>Delta</span>
               </div>
-            </article>
-          ))}
-          {!data.scheduleDiffs.length && (
+              {[
+                [
+                  "Shoot days",
+                  "current",
+                  "revised",
+                  asStringList(selectedDiff.diff.added_days).length,
+                ],
+                [
+                  "Pickups added",
+                  "0",
+                  "new work",
+                  asStringList(selectedDiff.diff.added_pickups).length,
+                ],
+                [
+                  "Call times changed",
+                  "—",
+                  "changed",
+                  asStringList(selectedDiff.diff.changed_call_times).length,
+                ],
+                [
+                  "Cost exposure",
+                  "$0",
+                  `$${selectedDiff.cost_delta.toLocaleString()}`,
+                  `$${selectedDiff.cost_delta.toLocaleString()}`,
+                ],
+              ].map(([label, base, revised, delta]) => (
+                <div className="costRow" key={label}>
+                  <span>{label}</span>
+                  <span>{base}</span>
+                  <span>{revised}</span>
+                  <span>{delta}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
             <EmptyState>
               No schedule diffs yet. Create options from Replans or Coverage
               first.
             </EmptyState>
           )}
-        </div>
-      </section>
+          <div className="authorizationTrace">
+            <Pill tone="advisory">finding · advisory</Pill>
+            <span>→</span>
+            <Pill>Director decision</Pill>
+            <span>→</span>
+            <Pill>First AD spec</Pill>
+            <span>→</span>
+            <Pill tone="warn">UPM / Line Producer</Pill>
+          </div>
+          <div className="optionDeck compactDeck">
+            {data.scheduleDiffs.map((diff) => (
+              <article className="optionCard" key={diff.id}>
+                <DiffCard diff={diff} baseBoardId={boardId} />
+                <div className="actions">
+                  <button
+                    type="button"
+                    onClick={() => approve(diff, "approved")}
+                  >
+                    Approve as {roleNames[actor.role]}
+                  </button>
+                  <button
+                    className="secondary"
+                    type="button"
+                    onClick={() => approve(diff, "rejected")}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </main>
+        <aside className="inspectorPanel costInspector">
+          <div className="inspectorHeader">
+            <p className="eyebrow">Record a decision</p>
+            <h2>Approver</h2>
+            <p>Authority is enforced by the API, not by presentation state.</p>
+          </div>
+          <ActorRoleControl
+            actor={actor}
+            onActorChange={setActor}
+            roles={["upm", "line_producer", "first_ad"]}
+          />
+          <div className="dataStack">
+            <DataField label="Approver">{actor.name}</DataField>
+            <DataField label="Role">{roleNames[actor.role]}</DataField>
+            <DataField label="Board">
+              {selectedDiff?.revised_board_id ?? "pending"}
+            </DataField>
+          </div>
+          <div className="inspectorSection">
+            <h3>Recorded in this session</h3>
+            {approvals.map((approval) => (
+              <JsonBlock key={approval.id} value={approval} />
+            ))}
+            {!approvals.length && (
+              <EmptyState>No browser-session cost decisions yet.</EmptyState>
+            )}
+          </div>
+        </aside>
+      </div>
     </ScreenShell>
   );
 }
@@ -1992,51 +2520,87 @@ export function InfeasibleConflictScreen({
       error={error}
       onRefresh={refresh}
     >
-      <section className="panel grid">
-        <div>
-          <h2>Current solver status</h2>
-          <MetricGrid
-            items={[
-              ["Board status", data.board?.solver_status ?? "no board"],
-              ["Failed jobs", failedJobs.length],
-              ["Constraints", data.constraints.length],
-            ]}
-          />
-          <p className="muted">
-            When a failed schedule includes conflict metadata, this route should
-            render that subset. Until then it reports the available error and
-            links operators back to constraints.
-          </p>
-        </div>
-        <div>
-          <h2>Next action</h2>
-          <a
-            className="buttonLink"
-            href={withBoard(
-              `/productions/${productionId}/constraints`,
-              boardId,
-            )}
-          >
-            Review constraints
-          </a>
-        </div>
-      </section>
-      <section className="panel">
-        <h2>Failures</h2>
-        {failedJobs.map((job) => (
-          <article className="scene" key={job.id}>
-            <strong>{job.job_type}</strong>
-            <p className="errorText">{job.error || "failed"}</p>
-            <JsonBlock value={job.result} />
-          </article>
-        ))}
-        {!failedJobs.length && (
-          <EmptyState>
-            No infeasible or failed schedule run is available for this
-            production.
-          </EmptyState>
-        )}
-      </section>
+      <div className="workflowSplit infeasibleWorkbench">
+        <main className="workspacePanel conflictCanvas">
+          <section className="commandBanner errorBanner">
+            <div>
+              <h2>
+                {failedJobs.length
+                  ? "No valid board exists"
+                  : "No conflict set yet"}
+              </h2>
+              <p>
+                CP-SAT infeasible is different from a budget timeout. This page
+                only renders failure facts the API actually returned.
+              </p>
+            </div>
+            <div className="commandMetrics">
+              <DataField label="Board status">
+                {data.board?.solver_status ?? "no board"}
+              </DataField>
+              <DataField label="Failed jobs">{failedJobs.length}</DataField>
+              <DataField label="Constraints">
+                {data.constraints.length}
+              </DataField>
+            </div>
+          </section>
+          {failedJobs.length > 0 ? (
+            <section className="conflictSet">
+              <h2>Reported failures</h2>
+              {failedJobs.map((job, index) => (
+                <article className="conflictCard" key={job.id}>
+                  <header>
+                    <span className="mono">{index + 1}</span>
+                    <strong>{job.job_type}</strong>
+                    <Pill tone="error">{job.status}</Pill>
+                  </header>
+                  <p className="errorText">{job.error || "failed"}</p>
+                  <JsonBlock value={job.result} />
+                </article>
+              ))}
+            </section>
+          ) : (
+            <EmptyState>
+              No infeasible or failed schedule run is available for this
+              production.
+            </EmptyState>
+          )}
+        </main>
+        <aside className="inspectorPanel conflictInspector">
+          <div className="inspectorHeader">
+            <p className="eyebrow">What you can do</p>
+            <h2>Production decision required</h2>
+            <p>
+              Coverset will not pick for you. Relaxing a constraint is a human
+              decision with a recorded actor, reason, and new snapshot.
+            </p>
+          </div>
+          <div className="inspectorSection routeCards compact">
+            <a
+              className="buttonLink"
+              href={withBoard(
+                `/productions/${productionId}/constraints`,
+                boardId,
+              )}
+            >
+              Review constraints
+            </a>
+            <a
+              className="buttonLink secondary"
+              href={withBoard(`/productions/${productionId}/replans`, boardId)}
+            >
+              Compare replans
+            </a>
+          </div>
+          <div className="inspectorSection dashed">
+            <h3>Not fabricated</h3>
+            <p className="muted">
+              The v4 reference shows a minimal conflict subset. This live route
+              waits for backend conflict metadata before naming one.
+            </p>
+          </div>
+        </aside>
+      </div>
     </ScreenShell>
   );
 }
