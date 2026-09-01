@@ -34,6 +34,7 @@ let cast = [] as Array<Record<string, unknown>>;
 let locations = [] as Array<Record<string, unknown>>;
 let calendar = [] as string[];
 let candidates: Candidate[] = [];
+let jobs = [] as Array<Record<string, unknown>>;
 
 const readyCandidate: Candidate = {
   id: "scene_ready",
@@ -92,6 +93,7 @@ async function mockApi(page: Page) {
   locations = [];
   calendar = [];
   candidates = [];
+  jobs = [];
   await page.route("**/api/coverset/**", async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -147,6 +149,15 @@ async function mockApi(page: Page) {
         json({ production_id: "prod_1", shoot_dates: calendar }),
       );
     }
+    if (path === "/productions/prod_1/jobs" && method === "GET") {
+      return route.fulfill(json(jobs));
+    }
+    if (path === "/productions/prod_1/grounding" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/constraints" && method === "GET") {
+      return route.fulfill(json([]));
+    }
     if (path === "/productions/prod_1/screenplays" && method === "POST") {
       return route.fulfill(
         json({
@@ -157,8 +168,32 @@ async function mockApi(page: Page) {
         }),
       );
     }
-    if (path === "/productions/prod_1/breakdowns" && method === "POST") {
+    if (path === "/productions/prod_1/breakdowns/jobs" && method === "POST") {
       candidates = [{ ...readyCandidate }, { ...blockedCandidate }];
+      const job = {
+        id: "job_breakdown",
+        production_id: "prod_1",
+        job_type: "breakdown",
+        target_id: "asset_1",
+        status: "queued",
+        attempts: 0,
+        error: "",
+        result: {},
+      };
+      jobs = [job];
+      return route.fulfill(json(job));
+    }
+    if (path === "/jobs/job_breakdown" && method === "GET") {
+      const job = {
+        ...jobs[0],
+        status: "complete",
+        attempts: 1,
+        result: { breakdown_run_id: "brk_1", status: "complete" },
+      };
+      jobs = [job];
+      return route.fulfill(json(job));
+    }
+    if (path === "/breakdowns/brk_1" && method === "GET") {
       return route.fulfill(
         json({
           id: "brk_1",
@@ -213,13 +248,44 @@ async function mockApi(page: Page) {
         }),
       );
     }
-    if (path === "/productions/prod_1/boards/solve" && method === "POST") {
+    if (path === "/productions/prod_1/boards/solve/jobs" && method === "POST") {
+      const job = {
+        id: "job_schedule",
+        production_id: "prod_1",
+        job_type: "schedule",
+        target_id: "prod_1",
+        status: "queued",
+        attempts: 0,
+        error: "",
+        result: {},
+      };
+      jobs = [job, ...jobs];
+      return route.fulfill(json(job));
+    }
+    if (path === "/jobs/job_schedule" && method === "GET") {
+      const job = {
+        ...jobs[0],
+        status: "complete",
+        attempts: 1,
+        result: {
+          schedule_run_id: "sched_1",
+          board_id: "board_1",
+          status: "optimal",
+        },
+      };
+      jobs = [job, ...jobs.slice(1)];
+      return route.fulfill(json(job));
+    }
+    if (path === "/schedule-runs/sched_1" && method === "GET") {
       return route.fulfill(
         json({
           id: "sched_1",
+          production_id: "prod_1",
           status: "optimal",
           board_id: "board_1",
           error: "",
+          diagnostics: [],
+          input_hash: "hash",
         }),
       );
     }
@@ -230,15 +296,86 @@ async function mockApi(page: Page) {
           solver_status: "optimal",
           stripboard: "STRIPBOARD\\n1. W-BRK-001",
           result: {
+            explanation_traces: [
+              {
+                constraint_id: "SYN-DAYLIGHT",
+                family: "daylight",
+                policy: "hard",
+                satisfied: true,
+                detail: "",
+                source: "algorithmic daylight bound",
+              },
+            ],
+            strips: [
+              {
+                work_id: "W-BRK-001",
+                location_id: "maya-s-apartment",
+                shoot_day: "2026-09-14",
+                sequence: 0,
+                planned_call_time: "2026-09-14T07:00:00-04:00",
+                planned_wrap_time: "2026-09-14T08:00:00-04:00",
+                scene_id: "BRK-001",
+                kind: "scene",
+                duration_minutes: 60,
+                day_night: "night",
+                flags: { stunts: false, minors: false, vfx: false },
+                requires_daylight: false,
+                location: {
+                  id: "maya-s-apartment",
+                  name: "Maya's Apartment",
+                  place: "Brooklyn, NY",
+                },
+                cast: [
+                  {
+                    id: "cast-maya",
+                    character: "MAYA",
+                    performer: "A. Idowu",
+                  },
+                ],
+                cast_ids: ["cast-maya"],
+              },
+            ],
             days: [
               {
                 date: "2026-09-14",
+                call_time: "2026-09-14T07:00:00-04:00",
+                wrap_time: "2026-09-14T08:00:00-04:00",
+                company_moves: 0,
                 assignments: [
                   {
                     work_id: "W-BRK-001",
                     location_id: "maya-s-apartment",
                     shoot_day: "2026-09-14",
                     sequence: 0,
+                  },
+                ],
+                strips: [
+                  {
+                    work_id: "W-BRK-001",
+                    location_id: "maya-s-apartment",
+                    shoot_day: "2026-09-14",
+                    sequence: 0,
+                    planned_call_time: "2026-09-14T07:00:00-04:00",
+                    planned_wrap_time: "2026-09-14T08:00:00-04:00",
+                    scene_id: "BRK-001",
+                    kind: "scene",
+                    duration_minutes: 60,
+                    day_night: "night",
+                    flags: { stunts: false, minors: false, vfx: false },
+                    requires_daylight: false,
+                    location: {
+                      id: "maya-s-apartment",
+                      name: "Maya's Apartment",
+                      place: "Brooklyn, NY",
+                    },
+                    cast: [
+                      {
+                        id: "cast-maya",
+                        character: "MAYA",
+                        performer: "A. Idowu",
+                      },
+                    ],
+                    cast_ids: ["cast-maya"],
                   },
                 ],
               },
@@ -278,7 +415,7 @@ test("production setup, candidate edit, accept, and solve flow", async ({
   });
   await page.getByRole("button", { name: "Upload and break down" }).click();
   await expect(
-    page.getByText("Breakdown complete. Review candidates before solving."),
+    page.getByText("Breakdown job complete. Review candidates before solving."),
   ).toBeVisible();
   await expect(page.getByText("unresolved cast cue: DEV")).toBeVisible();
   await expect(
@@ -302,9 +439,10 @@ test("production setup, candidate edit, accept, and solve flow", async ({
   await expect(page.getByText("Accepted 1; skipped 1.")).toBeVisible();
 
   await page.getByRole("button", { name: "Solve accepted" }).click();
-  await expect(page.getByText("Accepted scenes solved.")).toBeVisible();
+  await expect(page.getByText("Accepted scenes solved by the worker.")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Board: optimal" }),
   ).toBeVisible();
-  await expect(page.getByText("W-BRK-001 @ maya-s-apartment")).toBeVisible();
+  await expect(page.getByText("Maya's Apartment", { exact: true })).toBeVisible();
+  await expect(page.getByText("Constraint explanation traces")).toBeVisible();
 });

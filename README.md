@@ -34,6 +34,10 @@ uv sync
 export PARALLEL_API_KEY=...   # required: Search is called at runtime
 ```
 
+Local app code loads environment variables from `COVERSET_ENV_FILE`, then a
+repo-local ignored `.env`, then `~/.config/coverset/Coverset.env`. Keep all real
+keys out of Git and rotate any key that was ever pasted into a chat/transcript.
+
 Run the tests (offline -- no API key needed, the Parallel SDK is driven through a
 mock transport):
 
@@ -65,7 +69,13 @@ npm run dev
 ```
 
 The web app proxies API calls to `COVERSET_API_BASE_URL` (default:
-`http://127.0.0.1:8080`).
+`http://127.0.0.1:8080`). Async breakdown, grounding, and solve requests create job
+rows. In Cloud Run, Cloud Tasks dispatches those jobs to the worker; locally you can
+run one queued job with:
+
+```sh
+uv run python -m coverset.worker.main run-once
+```
 
 ## Dev deploy
 

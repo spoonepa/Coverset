@@ -7,11 +7,12 @@ from dataclasses import asdict
 from typing import Any
 
 from coverset.board import Assignment, Board
+from coverset.constraints import ConstraintSet
 from coverset.locations import Location, LocationBook
 from coverset.people import CastMember, Company, Roster
 from coverset.scenes import CandidateStatus, IntExt, SceneRecord
 from coverset.solver import ProductionCalendar
-from coverset.work import DayNight, WorkFlags
+from coverset.work import DayNight, WorkFlags, WorkItem
 
 from .models import (  # type: ignore[import-not-found]
     CastMemberModel,
@@ -134,7 +135,20 @@ def assignment_to_json(assignment: Assignment) -> dict[str, Any]:
     }
 
 
-def board_to_json(board: Board) -> dict[str, Any]:
+def board_to_json(
+    board: Board,
+    *,
+    work_items: tuple[WorkItem, ...] = (),
+    locations: LocationBook | None = None,
+    roster: Roster | None = None,
+    constraints: ConstraintSet | None = None,
+) -> dict[str, Any]:
+    work_by_id = {item.work_id: item for item in work_items}
+    location_by_id = {location.id: location for location in (locations or LocationBook())}
+    cast_by_id = {member.id: member for member in (roster or Roster())}
+    constraint_explanations = {
+        record.constraint_id: record.explain() for record in (constraints or ConstraintSet())
+    }
     return {
         "schedule_version_id": board.schedule_version_id,
         "solver_status": str(board.solver_status),
@@ -150,6 +164,10 @@ def board_to_json(board: Board) -> dict[str, Any]:
         "assignments": [
             assignment_to_json(assignment) for assignment in board.assignments
         ],
+        "strips": [
+            _strip_to_json(assignment, work_by_id, location_by_id, cast_by_id)
+            for assignment in board.assignments
+        ],
         "days": [
             {
                 "date": day.date.isoformat(),
@@ -159,7 +177,57 @@ def board_to_json(board: Board) -> dict[str, Any]:
                 "assignments": [
                     assignment_to_json(assignment) for assignment in day.assignments
                 ],
+                "strips": [
+                    _strip_to_json(assignment, work_by_id, location_by_id, cast_by_id)
+                    for assignment in day.assignments
+                ],
             }
             for day in board.days
         ],
+        "explanation_traces": [
+            {
+                "constraint_id": check.constraint_id,
+                "family": check.family.value,
+                "policy": check.policy.value,
+                "satisfied": check.satisfied,
+                "detail": check.detail,
+                "source": constraint_explanations.get(check.constraint_id, ""),
+            }
+            for check in board.validation_result.checks
+        ],
+    }
+
+
+def _strip_to_json(
+    assignment: Assignment,
+    work_by_id: dict[str, WorkItem],
+    location_by_id: dict[str, Location],
+    cast_by_id: dict[str, CastMember],
+) -> dict[str, Any]:
+    base = assignment_to_json(assignment)
+    work = work_by_id.get(assignment.work_id)
+    location = location_by_id.get(assignment.location_id)
+    return {
+        **base,
+        "scene_id": work.scene_id if work else "",
+        "kind": work.kind.value if work else "",
+        "duration_minutes": work.estimated_duration_minutes if work else None,
+        "day_night": work.day_night.value if work else "",
+        "flags": flags_to_json(work.flags) if work else {},
+        "requires_daylight": work.needs_daylight if work else None,
+        "location": {
+            "id": assignment.location_id,
+            "name": location.name if location else assignment.location_id,
+            "place": location.place if location else "",
+        },
+        "cast": [
+            {
+                "id": cast_id,
+                "character": cast_by_id[cast_id].character,
+                "performer": cast_by_id[cast_id].name,
+            }
+            for cast_id in (work.cast_ids if work else ())
+            if cast_id in cast_by_id
+        ],
+        "cast_ids": list(work.cast_ids if work else ()),
     }

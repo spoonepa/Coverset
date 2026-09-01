@@ -17,6 +17,9 @@ from .models import (  # type: ignore[import-not-found]
     BoardModel,
     BreakdownRunModel,
     CastMemberModel,
+    ConstraintModel,
+    GroundingEvidenceModel,
+    JobModel,
     LocationAliasModel,
     LocationModel,
     ProductionModel,
@@ -35,7 +38,13 @@ from .schemas import (  # type: ignore[import-not-found]
     CandidateUpdateRequest,
     CastMemberCreate,
     CastMemberResponse,
+    ConstraintActivationRequest,
+    ConstraintCreate,
+    ConstraintResponse,
+    GroundingEvidenceResponse,
+    GroundingRequest,
     HealthResponse,
+    JobResponse,
     LocationCreate,
     LocationResponse,
     ProductionCreate,
@@ -47,17 +56,27 @@ from .schemas import (  # type: ignore[import-not-found]
 )
 from .services import (  # type: ignore[import-not-found]
     ServiceError,
+    activate_constraint,
     add_cast_member,
     add_location,
     batch_accept_candidates,
+    create_constraint,
     create_production,
+    enqueue_breakdown_job,
+    enqueue_grounding_job,
+    enqueue_schedule_job,
     get_board,
     get_breakdown_run,
+    get_job,
     get_production,
     get_schedule_run,
+    ground_fact,
     list_aliases,
     list_candidates_for_run,
     list_cast,
+    list_constraints,
+    list_grounding_evidence,
+    list_jobs,
     list_locations,
     list_shoot_days,
     materialize_demo_script,
@@ -68,6 +87,7 @@ from .services import (  # type: ignore[import-not-found]
     update_candidate,
     upload_screenplay,
 )
+from .tasks import dispatch_job  # type: ignore[import-not-found]
 
 settings = get_settings()
 
@@ -231,6 +251,25 @@ async def upload_screenplay_endpoint(
 
 
 @app.post(
+    "/productions/{production_id}/breakdowns/jobs", response_model=JobResponse
+)
+def enqueue_breakdown_endpoint(
+    production_id: str,
+    payload: BreakdownRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> JobResponse:
+    job = enqueue_breakdown_job(
+        session,
+        production_id,
+        screenplay_asset_id=payload.screenplay_asset_id,
+        auto_accept_schedulable=payload.auto_accept_schedulable,
+        agent_mode=payload.agent_mode,
+    )
+    _dispatch_job_or_raise(job)
+    return _job_response(job)
+
+
+@app.post(
     "/productions/{production_id}/breakdowns", response_model=BreakdownRunResponse
 )
 def run_breakdown_endpoint(
@@ -297,6 +336,125 @@ def batch_accept_candidates_endpoint(
         accepted=accepted,
         skipped=skipped,
         candidates=[_candidate_response(candidate) for candidate in candidates],
+    )
+
+
+@app.post(
+    "/productions/{production_id}/boards/solve/jobs", response_model=JobResponse
+)
+def enqueue_solve_board_endpoint(
+    production_id: str,
+    _: ScheduleRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> JobResponse:
+    job = enqueue_schedule_job(session, production_id)
+    _dispatch_job_or_raise(job)
+    return _job_response(job)
+
+
+@app.get("/productions/{production_id}/jobs", response_model=list[JobResponse])
+def list_jobs_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[JobResponse]:
+    return [_job_response(job) for job in list_jobs(session, production_id)]
+
+
+@app.get("/jobs/{job_id}", response_model=JobResponse)
+def get_job_endpoint(
+    job_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> JobResponse:
+    return _job_response(get_job(session, job_id))
+
+
+@app.post(
+    "/productions/{production_id}/grounding/jobs", response_model=JobResponse
+)
+def enqueue_grounding_endpoint(
+    production_id: str,
+    payload: GroundingRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> JobResponse:
+    job = enqueue_grounding_job(
+        session,
+        production_id,
+        kind=payload.kind,
+        location_id=payload.location_id,
+        target_date=payload.target_date,
+    )
+    _dispatch_job_or_raise(job)
+    return _job_response(job)
+
+
+@app.post(
+    "/productions/{production_id}/grounding", response_model=GroundingEvidenceResponse
+)
+def ground_fact_endpoint(
+    production_id: str,
+    payload: GroundingRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> GroundingEvidenceResponse:
+    return _grounding_response(
+        ground_fact(
+            session,
+            production_id,
+            kind=payload.kind,
+            location_id=payload.location_id,
+            target_date=payload.target_date,
+        )
+    )
+
+
+@app.get(
+    "/productions/{production_id}/grounding",
+    response_model=list[GroundingEvidenceResponse],
+)
+def list_grounding_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[GroundingEvidenceResponse]:
+    return [
+        _grounding_response(row)
+        for row in list_grounding_evidence(session, production_id)
+    ]
+
+
+@app.post(
+    "/productions/{production_id}/constraints", response_model=ConstraintResponse
+)
+def create_constraint_endpoint(
+    production_id: str,
+    payload: ConstraintCreate,
+    session: Annotated[Session, Depends(get_session)],
+) -> ConstraintResponse:
+    return _constraint_response(
+        create_constraint(
+            session,
+            production_id,
+            payload=payload.model_dump(exclude_unset=True),
+        )
+    )
+
+
+@app.get(
+    "/productions/{production_id}/constraints", response_model=list[ConstraintResponse]
+)
+def list_constraints_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[ConstraintResponse]:
+    return [_constraint_response(row) for row in list_constraints(session, production_id)]
+
+
+@app.patch("/constraints/{constraint_id}/activation", response_model=ConstraintResponse)
+def activate_constraint_endpoint(
+    constraint_id: str,
+    payload: ConstraintActivationRequest,
+    session: Annotated[Session, Depends(get_session)],
+) -> ConstraintResponse:
+    return _constraint_response(
+        activate_constraint(session, constraint_row_id=constraint_id, active=payload.active)
     )
 
 
@@ -391,6 +549,55 @@ def _location_response(
         aliases=[
             alias.alias for alias in aliases if alias.location_id == row.location_id
         ],
+    )
+
+
+def _dispatch_job_or_raise(job: JobModel) -> None:
+    try:
+        dispatch_job(settings, job_id=job.id)
+    except Exception as exc:  # noqa: BLE001 - API boundary for cloud dispatch
+        raise ServiceError(
+            f"queued job {job.id} but failed to dispatch worker task: {exc}",
+            status_code=502,
+        ) from exc
+
+
+def _job_response(job: JobModel) -> JobResponse:
+    return JobResponse(
+        id=job.id,
+        production_id=job.production_id,
+        job_type=job.job_type,
+        target_id=job.target_id,
+        status=job.status,
+        attempts=job.attempts,
+        error=job.error or "",
+        result=job.result_json or {},
+    )
+
+
+def _grounding_response(row: GroundingEvidenceModel) -> GroundingEvidenceResponse:
+    return GroundingEvidenceResponse(
+        id=row.id,
+        production_id=row.production_id,
+        location_id=row.location_id,
+        fact_kind=row.fact_kind,
+        target_date=row.target_date,
+        status=row.status,
+        error=row.error or "",
+        evidence=row.evidence_json or {},
+    )
+
+
+def _constraint_response(row: ConstraintModel) -> ConstraintResponse:
+    return ConstraintResponse(
+        id=row.id,
+        production_id=row.production_id,
+        constraint_id=row.constraint_id,
+        family=row.family,
+        policy=row.policy,
+        active=row.active,
+        constraint=row.constraint_json or {},
+        provenance=row.provenance_json or {},
     )
 
 

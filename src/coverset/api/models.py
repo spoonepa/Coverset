@@ -10,19 +10,19 @@ from __future__ import annotations
 import datetime as dt
 import uuid
 
-from sqlalchemy import (
-    JSON,
-    Boolean,
-    Date,
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-)
+import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+JSON = sa.JSON
+Boolean = sa.Boolean
+Date = sa.Date
+DateTime = sa.DateTime
+Float = sa.Float
+ForeignKey = sa.ForeignKey
+Integer = sa.Integer
+String = sa.String
+Text = sa.Text
+UniqueConstraint = sa.UniqueConstraint
 
 
 def new_id(prefix: str) -> str:
@@ -118,6 +118,9 @@ class ShootDayModel(Base):
 
 class ConstraintModel(Base):
     __tablename__ = "constraints"
+    __table_args__ = (
+        UniqueConstraint("production_id", "constraint_id", name="uq_constraints_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
     production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
@@ -127,6 +130,22 @@ class ConstraintModel(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=False)
     constraint_json: Mapped[dict] = mapped_column(JSON, default=dict)
     provenance_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+
+class GroundingEvidenceModel(Base):
+    __tablename__ = "grounding_evidence"
+
+    id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str] = mapped_column(ForeignKey("productions.id"), index=True)
+    location_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    fact_kind: Mapped[str] = mapped_column(String(40), nullable=False)
+    target_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(String(40), default="complete")
+    evidence_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    error: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
@@ -247,11 +266,22 @@ class JobModel(Base):
     __tablename__ = "jobs"
 
     id: Mapped[str] = mapped_column(String(48), primary_key=True)
+    production_id: Mapped[str | None] = mapped_column(
+        ForeignKey("productions.id"), nullable=True, index=True
+    )
     job_type: Mapped[str] = mapped_column(String(80), nullable=False)
     target_id: Mapped[str] = mapped_column(String(48), nullable=False)
     status: Mapped[str] = mapped_column(String(40), default="queued")
     attempts: Mapped[int] = mapped_column(Integer, default=0)
+    payload_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    result_json: Mapped[dict] = mapped_column(JSON, default=dict)
     error: Mapped[str] = mapped_column(Text, default="")
+    claimed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )

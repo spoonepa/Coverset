@@ -14,7 +14,19 @@ from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
 
-load_dotenv()
+
+def _load_local_env() -> None:
+    explicit = os.getenv("COVERSET_ENV_FILE")
+    if explicit:
+        load_dotenv(explicit)
+        return
+    if Path(".env").exists():
+        load_dotenv(".env")
+        return
+    load_dotenv(Path.home() / ".config" / "coverset" / "Coverset.env")
+
+
+_load_local_env()
 
 
 @dataclass(frozen=True)
@@ -30,6 +42,9 @@ class Settings:
     upload_bucket: str = os.getenv("COVERSET_UPLOAD_BUCKET", "")
     artifact_bucket: str = os.getenv("COVERSET_ARTIFACT_BUCKET", "")
     upload_root: Path = Path(os.getenv("COVERSET_UPLOAD_ROOT", ".coverset-data/uploads"))
+    task_queue: str = os.getenv("COVERSET_TASK_QUEUE", "")
+    worker_url: str = os.getenv("COVERSET_WORKER_URL", "")
+    task_oidc_service_account: str = os.getenv("COVERSET_TASK_OIDC_SERVICE_ACCOUNT", "")
     agent_mode: str = os.getenv("COVERSET_AGENT_MODE", "gemini")
     cors_origins: tuple[str, ...] = tuple(
         origin.strip()

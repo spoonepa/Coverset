@@ -151,6 +151,97 @@ class CandidateBatchAcceptResponse(BaseModel):
     candidates: list[SceneCandidateResponse] = Field(default_factory=list)
 
 
+class JobResponse(BaseModel):
+    id: str
+    production_id: str | None = None
+    job_type: str
+    target_id: str
+    status: str
+    attempts: int
+    error: str = ""
+    result: dict[str, Any] = Field(default_factory=dict)
+
+
+class GroundingRequest(BaseModel):
+    kind: Literal["weather", "permit"]
+    location_id: str = Field(min_length=1, max_length=120)
+    target_date: dt.date
+
+
+class GroundingEvidenceResponse(BaseModel):
+    id: str
+    production_id: str
+    location_id: str
+    fact_kind: str
+    target_date: dt.date
+    status: str
+    error: str = ""
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class DateWindowPayload(BaseModel):
+    start: dt.date
+    end: dt.date
+
+
+class ConstraintCreate(BaseModel):
+    constraint_id: str = Field(min_length=1, max_length=120)
+    family: Literal[
+        "cast",
+        "location",
+        "permit",
+        "daylight",
+        "turnaround",
+        "company_move",
+        "weather",
+        "lock",
+        "budget",
+    ]
+    policy: Literal[
+        "hard",
+        "soft_penalty",
+        "waivable_by_role",
+        "objective_only",
+        "informational",
+    ] = "hard"
+    subject_kind: Literal["cast", "location", "work", "day", "schedule"]
+    subject_ref: str = ""
+    expression_type: Literal[
+        "date_windows",
+        "blackout_dates",
+        "daylight_bound",
+        "minimum_rest",
+        "maximum_daily_hours",
+        "pinned_day",
+    ]
+    day: dt.date | None = None
+    dates: list[dt.date] = Field(default_factory=list)
+    windows: list[DateWindowPayload] = Field(default_factory=list)
+    hours: float | None = None
+    evidence_id: str | None = None
+    actor_name: str = "Developer"
+    actor_role: Literal[
+        "first_ad", "director", "script_supervisor", "upm", "second_ad"
+    ] = "first_ad"
+    statement: str = "Production entered constraint"
+    active: bool = False
+
+
+class ConstraintActivationRequest(BaseModel):
+    active: bool = True
+
+
+class ConstraintResponse(BaseModel):
+    id: str
+    production_id: str
+    constraint_id: str
+    family: str
+    policy: str
+    active: bool
+    constraint: dict[str, Any]
+    provenance: dict[str, Any] = Field(default_factory=dict)
+
+
 class ScheduleRequest(BaseModel):
     accepted_only: bool = True
 

@@ -7,29 +7,17 @@ moved behind job records without changing domain code.
 
 from __future__ import annotations
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from coverset.api.models import JobModel, utcnow  # type: ignore[import-not-found]
+from coverset.api.models import JobModel  # type: ignore[import-not-found]
+from coverset.api.services import run_job, run_next_job  # type: ignore[import-not-found]
 
 
 def run_once(session: Session) -> int:
-    """Run one queued job if present.
+    """Run one queued job if present."""
+    return run_next_job(session)
 
-    The current MVP records the worker boundary and returns cleanly when no queued jobs
-    exist. This is intentionally conservative: schedule decisions still happen through
-    `coverset.solver` inside the API/service layer until Cloud Tasks is wired in.
-    """
-    job = session.scalars(
-        select(JobModel)
-        .where(JobModel.status == "queued")
-        .order_by(JobModel.created_at)
-    ).first()
-    if job is None:
-        return 0
-    job.status = "failed"
-    job.attempts += 1
-    job.error = f"job type {job.job_type!r} is not wired to Cloud Tasks in the MVP"
-    job.updated_at = utcnow()
-    session.commit()
-    return 1
+
+def run_by_id(session: Session, job_id: str) -> JobModel:
+    """Run one specific queued/failed job, idempotently returning completed jobs."""
+    return run_job(session, job_id=job_id)

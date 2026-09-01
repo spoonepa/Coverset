@@ -9,23 +9,33 @@ from dataclasses import replace
 from io import BytesIO
 from typing import Any, Protocol
 
-from sqlalchemy import delete, select
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 import coverset.breakdown as breakdown  # type: ignore[import-not-found]
 from coverset.breakdown import RawScene  # type: ignore[import-not-found]
-from coverset.constraints import ConstraintSet
+from coverset.constraints import ConstraintError, ConstraintRecord, ConstraintSet
+from coverset.grounding import Evidence, FactKind, GroundingError, SearchGrounder
+from coverset.locations import Location
 from coverset.scenes import CandidateStatus, SceneRecord
 from coverset.solver import ProductionCalendar, ScheduleProblem, SolverError, solve
 from coverset.stripboard import stripboard
 from coverset.work import DayNight
 
 from .config import Settings, get_settings  # type: ignore[import-not-found]
+from .constraints_io import (  # type: ignore[import-not-found]
+    constraint_from_json,
+    constraint_from_payload,
+    constraint_to_json,
+    evidence_to_json,
+)
 from .models import (  # type: ignore[import-not-found]
     AuditEventModel,
     BoardModel,
     BreakdownRunModel,
     CastMemberModel,
+    ConstraintModel,
+    GroundingEvidenceModel,
     JobModel,
     LocationAliasModel,
     LocationModel,
@@ -50,6 +60,9 @@ from .serializers import (  # type: ignore[import-not-found]
 )
 from .storage import ObjectStorage, sha256_bytes  # type: ignore[import-not-found]
 
+delete = sa.delete
+select = sa.select
+
 
 class ServiceError(RuntimeError):
     def __init__(self, message: str, *, status_code: int = 400) -> None:
@@ -59,6 +72,10 @@ class ServiceError(RuntimeError):
 
 class HasExtract(Protocol):
     def extract(self, document: bytes, *, media: str) -> tuple[RawScene, ...]: ...
+
+
+class HasGround(Protocol):
+    def ground(self, kind: FactKind, location: Location, date: dt.date) -> Evidence: ...
 
 
 ANSWER_KEY = (
@@ -786,6 +803,333 @@ def batch_accept_candidates(
     return accepted, skipped, list_candidates_for_run(session, run_id)
 
 
+def list_constraints(session: Session, production_id: str) -> list[ConstraintModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(ConstraintModel)
+            .where(ConstraintModel.production_id == production_id)
+            .order_by(ConstraintModel.created_at, ConstraintModel.constraint_id)
+        )
+    )
+
+
+def create_constraint(
+    session: Session, production_id: str, *, payload: dict[str, Any]
+) -> ConstraintModel:
+    get_production(session, production_id)
+    if _constraint_id_exists(session, production_id, str(payload.get("constraint_id", ""))):
+        raise ServiceError(
+            f"constraint id already exists: {payload.get('constraint_id')}",
+            status_code=409,
+        )
+    evidence_payload: dict[str, Any] | None = None
+    evidence_id = payload.get("evidence_id")
+    if evidence_id:
+        evidence = get_grounding_evidence(session, str(evidence_id))
+        if evidence.production_id != production_id:
+            raise ServiceError("grounding evidence belongs to another production", status_code=404)
+        if evidence.status != "complete":
+            raise ServiceError("failed grounding evidence cannot back an active constraint")
+        evidence_payload = dict(evidence.evidence_json or {})
+    try:
+        record = constraint_from_payload(payload, evidence=evidence_payload)
+    except (ConstraintError, KeyError, TypeError, ValueError) as exc:
+        raise ServiceError(f"invalid constraint: {exc}") from exc
+    snapshot = constraint_to_json(record)
+    row = ConstraintModel(
+        id=new_id("con"),
+        production_id=production_id,
+        constraint_id=record.constraint_id,
+        family=record.family.value,
+        policy=record.policy.value,
+        active=record.active,
+        constraint_json=snapshot,
+        provenance_json=dict(snapshot.get("source", {})),
+    )
+    session.add(row)
+    audit(
+        session,
+        production_id,
+        "constraint.created",
+        {"constraint_id": row.constraint_id, "active": row.active},
+    )
+    session.commit()
+    return row
+
+
+def activate_constraint(
+    session: Session, *, constraint_row_id: str, active: bool
+) -> ConstraintModel:
+    row = session.get(ConstraintModel, constraint_row_id)
+    if row is None:
+        raise ServiceError(f"constraint not found: {constraint_row_id}", status_code=404)
+    record = replace(
+        constraint_from_json(row.constraint_json),
+        active=active,
+        activated_at=utcnow() if active else None,
+    )
+    row.active = active
+    row.constraint_json = constraint_to_json(record)
+    row.provenance_json = dict(row.constraint_json.get("source", {}))
+    audit(
+        session,
+        row.production_id,
+        "constraint.activated" if active else "constraint.deactivated",
+        {"constraint_id": row.constraint_id},
+    )
+    session.commit()
+    return row
+
+
+def get_grounding_evidence(session: Session, evidence_id: str) -> GroundingEvidenceModel:
+    row = session.get(GroundingEvidenceModel, evidence_id)
+    if row is None:
+        raise ServiceError(f"grounding evidence not found: {evidence_id}", status_code=404)
+    return row
+
+
+def list_grounding_evidence(
+    session: Session, production_id: str
+) -> list[GroundingEvidenceModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(GroundingEvidenceModel)
+            .where(GroundingEvidenceModel.production_id == production_id)
+            .order_by(GroundingEvidenceModel.created_at)
+        )
+    )
+
+
+def ground_fact(
+    session: Session,
+    production_id: str,
+    *,
+    kind: str,
+    location_id: str,
+    target_date: dt.date,
+    grounder: HasGround | None = None,
+) -> GroundingEvidenceModel:
+    get_production(session, production_id)
+    try:
+        location = locations_from_models(list_locations(session, production_id))[location_id]
+        fact_kind = FactKind(kind)
+    except (KeyError, ValueError) as exc:
+        raise ServiceError(f"invalid grounding request: {exc}") from exc
+    row = GroundingEvidenceModel(
+        id=new_id("ev"),
+        production_id=production_id,
+        location_id=location_id,
+        fact_kind=fact_kind.value,
+        target_date=target_date,
+        status="running",
+    )
+    session.add(row)
+    session.commit()
+    try:
+        evidence = (grounder or SearchGrounder()).ground(fact_kind, location, target_date)
+        row.status = "complete"
+        row.evidence_json = evidence_to_json(evidence)
+        row.error = ""
+        audit(
+            session,
+            production_id,
+            "grounding.completed",
+            {"evidence_id": row.id, "kind": fact_kind.value},
+        )
+    except GroundingError as exc:
+        row.status = "failed"
+        row.error = str(exc)
+        audit(
+            session,
+            production_id,
+            "grounding.failed",
+            {"evidence_id": row.id, "kind": fact_kind.value, "error": row.error},
+        )
+    session.commit()
+    return row
+
+
+def enqueue_breakdown_job(
+    session: Session,
+    production_id: str,
+    *,
+    screenplay_asset_id: str,
+    auto_accept_schedulable: bool = False,
+    agent_mode: str | None = None,
+) -> JobModel:
+    get_production(session, production_id)
+    return enqueue_job(
+        session,
+        job_type="breakdown",
+        target_id=screenplay_asset_id,
+        production_id=production_id,
+        payload={
+            "screenplay_asset_id": screenplay_asset_id,
+            "auto_accept_schedulable": auto_accept_schedulable,
+            "agent_mode": agent_mode,
+        },
+    )
+
+
+def enqueue_schedule_job(session: Session, production_id: str) -> JobModel:
+    get_production(session, production_id)
+    return enqueue_job(
+        session,
+        job_type="schedule",
+        target_id=production_id,
+        production_id=production_id,
+        payload={"production_id": production_id},
+    )
+
+
+def enqueue_grounding_job(
+    session: Session,
+    production_id: str,
+    *,
+    kind: str,
+    location_id: str,
+    target_date: dt.date,
+) -> JobModel:
+    get_production(session, production_id)
+    return enqueue_job(
+        session,
+        job_type="grounding",
+        target_id=location_id,
+        production_id=production_id,
+        payload={
+            "kind": kind,
+            "location_id": location_id,
+            "target_date": target_date.isoformat(),
+        },
+    )
+
+
+def get_job(session: Session, job_id: str) -> JobModel:
+    job = session.get(JobModel, job_id)
+    if job is None:
+        raise ServiceError(f"job not found: {job_id}", status_code=404)
+    return job
+
+
+def list_jobs(session: Session, production_id: str) -> list[JobModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(JobModel)
+            .where(JobModel.production_id == production_id)
+            .order_by(JobModel.created_at.desc())
+        )
+    )
+
+
+def run_next_job(
+    session: Session,
+    *,
+    storage: ObjectStorage | None = None,
+    settings: Settings | None = None,
+) -> int:
+    job = session.scalars(
+        select(JobModel).where(JobModel.status == "queued").order_by(JobModel.created_at)
+    ).first()
+    if job is None:
+        return 0
+    run_job(session, job_id=job.id, storage=storage, settings=settings)
+    return 1
+
+
+def run_job(
+    session: Session,
+    *,
+    job_id: str,
+    storage: ObjectStorage | None = None,
+    settings: Settings | None = None,
+) -> JobModel:
+    job = get_job(session, job_id)
+    if job.status == "complete":
+        return job
+    if job.status not in {"queued", "failed"}:
+        raise ServiceError(f"job {job.id} is {job.status}, not runnable")
+    job.status = "running"
+    job.attempts += 1
+    job.error = ""
+    job.claimed_at = utcnow()
+    job.updated_at = utcnow()
+    session.commit()
+    try:
+        payload = dict(job.payload_json or {})
+        if job.job_type == "breakdown":
+            run = run_breakdown(
+                session,
+                production_id=str(job.production_id),
+                screenplay_asset_id=str(payload.get("screenplay_asset_id") or job.target_id),
+                auto_accept_schedulable=bool(payload.get("auto_accept_schedulable", False)),
+                agent_mode=payload.get("agent_mode"),
+                storage=storage,
+                settings=settings,
+            )
+            if run.status != "complete":
+                raise ServiceError(run.error or f"breakdown {run.status}")
+            job.result_json = {"breakdown_run_id": run.id, "status": run.status}
+        elif job.job_type == "schedule":
+            run = run_scheduler(session, production_id=str(job.production_id or job.target_id))
+            if run.status == "failed" or not run.board_id:
+                raise ServiceError(run.error or f"schedule {run.status}")
+            job.result_json = {
+                "schedule_run_id": run.id,
+                "board_id": run.board_id,
+                "status": run.status,
+            }
+        elif job.job_type == "grounding":
+            evidence = ground_fact(
+                session,
+                str(job.production_id),
+                kind=str(payload.get("kind")),
+                location_id=str(payload.get("location_id") or job.target_id),
+                target_date=dt.date.fromisoformat(str(payload.get("target_date"))),
+            )
+            if evidence.status != "complete":
+                raise ServiceError(evidence.error or f"grounding {evidence.status}")
+            job.result_json = {
+                "evidence_id": evidence.id,
+                "status": evidence.status,
+                "kind": evidence.fact_kind,
+            }
+        else:
+            raise ServiceError(f"unsupported job type: {job.job_type}")
+        job.status = "complete"
+    except Exception as exc:  # noqa: BLE001 - durable job boundary
+        job.status = "failed"
+        job.error = str(exc)
+    job.completed_at = utcnow()
+    job.updated_at = utcnow()
+    session.commit()
+    return job
+
+
+def _constraint_id_exists(session: Session, production_id: str, constraint_id: str) -> bool:
+    return (
+        session.scalars(
+            select(ConstraintModel).where(
+                ConstraintModel.production_id == production_id,
+                ConstraintModel.constraint_id == constraint_id,
+            )
+        ).first()
+        is not None
+    )
+
+
+def _constraint_set(session: Session, production_id: str) -> ConstraintSet:
+    records: list[ConstraintRecord] = []
+    for row in list_constraints(session, production_id):
+        try:
+            records.append(constraint_from_json(row.constraint_json))
+        except (ConstraintError, KeyError, TypeError, ValueError) as exc:
+            raise ServiceError(f"stored constraint {row.constraint_id} is invalid: {exc}") from exc
+    return ConstraintSet(tuple(records))
+
+
 def _get_candidate(session: Session, candidate_id: str) -> SceneCandidateModel:
     candidate = session.get(SceneCandidateModel, candidate_id)
     if candidate is None:
@@ -839,7 +1183,7 @@ def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
             problem_id=f"{production_id}-mvp",
             production_calendar=_production_calendar(session, production_id),
             work_items=work_items,
-            constraints=ConstraintSet(()),
+            constraints=_constraint_set(session, production_id),
             roster=roster,
             locations=locations,
         )
@@ -858,7 +1202,13 @@ def run_scheduler(session: Session, *, production_id: str) -> ScheduleRunModel:
                 schedule_run_id=run.id,
                 solver_status=str(board.solver_status),
                 stripboard=rendered,
-                result_json=board_to_json(board),
+                result_json=board_to_json(
+                    board,
+                    work_items=problem.work_items,
+                    locations=locations,
+                    roster=roster,
+                    constraints=problem.constraints,
+                ),
             )
             session.add(persisted)
             session.flush()
@@ -938,11 +1288,25 @@ def audit(
     )
 
 
-def enqueue_job(session: Session, *, job_type: str, target_id: str) -> JobModel:
+def enqueue_job(
+    session: Session,
+    *,
+    job_type: str,
+    target_id: str,
+    production_id: str | None = None,
+    payload: dict[str, Any] | None = None,
+) -> JobModel:
     job = JobModel(
-        id=new_id("job"), job_type=job_type, target_id=target_id, status="queued"
+        id=new_id("job"),
+        production_id=production_id,
+        job_type=job_type,
+        target_id=target_id,
+        status="queued",
+        payload_json=payload or {},
+        result_json={},
     )
     session.add(job)
+    audit(session, production_id, "job.enqueued", {"job_id": job.id, "job_type": job_type})
     session.commit()
     return job
 

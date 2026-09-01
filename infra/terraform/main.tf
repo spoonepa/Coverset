@@ -8,6 +8,7 @@ locals {
     "artifactregistry.googleapis.com",
     "bigquery.googleapis.com",
     "cloudbuild.googleapis.com",
+    "cloudtasks.googleapis.com",
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "run.googleapis.com",
@@ -80,6 +81,25 @@ resource "google_storage_bucket" "artifacts" {
     condition {
       age = 90
     }
+  }
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_cloud_tasks_queue" "jobs" {
+  project  = var.project_id
+  name     = "${var.name_prefix}-jobs-dev"
+  location = var.region
+
+  rate_limits {
+    max_dispatches_per_second = 1
+    max_concurrent_dispatches = 2
+  }
+
+  retry_config {
+    max_attempts = 3
+    min_backoff  = "10s"
+    max_backoff  = "300s"
   }
 
   depends_on = [google_project_service.required]
@@ -269,6 +289,28 @@ resource "google_project_iam_member" "cloudbuild_artifact_writer" {
   depends_on = [google_project_service.required]
 }
 
+resource "google_project_iam_member" "api_tasks_enqueuer" {
+  project = var.project_id
+  role    = "roles/cloudtasks.enqueuer"
+  member  = google_service_account.api.member
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_service_account_iam_member" "cloudtasks_api_token_creator" {
+  service_account_id = google_service_account.api.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-cloudtasks.iam.gserviceaccount.com"
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_service_account_iam_member" "api_task_oidc_act_as" {
+  service_account_id = google_service_account.api.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = google_service_account.api.member
+}
+
 resource "google_storage_bucket_iam_member" "api_screenplay_writer" {
   bucket = google_storage_bucket.screenplays.name
   role   = "roles/storage.objectAdmin"
@@ -447,6 +489,18 @@ resource "google_cloud_run_v2_service" "api" {
       env {
         name  = "COVERSET_ARTIFACT_BUCKET"
         value = google_storage_bucket.artifacts.name
+      }
+      env {
+        name  = "COVERSET_TASK_QUEUE"
+        value = google_cloud_tasks_queue.jobs.name
+      }
+      env {
+        name  = "COVERSET_WORKER_URL"
+        value = google_cloud_run_v2_service.worker.uri
+      }
+      env {
+        name  = "COVERSET_TASK_OIDC_SERVICE_ACCOUNT"
+        value = google_service_account.api.email
       }
       env {
         name = "COVERSET_DB_PASSWORD"
@@ -720,6 +774,14 @@ resource "google_cloud_run_v2_service_iam_member" "worker_developer_invoker" {
   name     = google_cloud_run_v2_service.worker.name
   role     = "roles/run.invoker"
   member   = var.developer_principal
+}
+
+resource "google_cloud_run_v2_service_iam_member" "api_invokes_worker" {
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.worker.name
+  role     = "roles/run.invoker"
+  member   = google_service_account.api.member
 }
 
 resource "google_cloud_run_v2_service_iam_member" "web_developer_invoker" {

@@ -72,8 +72,9 @@ infra/terraform/*.tfstate.*
 infra/terraform/*.tfvars
 !infra/terraform/*.tfvars.example
 
-# ── Bob (AI assistant) local state ────────────────────────────────────────────
+# ── AI assistant local state ──────────────────────────────────────────────────
 .bob/
+.pi-subagents/
 
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store

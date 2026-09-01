@@ -29,6 +29,7 @@ gcloud services enable \
   artifactregistry.googleapis.com \
   bigquery.googleapis.com \
   cloudbuild.googleapis.com \
+  cloudtasks.googleapis.com \
   iam.googleapis.com \
   iamcredentials.googleapis.com \
   run.googleapis.com \
@@ -47,13 +48,7 @@ WORKER_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/coverset-work
 WEB_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/coverset-web:${TAG}"
 
 if [[ -f "${GENERATED_TFVARS}" ]]; then
-  echo "== terraform bootstrap/apply with current image vars =="
-  terraform -chdir="${TF_DIR}" apply -auto-approve -input=false \
-    -var "project_id=${PROJECT_ID}" \
-    -var "region=${REGION}" \
-    -var "repository_id=${REPOSITORY}" \
-    -var "developer_principal=${DEVELOPER_PRINCIPAL}" \
-    -var "agent_mode=${AGENT_MODE}"
+  echo "== existing terraform image vars found; deferring apply until new images are built =="
 else
   echo "== terraform bootstrap/apply with placeholder images =="
   terraform -chdir="${TF_DIR}" apply -auto-approve -input=false \

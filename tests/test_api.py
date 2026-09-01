@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from collections.abc import Iterator
 
 import pytest
@@ -17,15 +18,23 @@ from coverset.api.db import (  # type: ignore[import-not-found]
 from coverset.api.main import app  # type: ignore[import-not-found]
 from coverset.api.models import Base  # type: ignore[import-not-found]
 from coverset.api.services import (  # type: ignore[import-not-found]
+    activate_constraint,
+    create_constraint,
     create_production,
+    enqueue_breakdown_job,
+    enqueue_schedule_job,
     get_board,
+    get_job,
+    ground_fact,
     list_candidates_for_run,
     materialize_demo_script,
     run_breakdown,
+    run_job,
     run_scheduler,
     upload_screenplay,
 )
 from coverset.api.storage import ObjectStorage  # type: ignore[import-not-found]
+from coverset.grounding import SearchGrounder  # type: ignore[import-not-found]
 
 
 @pytest.fixture()
@@ -389,3 +398,192 @@ def test_candidate_edit_clears_blockers_before_explicit_accept(
         assert any(batch.json()["skipped"].values())
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.mark.req("BRK-001", "SOL-001")
+def test_async_jobs_are_enqueued_and_worker_updates_status(db_session: Session, tmp_path):
+    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    storage = ObjectStorage(settings)
+    production = create_production(db_session, title="Async Jobs", seed_demo_data=True)
+    asset = upload_screenplay(
+        db_session,
+        production_id=production.id,
+        filename="the_ferry_job.txt",
+        media="text",
+        content=materialize_demo_script(),
+        storage=storage,
+    )
+
+    breakdown_job = enqueue_breakdown_job(
+        db_session,
+        production.id,
+        screenplay_asset_id=asset.id,
+        auto_accept_schedulable=True,
+        agent_mode="fixture",
+    )
+    assert breakdown_job.status == "queued"
+    completed_breakdown = run_job(
+        db_session,
+        job_id=breakdown_job.id,
+        storage=storage,
+        settings=settings,
+    )
+    assert completed_breakdown.status == "complete"
+    assert get_job(db_session, breakdown_job.id).attempts == 1
+
+    schedule_job = enqueue_schedule_job(db_session, production.id)
+    completed_schedule = run_job(db_session, job_id=schedule_job.id)
+    assert completed_schedule.status == "complete"
+    board = get_board(db_session, completed_schedule.result_json["board_id"])
+    assert board.result_json["strips"]
+    assert board.result_json["explanation_traces"]
+
+    rerun = run_job(db_session, job_id=schedule_job.id)
+    assert rerun.attempts == 1
+
+
+def test_job_enqueue_api_returns_pollable_job(db_session: Session, tmp_path, monkeypatch):
+    import coverset.api.main as api_main  # type: ignore[import-not-found]
+
+    monkeypatch.setattr(api_main, "settings", Settings(task_queue="", worker_url=""))
+
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    storage = ObjectStorage(settings)
+    production = create_production(db_session, title="Job API", seed_demo_data=True)
+    asset = upload_screenplay(
+        db_session,
+        production_id=production.id,
+        filename="the_ferry_job.txt",
+        media="text",
+        content=materialize_demo_script(),
+        storage=storage,
+    )
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        queued = client.post(
+            f"/productions/{production.id}/breakdowns/jobs",
+            json={
+                "screenplay_asset_id": asset.id,
+                "auto_accept_schedulable": True,
+                "agent_mode": "fixture",
+            },
+        )
+        assert queued.status_code == 200, queued.text
+        payload = queued.json()
+        assert payload["status"] == "queued"
+        assert payload["job_type"] == "breakdown"
+
+        polled = client.get(f"/jobs/{payload['id']}")
+        assert polled.status_code == 200, polled.text
+        assert polled.json()["id"] == payload["id"]
+
+        history = client.get(f"/productions/{production.id}/jobs")
+        assert history.status_code == 200, history.text
+        assert [job["id"] for job in history.json()] == [payload["id"]]
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.req("CON-008")
+def test_grounding_evidence_creates_inactive_constraint_until_activated(
+    db_session: Session, parallel_stub
+):
+    target_date = dt.date(2026, 3, 17)
+    production = create_production(db_session, title="Grounding", seed_demo_data=True)
+    client, recorder = parallel_stub()
+
+    evidence = ground_fact(
+        db_session,
+        production.id,
+        kind="weather",
+        location_id="brooklyn-bridge-park",
+        target_date=target_date,
+        grounder=SearchGrounder(client),
+    )
+
+    assert evidence.status == "complete"
+    assert "/v1/search" in recorder.paths()
+    assert evidence.evidence_json["covering_urls"]
+
+    constraint = create_constraint(
+        db_session,
+        production.id,
+        payload={
+            "constraint_id": "WX-BROOKLYN-RAIN",
+            "family": "weather",
+            "policy": "hard",
+            "subject_kind": "location",
+            "subject_ref": "brooklyn-bridge-park",
+            "expression_type": "blackout_dates",
+            "dates": [target_date],
+            "evidence_id": evidence.id,
+            "active": False,
+        },
+    )
+
+    assert constraint.active is False
+    assert constraint.provenance_json["type"] == "grounded"
+    assert constraint.provenance_json["evidence_id"] == evidence.id
+
+    activated = activate_constraint(
+        db_session, constraint_row_id=constraint.id, active=True
+    )
+    assert activated.active is True
+    assert activated.constraint_json["active"] is True
+
+
+@pytest.mark.req("SOL-001", "SOL-007")
+def test_active_lock_constraint_pins_work_item_in_schedule(db_session: Session, tmp_path):
+    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    storage = ObjectStorage(settings)
+    production = create_production(db_session, title="Locked Board", seed_demo_data=True)
+    asset = upload_screenplay(
+        db_session,
+        production_id=production.id,
+        filename="the_ferry_job.txt",
+        media="text",
+        content=materialize_demo_script(),
+        storage=storage,
+    )
+    breakdown_run = run_breakdown(
+        db_session,
+        production_id=production.id,
+        screenplay_asset_id=asset.id,
+        auto_accept_schedulable=True,
+        agent_mode="fixture",
+        storage=storage,
+        settings=settings,
+    )
+    assert breakdown_run.status == "complete"
+
+    create_constraint(
+        db_session,
+        production.id,
+        payload={
+            "constraint_id": "LOCK-W-BRK-001",
+            "family": "lock",
+            "policy": "hard",
+            "subject_kind": "work",
+            "subject_ref": "W-BRK-001",
+            "expression_type": "pinned_day",
+            "day": dt.date(2026, 9, 14),
+            "statement": "First AD locked scene 1 to day 1.",
+            "active": True,
+        },
+    )
+
+    schedule_run = run_scheduler(db_session, production_id=production.id)
+    assert schedule_run.status == "optimal"
+    assert schedule_run.board_id is not None
+    board = get_board(db_session, schedule_run.board_id)
+    strips = {strip["work_id"]: strip for strip in board.result_json["strips"]}
+    assert strips["W-BRK-001"]["shoot_day"] == "2026-09-14"
+    assert any(
+        trace["constraint_id"] == "LOCK-W-BRK-001" and trace["source"]
+        for trace in board.result_json["explanation_traces"]
+    )

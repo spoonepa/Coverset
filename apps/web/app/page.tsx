@@ -71,19 +71,88 @@ type ScheduleRun = {
     error: string;
 };
 
+type Job = {
+    id: string;
+    production_id: string | null;
+    job_type: string;
+    target_id: string;
+    status: string;
+    attempts: number;
+    error: string;
+    result: Record<string, unknown>;
+};
+
+type GroundingEvidence = {
+    id: string;
+    production_id: string;
+    location_id: string;
+    fact_kind: string;
+    target_date: string;
+    status: string;
+    error: string;
+    evidence: {
+        covering_urls?: string[];
+        source_urls?: string[];
+    };
+};
+
+type ConstraintRow = {
+    id: string;
+    production_id: string;
+    constraint_id: string;
+    family: string;
+    policy: string;
+    active: boolean;
+    constraint: Record<string, unknown>;
+    provenance: Record<string, unknown>;
+};
+
+type BoardStrip = {
+    work_id: string;
+    location_id: string;
+    shoot_day: string;
+    sequence: number;
+    planned_call_time: string;
+    planned_wrap_time: string;
+    scene_id: string;
+    kind: string;
+    duration_minutes: number | null;
+    day_night: string;
+    flags: Record<string, boolean>;
+    requires_daylight: boolean | null;
+    location: { id: string; name: string; place: string };
+    cast: Array<{ id: string; character: string; performer: string }>;
+    cast_ids: string[];
+};
+
+type ExplanationTrace = {
+    constraint_id: string;
+    family: string;
+    policy: string;
+    satisfied: boolean;
+    detail: string;
+    source: string;
+};
+
 type Board = {
     id: string;
     solver_status: string;
     stripboard: string;
     result: {
+        strips?: BoardStrip[];
+        explanation_traces?: ExplanationTrace[];
         days?: Array<{
             date: string;
+            call_time: string | null;
+            wrap_time: string | null;
+            company_moves: number;
             assignments: Array<{
                 work_id: string;
                 location_id: string;
                 shoot_day: string;
                 sequence: number;
             }>;
+            strips?: BoardStrip[];
         }>;
     };
 };
@@ -160,7 +229,12 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
         throw new Error(excerpt ? `${fallback}: ${excerpt}` : fallback);
     }
 
-    const payload: unknown = JSON.parse(text);
+    let payload: unknown;
+    try {
+        payload = JSON.parse(text);
+    } catch {
+        throw new Error(`${fallback}: invalid JSON response`);
+    }
     if (!response.ok) {
         throw new Error(errorMessage(payload, fallback));
     }
@@ -193,6 +267,37 @@ function splitList(value: string): string[] {
 function parsePositiveInteger(value: string, fallback: number): number {
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function jobClass(job: Job): string {
+    if (job.status === "complete") return "pill good";
+    if (job.status === "failed") return "pill warn";
+    return "pill";
+}
+
+function resultString(job: Job, key: string): string {
+    const value = job.result[key];
+    return typeof value === "string" ? value : "";
+}
+
+function timeLabel(value: string | null): string {
+    if (!value) return "--";
+    return new Date(value).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function expressionSummary(row: ConstraintRow): string {
+    const expression = row.constraint["expression"];
+    if (!expression || typeof expression !== "object") return "constraint";
+    const shaped = expression as Record<string, unknown>;
+    if (typeof shaped.type === "string") return shaped.type.replaceAll("_", " ");
+    return "constraint";
 }
 
 function CandidateEditor({
@@ -429,6 +534,15 @@ export default function Home() {
     const [filter, setFilter] = useState<CandidateFilter>("all");
     const [schedule, setSchedule] = useState<ScheduleRun | null>(null);
     const [board, setBoard] = useState<Board | null>(null);
+    const [jobs, setJobs] = useState<Job[]>([]);
+    const [grounding, setGrounding] = useState<GroundingEvidence[]>([]);
+    const [constraints, setConstraints] = useState<ConstraintRow[]>([]);
+    const [lockWorkId, setLockWorkId] = useState("W-BRK-001");
+    const [lockDate, setLockDate] = useState("2026-09-14");
+    const [groundingLocationId, setGroundingLocationId] = useState(
+        "brooklyn-bridge-park",
+    );
+    const [groundingDate, setGroundingDate] = useState("2026-03-17");
     const [status, setStatus] = useState("Ready");
     const [error, setError] = useState("");
 
@@ -490,28 +604,109 @@ export default function Home() {
         );
     }
 
+    function rememberJob(job: Job) {
+        setJobs((current) => [
+            job,
+            ...current.filter((existing) => existing.id !== job.id),
+        ]);
+    }
+
+    async function refreshJob(jobId: string): Promise<Job> {
+        const job = await jsonFetch<Job>(`/api/coverset/jobs/${jobId}`);
+        rememberJob(job);
+        return job;
+    }
+
+    async function hydrateCompletedJob(job: Job) {
+        const breakdownRunId = resultString(job, "breakdown_run_id");
+        if (breakdownRunId) {
+            setBreakdown(
+                await jsonFetch<BreakdownRun>(
+                    `/api/coverset/breakdowns/${breakdownRunId}`,
+                ),
+            );
+        }
+
+        const scheduleRunId = resultString(job, "schedule_run_id");
+        if (scheduleRunId) {
+            setSchedule(
+                await jsonFetch<ScheduleRun>(
+                    `/api/coverset/schedule-runs/${scheduleRunId}`,
+                ),
+            );
+        }
+
+        const boardId = resultString(job, "board_id");
+        if (boardId) {
+            setBoard(await jsonFetch<Board>(`/api/coverset/boards/${boardId}`));
+        }
+
+        if (resultString(job, "evidence_id") && job.production_id) {
+            await refreshSetup(job.production_id);
+        }
+    }
+
+    async function pollJob(job: Job): Promise<Job> {
+        rememberJob(job);
+        for (let attempt = 0; attempt < 90; attempt += 1) {
+            const latest = await refreshJob(job.id);
+            setStatus(
+                `${latest.job_type} job ${latest.status} (${latest.attempts} attempt${latest.attempts === 1 ? "" : "s"}).`,
+            );
+            if (latest.status === "complete") {
+                await hydrateCompletedJob(latest);
+                return latest;
+            }
+            if (latest.status === "failed") {
+                throw new Error(latest.error || `${latest.job_type} job failed`);
+            }
+            await sleep(2000);
+        }
+        throw new Error(`Timed out waiting for job ${job.id}`);
+    }
+
     async function refreshSetup(productionId: string) {
         setError("");
         try {
-            const [loadedProduction, loadedCast, loadedLocations, calendar] =
-                await Promise.all([
-                    jsonFetch<Production>(
-                        `/api/coverset/productions/${productionId}`,
-                    ),
-                    jsonFetch<CastMember[]>(
-                        `/api/coverset/productions/${productionId}/cast`,
-                    ),
-                    jsonFetch<LocationRow[]>(
-                        `/api/coverset/productions/${productionId}/locations`,
-                    ),
-                    jsonFetch<{ shoot_dates: string[] }>(
-                        `/api/coverset/productions/${productionId}/calendar`,
-                    ),
-                ]);
+            const [
+                loadedProduction,
+                loadedCast,
+                loadedLocations,
+                calendar,
+                loadedJobs,
+                loadedGrounding,
+                loadedConstraints,
+            ] = await Promise.all([
+                jsonFetch<Production>(
+                    `/api/coverset/productions/${productionId}`,
+                ),
+                jsonFetch<CastMember[]>(
+                    `/api/coverset/productions/${productionId}/cast`,
+                ),
+                jsonFetch<LocationRow[]>(
+                    `/api/coverset/productions/${productionId}/locations`,
+                ),
+                jsonFetch<{ shoot_dates: string[] }>(
+                    `/api/coverset/productions/${productionId}/calendar`,
+                ),
+                jsonFetch<Job[]>(`/api/coverset/productions/${productionId}/jobs`),
+                jsonFetch<GroundingEvidence[]>(
+                    `/api/coverset/productions/${productionId}/grounding`,
+                ),
+                jsonFetch<ConstraintRow[]>(
+                    `/api/coverset/productions/${productionId}/constraints`,
+                ),
+            ]);
             setProduction(loadedProduction);
             setTitle(loadedProduction.title);
             setCastMembers(loadedCast);
             setLocations(loadedLocations);
+            setJobs(loadedJobs);
+            setGrounding(loadedGrounding);
+            setConstraints(loadedConstraints);
+            if (loadedLocations.length > 0 && !groundingLocationId) {
+                setGroundingLocationId(loadedLocations[0].location_id);
+            }
             if (calendar.shoot_dates.length > 0) {
                 setShootDates(calendar.shoot_dates.join("\n"));
             }
@@ -681,11 +876,9 @@ export default function Home() {
                 );
             }
 
-            setStatus(
-                `Running ${agentMode} breakdown. Candidates will require review.`,
-            );
-            const breakdownRun = await jsonFetch<BreakdownRun>(
-                `/api/coverset/productions/${currentProduction.id}/breakdowns`,
+            setStatus(`Enqueuing ${agentMode} breakdown job...`);
+            const job = await jsonFetch<Job>(
+                `/api/coverset/productions/${currentProduction.id}/breakdowns/jobs`,
                 {
                     method: "POST",
                     body: JSON.stringify({
@@ -695,13 +888,8 @@ export default function Home() {
                     }),
                 },
             );
-            setBreakdown(breakdownRun);
-            if (breakdownRun.status !== "complete") {
-                throw new Error(
-                    breakdownRun.error || `Breakdown ${breakdownRun.status}`,
-                );
-            }
-            setStatus("Breakdown complete. Review candidates before solving.");
+            await pollJob(job);
+            setStatus("Breakdown job complete. Review candidates before solving.");
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setStatus("Upload or breakdown failed.");
@@ -775,28 +963,94 @@ export default function Home() {
         setError("");
         setBoard(null);
         try {
-            setStatus("Solving board with deterministic scheduler...");
-            const scheduleRun = await jsonFetch<ScheduleRun>(
-                `/api/coverset/productions/${production.id}/boards/solve`,
+            setStatus("Enqueuing deterministic scheduler job...");
+            const job = await jsonFetch<Job>(
+                `/api/coverset/productions/${production.id}/boards/solve/jobs`,
                 {
                     method: "POST",
                     body: JSON.stringify({ accepted_only: true }),
                 },
             );
-            setSchedule(scheduleRun);
-            if (!scheduleRun.board_id) {
-                throw new Error(
-                    scheduleRun.error || `Schedule ${scheduleRun.status}`,
-                );
-            }
-            const solvedBoard = await jsonFetch<Board>(
-                `/api/coverset/boards/${scheduleRun.board_id}`,
-            );
-            setBoard(solvedBoard);
-            setStatus("Accepted scenes solved.");
+            await pollJob(job);
+            setStatus("Accepted scenes solved by the worker.");
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
             setStatus("Solve failed.");
+        }
+    }
+
+    async function createLockConstraint() {
+        if (!production) return;
+        setError("");
+        try {
+            const locked = await jsonFetch<ConstraintRow>(
+                `/api/coverset/productions/${production.id}/constraints`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        constraint_id: `LOCK-${lockWorkId}-${lockDate}`,
+                        family: "lock",
+                        policy: "hard",
+                        subject_kind: "work",
+                        subject_ref: lockWorkId,
+                        expression_type: "pinned_day",
+                        day: lockDate,
+                        statement: `First AD locked ${lockWorkId} to ${lockDate}.`,
+                        active: true,
+                    }),
+                },
+            );
+            setConstraints((current) => [locked, ...current]);
+            await refreshSetup(production.id);
+            setStatus("Lock constraint saved. Re-solve to preserve it.");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+            setStatus("Lock save failed.");
+        }
+    }
+
+    async function toggleConstraint(row: ConstraintRow, active: boolean) {
+        setError("");
+        try {
+            const updated = await jsonFetch<ConstraintRow>(
+                `/api/coverset/constraints/${row.id}/activation`,
+                {
+                    method: "PATCH",
+                    body: JSON.stringify({ active }),
+                },
+            );
+            setConstraints((current) =>
+                current.map((entry) =>
+                    entry.id === updated.id ? updated : entry,
+                ),
+            );
+            setStatus(active ? "Constraint activated." : "Constraint deactivated.");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+            setStatus("Constraint update failed.");
+        }
+    }
+
+    async function enqueueGrounding() {
+        if (!production) return;
+        setError("");
+        try {
+            const job = await jsonFetch<Job>(
+                `/api/coverset/productions/${production.id}/grounding/jobs`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        kind: "weather",
+                        location_id: groundingLocationId,
+                        target_date: groundingDate,
+                    }),
+                },
+            );
+            await pollJob(job);
+            setStatus("Grounding job complete. Evidence is persisted for review.");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+            setStatus("Grounding failed.");
         }
     }
 
@@ -1056,6 +1310,126 @@ export default function Home() {
                 </section>
             )}
 
+            {production && (
+                <section className="panel grid three">
+                    <div>
+                        <h2>Locks</h2>
+                        <p>
+                            Persist locked production reality as hard solver
+                            constraints before a re-solve.
+                        </p>
+                        <label>
+                            Work ID
+                            <input
+                                value={lockWorkId}
+                                onChange={(event) =>
+                                    setLockWorkId(event.target.value)
+                                }
+                            />
+                        </label>
+                        <label>
+                            Locked date
+                            <input
+                                type="date"
+                                value={lockDate}
+                                onChange={(event) =>
+                                    setLockDate(event.target.value)
+                                }
+                            />
+                        </label>
+                        <button type="button" onClick={createLockConstraint}>
+                            Save active lock
+                        </button>
+                    </div>
+                    <div>
+                        <h2>Grounding</h2>
+                        <p>
+                            Queue Parallel evidence retrieval; evidence stays
+                            inert until a human activates a typed constraint.
+                        </p>
+                        <label>
+                            Location
+                            <select
+                                value={groundingLocationId}
+                                onChange={(event) =>
+                                    setGroundingLocationId(event.target.value)
+                                }
+                            >
+                                {locations.map((location) => (
+                                    <option
+                                        key={location.location_id}
+                                        value={location.location_id}
+                                    >
+                                        {location.location_id}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label>
+                            Target date
+                            <input
+                                type="date"
+                                value={groundingDate}
+                                onChange={(event) =>
+                                    setGroundingDate(event.target.value)
+                                }
+                            />
+                        </label>
+                        <button type="button" onClick={enqueueGrounding}>
+                            Enqueue weather grounding
+                        </button>
+                        <ul className="compactList">
+                            {grounding.map((row) => (
+                                <li key={row.id}>
+                                    {row.fact_kind} · {row.location_id} ·{" "}
+                                    {row.target_date} · {row.status} ·{" "}
+                                    {row.evidence.covering_urls?.length ?? 0}
+                                    {" covering source(s)"}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div>
+                        <h2>Constraints & jobs</h2>
+                        <ul className="compactList">
+                            {constraints.map((row) => (
+                                <li key={row.id}>
+                                    <button
+                                        type="button"
+                                        className="tiny"
+                                        onClick={() =>
+                                            void toggleConstraint(row, !row.active)
+                                        }
+                                    >
+                                        {row.active ? "Deactivate" : "Activate"}
+                                    </button>{" "}
+                                    <strong>{row.constraint_id}</strong> ·{" "}
+                                    {row.family}/{row.policy} ·{" "}
+                                    {expressionSummary(row)}
+                                </li>
+                            ))}
+                        </ul>
+                        <h3>Job history</h3>
+                        <ul className="compactList">
+                            {jobs.map((job) => (
+                                <li key={job.id}>
+                                    <button
+                                        type="button"
+                                        className="tiny"
+                                        onClick={() => void refreshJob(job.id)}
+                                    >
+                                        Refresh
+                                    </button>{" "}
+                                    <span className={jobClass(job)}>{job.status}</span>{" "}
+                                    {job.job_type} · attempts {job.attempts}
+                                    {job.error ? ` · ${job.error}` : ""}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </section>
+            )}
+
             <section className="panel grid">
                 <div>
                     <h2>Screenplay intake</h2>
@@ -1175,20 +1549,87 @@ export default function Home() {
                             {board.result.days.map((day) => (
                                 <div className="dayCard" key={day.date}>
                                     <h3>{day.date}</h3>
-                                    {day.assignments.map((assignment) => (
-                                        <p
-                                            key={`${day.date}-${assignment.sequence}`}
+                                    <p className="muted">
+                                        {timeLabel(day.call_time)}–{timeLabel(day.wrap_time)} ·{" "}
+                                        {day.company_moves} company move(s)
+                                    </p>
+                                    {(day.strips ?? []).map((strip) => (
+                                        <article
+                                            className="stripCard"
+                                            key={`${day.date}-${strip.sequence}`}
                                         >
-                                            {assignment.sequence + 1}.{" "}
-                                            {assignment.work_id} @{" "}
-                                            {assignment.location_id}
-                                        </p>
+                                            <div className="sceneHeader">
+                                                <strong>{strip.scene_id}</strong>
+                                                <span>{strip.location.name}</span>
+                                                <span className="pill">
+                                                    {strip.day_night}
+                                                </span>
+                                            </div>
+                                            <small>
+                                                {strip.work_id} · {strip.kind} ·{" "}
+                                                {strip.duration_minutes ?? 0} min ·{" "}
+                                                {timeLabel(strip.planned_call_time)}–
+                                                {timeLabel(strip.planned_wrap_time)}
+                                            </small>
+                                            <div className="badges">
+                                                {strip.cast.map((member) => (
+                                                    <span
+                                                        className="pill"
+                                                        key={`${strip.work_id}-${member.id}`}
+                                                    >
+                                                        {member.character}
+                                                    </span>
+                                                ))}
+                                                {Object.entries(strip.flags)
+                                                    .filter(([, value]) => value)
+                                                    .map(([flag]) => (
+                                                        <span
+                                                            className="pill warn"
+                                                            key={`${strip.work_id}-${flag}`}
+                                                        >
+                                                            {flag}
+                                                        </span>
+                                                    ))}
+                                                {strip.requires_daylight && (
+                                                    <span className="pill good">
+                                                        daylight
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </article>
                                     ))}
                                 </div>
                             ))}
                         </div>
                     )}
-                    <pre>{board.stripboard}</pre>
+                    {board.result.explanation_traces && (
+                        <details className="explanations">
+                            <summary>Constraint explanation traces</summary>
+                            <ul className="compactList">
+                                {board.result.explanation_traces.map((trace) => (
+                                    <li key={trace.constraint_id}>
+                                        <span
+                                            className={
+                                                trace.satisfied
+                                                    ? "pill good"
+                                                    : "pill warn"
+                                            }
+                                        >
+                                            {trace.satisfied ? "ok" : "blocked"}
+                                        </span>{" "}
+                                        <strong>{trace.constraint_id}</strong> ·{" "}
+                                        {trace.family}/{trace.policy}
+                                        {trace.detail ? ` · ${trace.detail}` : ""}
+                                        {trace.source ? ` · ${trace.source}` : ""}
+                                    </li>
+                                ))}
+                            </ul>
+                        </details>
+                    )}
+                    <details>
+                        <summary>Text stripboard export</summary>
+                        <pre>{board.stripboard}</pre>
+                    </details>
                 </section>
             )}
         </main>
