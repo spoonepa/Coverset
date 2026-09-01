@@ -1202,6 +1202,80 @@ export default function Home() {
                 {error && <pre className="error">{error}</pre>}
             </section>
 
+            {production && (
+                <section className="panel">
+                    <div className="sectionHeader">
+                        <div>
+                            <h2>Full UI screens</h2>
+                            <p className="muted">
+                                The v4 reference screens are now available as
+                                application routes backed by the live API.
+                            </p>
+                        </div>
+                        {board && (
+                            <a
+                                className="buttonLink"
+                                href={`/productions/${production.id}/board/${board.id}`}
+                            >
+                                Open board cockpit
+                            </a>
+                        )}
+                    </div>
+                    <div className="routeCards">
+                        <a
+                            href={`/productions/${production.id}${board ? `?boardId=${board.id}` : ""}`}
+                        >
+                            Overview
+                        </a>
+                        <a
+                            href={`/productions/${production.id}/breakdown${board ? `?boardId=${board.id}` : ""}`}
+                        >
+                            Breakdown review
+                        </a>
+                        <a
+                            href={`/productions/${production.id}/constraints${board ? `?boardId=${board.id}` : ""}`}
+                        >
+                            Constraint entry
+                        </a>
+                        <a
+                            href={`/productions/${production.id}/grounding${board ? `?boardId=${board.id}` : ""}`}
+                        >
+                            Grounded facts
+                        </a>
+                        <a
+                            href={`/productions/${production.id}/replans${board ? `?boardId=${board.id}` : ""}`}
+                        >
+                            Replan options
+                        </a>
+                        <a
+                            href={`/productions/${production.id}/coverage${board ? `?boardId=${board.id}` : ""}`}
+                        >
+                            Coverage / actuals
+                        </a>
+                        <a
+                            href={`/productions/${production.id}/call-sheets${board ? `?boardId=${board.id}` : ""}`}
+                        >
+                            Call sheets
+                        </a>
+                        <a
+                            href={`/productions/${production.id}/audit${board ? `?boardId=${board.id}` : ""}`}
+                        >
+                            Audit log
+                        </a>
+                        <a
+                            href={`/productions/${production.id}/infeasible${board ? `?boardId=${board.id}` : ""}`}
+                        >
+                            Infeasible board
+                        </a>
+                        <a
+                            href={`/productions/${production.id}/costs${board ? `?boardId=${board.id}` : ""}`}
+                        >
+                            Cost approval
+                        </a>
+                    </div>
+                </section>
+            )}
+
             <section className="panel grid">
                 <div>
                     <h2>Fast smoke</h2>
