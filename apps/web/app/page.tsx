@@ -1192,25 +1192,37 @@ export default function Home() {
 
     return (
         <div className="appFrame">
-            <aside className="sideRail launchRail" aria-label="Coverset launch sections">
+            <aside
+                className="sideRail launchRail"
+                aria-label="Coverset launch sections"
+            >
                 <a className="railBrand" href="/" aria-label="Coverset home">
                     CS
                 </a>
                 <nav className="railNav">
                     <a href="#demo" title="Fixture demo">
-                        <span className="material-symbols-outlined railIcon" aria-hidden="true">
+                        <span
+                            className="material-symbols-outlined railIcon"
+                            aria-hidden="true"
+                        >
                             dashboard
                         </span>
                         <span className="railLabel">Fixture demo</span>
                     </a>
                     <a href="#manual-setup" title="Manual setup">
-                        <span className="material-symbols-outlined railIcon" aria-hidden="true">
+                        <span
+                            className="material-symbols-outlined railIcon"
+                            aria-hidden="true"
+                        >
                             list_alt
                         </span>
                         <span className="railLabel">Manual setup</span>
                     </a>
                     <a href="#solve" title="Solve">
-                        <span className="material-symbols-outlined railIcon" aria-hidden="true">
+                        <span
+                            className="material-symbols-outlined railIcon"
+                            aria-hidden="true"
+                        >
                             rebase_edit
                         </span>
                         <span className="railLabel">Solve</span>
@@ -1222,876 +1234,925 @@ export default function Home() {
             </aside>
             <main className="routeShell launchShell">
                 <section className="hero">
-                <p className="eyebrow">Coverset operations cockpit</p>
-                <h1>Launch the stripboard command center.</h1>
-                <p>
-                    Run the fixture demo to create a production and jump into
-                    the v4-style workflow shell: left rail navigation, grounded
-                    facts, replans, call sheets, audit, and cost approval.
-                </p>
-            </section>
-
-            <section className="panel status">
-                <strong>Status:</strong> {status}
-                {error && <pre className="error">{error}</pre>}
-            </section>
-
-            {production && (
-                <section className="panel">
-                    <div className="sectionHeader">
-                        <div>
-                            <h2>Full UI screens</h2>
-                            <p className="muted">
-                                The v4 reference screens are now available as
-                                application routes backed by the live API.
-                            </p>
-                        </div>
-                        {board && (
-                            <a
-                                className="buttonLink"
-                                href={`/productions/${production.id}/board/${board.id}`}
-                            >
-                                Open board cockpit
-                            </a>
-                        )}
-                    </div>
-                    <div className="routeCards">
-                        <a
-                            href={`/productions/${production.id}${board ? `?boardId=${board.id}` : ""}`}
-                        >
-                            Overview
-                        </a>
-                        <a
-                            href={`/productions/${production.id}/breakdown${board ? `?boardId=${board.id}` : ""}`}
-                        >
-                            Breakdown review
-                        </a>
-                        <a
-                            href={`/productions/${production.id}/constraints${board ? `?boardId=${board.id}` : ""}`}
-                        >
-                            Constraint entry
-                        </a>
-                        <a
-                            href={`/productions/${production.id}/grounding${board ? `?boardId=${board.id}` : ""}`}
-                        >
-                            Grounded facts
-                        </a>
-                        <a
-                            href={`/productions/${production.id}/replans${board ? `?boardId=${board.id}` : ""}`}
-                        >
-                            Replan options
-                        </a>
-                        <a
-                            href={`/productions/${production.id}/coverage${board ? `?boardId=${board.id}` : ""}`}
-                        >
-                            Coverage / actuals
-                        </a>
-                        <a
-                            href={`/productions/${production.id}/call-sheets${board ? `?boardId=${board.id}` : ""}`}
-                        >
-                            Call sheets
-                        </a>
-                        <a
-                            href={`/productions/${production.id}/audit${board ? `?boardId=${board.id}` : ""}`}
-                        >
-                            Audit log
-                        </a>
-                        <a
-                            href={`/productions/${production.id}/infeasible${board ? `?boardId=${board.id}` : ""}`}
-                        >
-                            Infeasible board
-                        </a>
-                        <a
-                            href={`/productions/${production.id}/costs${board ? `?boardId=${board.id}` : ""}`}
-                        >
-                            Cost approval
-                        </a>
-                    </div>
-                </section>
-            )}
-
-            <section className="panel grid" id="demo">
-                <div>
-                    <h2>Fast smoke</h2>
+                    <p className="eyebrow">Coverset operations cockpit</p>
+                    <h1>Launch the stripboard command center.</h1>
                     <p>
-                        Runs the authored fixture through the API, database, and
-                        scheduler, then opens the new board cockpit.
+                        Run the fixture demo to create a production and jump
+                        into the v4-style workflow shell: left rail navigation,
+                        grounded facts, replans, call sheets, audit, and cost
+                        approval.
                     </p>
-                    <button type="button" onClick={runFixtureDemo}>
-                        Run fixture demo
-                    </button>
-                </div>
-                <div id="manual-setup">
-                    <h2>Production</h2>
-                    <label>
-                        Title
-                        <input
-                            value={title}
-                            onChange={(event) => setTitle(event.target.value)}
-                        />
-                    </label>
-                    <label className="inline">
-                        <input
-                            type="checkbox"
-                            checked={seedDemo}
-                            onChange={(event) =>
-                                setSeedDemo(event.target.checked)
-                            }
-                        />
-                        Seed Ferry Job demo cast, locations, and dates
-                    </label>
-                    <button type="button" onClick={createProduction}>
-                        Create / reset production
-                    </button>
-                    {production && (
-                        <p className="muted">
-                            Active: {production.title} · {production.cast_count}{" "}
-                            cast · {production.location_count} locations ·{" "}
-                            {production.shoot_day_count} shoot days
-                        </p>
-                    )}
-                </div>
-            </section>
-
-            {production && (
-                <section className="panel">
-                    <h2>Production setup</h2>
-                    <div className="grid three">
-                        <div>
-                            <h3>Cast</h3>
-                            <label>
-                                Cast ID
-                                <input
-                                    value={castForm.cast_id}
-                                    onChange={(event) =>
-                                        setCastForm({
-                                            ...castForm,
-                                            cast_id: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                            <label>
-                                Performer
-                                <input
-                                    value={castForm.performer}
-                                    onChange={(event) =>
-                                        setCastForm({
-                                            ...castForm,
-                                            performer: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                            <label>
-                                Character
-                                <input
-                                    value={castForm.character}
-                                    onChange={(event) =>
-                                        setCastForm({
-                                            ...castForm,
-                                            character: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                            <label className="inline">
-                                <input
-                                    type="checkbox"
-                                    checked={castForm.is_minor}
-                                    onChange={(event) =>
-                                        setCastForm({
-                                            ...castForm,
-                                            is_minor: event.target.checked,
-                                        })
-                                    }
-                                />{" "}
-                                Minor performer
-                            </label>
-                            <button type="button" onClick={addCastMember}>
-                                Add cast
-                            </button>
-                            <ul className="compactList">
-                                {castMembers.map((member) => (
-                                    <li key={member.id}>
-                                        {member.cast_id} — {member.character}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div>
-                            <h3>Locations</h3>
-                            <label>
-                                Location ID
-                                <input
-                                    value={locationForm.location_id}
-                                    onChange={(event) =>
-                                        setLocationForm({
-                                            ...locationForm,
-                                            location_id: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                            <label>
-                                Name
-                                <input
-                                    value={locationForm.name}
-                                    onChange={(event) =>
-                                        setLocationForm({
-                                            ...locationForm,
-                                            name: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                            <label>
-                                City
-                                <input
-                                    value={locationForm.city}
-                                    onChange={(event) =>
-                                        setLocationForm({
-                                            ...locationForm,
-                                            city: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                            <label>
-                                State
-                                <input
-                                    value={locationForm.state}
-                                    onChange={(event) =>
-                                        setLocationForm({
-                                            ...locationForm,
-                                            state: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                            <label>
-                                Latitude
-                                <input
-                                    value={locationForm.latitude}
-                                    onChange={(event) =>
-                                        setLocationForm({
-                                            ...locationForm,
-                                            latitude: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                            <label>
-                                Longitude
-                                <input
-                                    value={locationForm.longitude}
-                                    onChange={(event) =>
-                                        setLocationForm({
-                                            ...locationForm,
-                                            longitude: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                            <label>
-                                Timezone
-                                <input
-                                    value={locationForm.timezone}
-                                    onChange={(event) =>
-                                        setLocationForm({
-                                            ...locationForm,
-                                            timezone: event.target.value,
-                                        })
-                                    }
-                                />
-                            </label>
-                            <label>
-                                Aliases
-                                <input
-                                    value={locationForm.aliases}
-                                    onChange={(event) =>
-                                        setLocationForm({
-                                            ...locationForm,
-                                            aliases: event.target.value,
-                                        })
-                                    }
-                                    placeholder="FERRY TERMINAL / RIVER DOCK"
-                                />
-                            </label>
-                            <button type="button" onClick={addLocation}>
-                                Add location
-                            </button>
-                            <ul className="compactList">
-                                {locations.map((location) => (
-                                    <li key={location.id}>
-                                        {location.location_id} — {location.name}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div>
-                            <h3>Shoot dates</h3>
-                            <label>
-                                One ISO date per line
-                                <textarea
-                                    value={shootDates}
-                                    onChange={(event) =>
-                                        setShootDates(event.target.value)
-                                    }
-                                    rows={8}
-                                />
-                            </label>
-                            <button type="button" onClick={saveCalendar}>
-                                Save calendar
-                            </button>
-                        </div>
-                    </div>
                 </section>
-            )}
 
-            {production && (
-                <section className="panel grid three">
-                    <div>
-                        <h2>Locks</h2>
-                        <p>
-                            Persist locked production reality as hard solver
-                            constraints before a re-solve.
-                        </p>
-                        <label>
-                            Work ID
-                            <input
-                                value={lockWorkId}
-                                onChange={(event) =>
-                                    setLockWorkId(event.target.value)
-                                }
-                            />
-                        </label>
-                        <label>
-                            Locked date
-                            <input
-                                type="date"
-                                value={lockDate}
-                                onChange={(event) =>
-                                    setLockDate(event.target.value)
-                                }
-                            />
-                        </label>
-                        <button type="button" onClick={createLockConstraint}>
-                            Save active lock
-                        </button>
-                    </div>
-                    <div>
-                        <h2>Grounding</h2>
-                        <p>
-                            Queue Parallel evidence retrieval; evidence stays
-                            inert until a human activates a typed constraint.
-                        </p>
-                        <label>
-                            Location
-                            <select
-                                value={groundingLocationId}
-                                onChange={(event) =>
-                                    setGroundingLocationId(event.target.value)
-                                }
-                            >
-                                {locations.map((location) => (
-                                    <option
-                                        key={location.location_id}
-                                        value={location.location_id}
-                                    >
-                                        {location.location_id}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label>
-                            Target date
-                            <input
-                                type="date"
-                                value={groundingDate}
-                                onChange={(event) =>
-                                    setGroundingDate(event.target.value)
-                                }
-                            />
-                        </label>
-                        <button type="button" onClick={enqueueGrounding}>
-                            Enqueue weather grounding
-                        </button>
-                        <ul className="compactList">
-                            {grounding.map((row) => (
-                                <li key={row.id}>
-                                    {row.fact_kind} · {row.location_id} ·{" "}
-                                    {row.target_date} · {row.status} ·{" "}
-                                    {row.evidence.covering_urls?.length ?? 0}
-                                    {" covering source(s)"}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div>
-                        <h2>Constraints & jobs</h2>
-                        <ul className="compactList">
-                            {constraints.map((row) => (
-                                <li key={row.id}>
-                                    <button
-                                        type="button"
-                                        className="tiny"
-                                        onClick={() =>
-                                            void toggleConstraint(
-                                                row,
-                                                !row.active,
-                                            )
-                                        }
-                                    >
-                                        {row.active ? "Deactivate" : "Activate"}
-                                    </button>{" "}
-                                    <strong>{row.constraint_id}</strong> ·{" "}
-                                    {row.family}/{row.policy} ·{" "}
-                                    {expressionSummary(row)}
-                                </li>
-                            ))}
-                        </ul>
-                        <h3>Job history</h3>
-                        <ul className="compactList">
-                            {jobs.map((job) => (
-                                <li key={job.id}>
-                                    <button
-                                        type="button"
-                                        className="tiny"
-                                        onClick={() => void refreshJob(job.id)}
-                                    >
-                                        Refresh
-                                    </button>{" "}
-                                    <span className={jobClass(job)}>
-                                        {job.status}
-                                    </span>{" "}
-                                    {job.job_type} · attempts {job.attempts}
-                                    {job.error ? ` · ${job.error}` : ""}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
+                <section className="panel status">
+                    <strong>Status:</strong> {status}
+                    {error && <pre className="error">{error}</pre>}
                 </section>
-            )}
 
-            <section className="panel grid">
-                <div>
-                    <h2>Screenplay intake</h2>
-                    <label>
-                        Breakdown mode
-                        <select
-                            value={agentMode}
-                            onChange={(event) =>
-                                setAgentMode(event.target.value as AgentMode)
-                            }
-                        >
-                            <option value="gemini">Gemini live</option>
-                            <option value="fixture">Fixture smoke</option>
-                        </select>
-                    </label>
-                    <label>
-                        PDF or text screenplay
-                        <input
-                            type="file"
-                            accept=".pdf,.txt,.fountain,text/plain,application/pdf"
-                            onChange={(event) =>
-                                setFile(event.target.files?.[0] ?? null)
-                            }
-                        />
-                    </label>
-                    <button type="button" onClick={uploadAndBreakDown}>
-                        Upload and break down
-                    </button>
-                </div>
-                <div>
-                    <h2>Review summary</h2>
-                    {asset && (
-                        <p>
-                            Asset: {asset.filename}{" "}
-                            {asset.normalized_text_uri
-                                ? "· normalized text stored"
-                                : ""}
-                        </p>
-                    )}
-                    {breakdown ? (
-                        <div className="meta">
-                            <span>
-                                {breakdown.candidates.length} candidates
-                            </span>
-                            <span>{acceptedCount} accepted</span>
-                            <span>{readyCount} ready</span>
-                            <span>
-                                {breakdown.unresolved_locations.length}{" "}
-                                unresolved locations
-                            </span>
-                            <span>
-                                {breakdown.unresolved_cast.length} unresolved
-                                cast cues
-                            </span>
-                        </div>
-                    ) : (
-                        <p className="muted">No breakdown yet.</p>
-                    )}
-                </div>
-            </section>
-
-            {breakdown && (
-                <section className="panel">
-                    <div className="sectionHeader">
-                        <h2>Candidate review</h2>
-                        <div className="actions">
-                            <select
-                                value={filter}
-                                onChange={(event) =>
-                                    setFilter(
-                                        event.target.value as CandidateFilter,
-                                    )
-                                }
-                            >
-                                <option value="all">All</option>
-                                <option value="ready">Ready</option>
-                                <option value="blocked">Blocked</option>
-                                <option value="accepted">Accepted</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                            <button type="button" onClick={batchAcceptReady}>
-                                Batch accept ready
-                            </button>
-                            <button
-                                type="button"
-                                onClick={solveAccepted}
-                                disabled={acceptedCount === 0}
-                            >
-                                Solve accepted
-                            </button>
-                        </div>
-                    </div>
-                    <div className="sceneList">
-                        {visibleCandidates.map((candidate) => (
-                            <CandidateEditor
-                                key={candidate.id}
-                                candidate={candidate}
-                                onSave={saveCandidate}
-                                onReview={reviewCandidate}
-                            />
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {schedule && (
-                <section className="panel meta">
-                    <span>Schedule run: {schedule.status}</span>
-                </section>
-            )}
-
-            {board && (
-                <section className="panel board" id="solve">
-                    <h2>Board: {board.solver_status}</h2>
-                    {board.result.days && (
-                        <div className="boardGrid">
-                            {board.result.days.map((day) => (
-                                <div className="dayCard" key={day.date}>
-                                    <h3>{day.date}</h3>
-                                    <p className="muted">
-                                        {timeLabel(day.call_time)}–
-                                        {timeLabel(day.wrap_time)} ·{" "}
-                                        {day.company_moves} company move(s)
-                                    </p>
-                                    {(day.strips ?? []).map((strip) => (
-                                        <article
-                                            className="stripCard"
-                                            key={`${day.date}-${strip.sequence}`}
-                                        >
-                                            <div className="sceneHeader">
-                                                <strong>
-                                                    {strip.scene_id}
-                                                </strong>
-                                                <span>
-                                                    {strip.location.name}
-                                                </span>
-                                                <span className="pill">
-                                                    {strip.day_night}
-                                                </span>
-                                            </div>
-                                            <small>
-                                                {strip.work_id} · {strip.kind} ·{" "}
-                                                {strip.duration_minutes ?? 0}{" "}
-                                                min ·{" "}
-                                                {timeLabel(
-                                                    strip.planned_call_time,
-                                                )}
-                                                –
-                                                {timeLabel(
-                                                    strip.planned_wrap_time,
-                                                )}
-                                            </small>
-                                            <div className="badges">
-                                                {strip.cast.map((member) => (
-                                                    <span
-                                                        className="pill"
-                                                        key={`${strip.work_id}-${member.id}`}
-                                                    >
-                                                        {member.character}
-                                                    </span>
-                                                ))}
-                                                {Object.entries(strip.flags)
-                                                    .filter(
-                                                        ([, value]) => value,
-                                                    )
-                                                    .map(([flag]) => (
-                                                        <span
-                                                            className="pill warn"
-                                                            key={`${strip.work_id}-${flag}`}
-                                                        >
-                                                            {flag}
-                                                        </span>
-                                                    ))}
-                                                {strip.requires_daylight && (
-                                                    <span className="pill good">
-                                                        daylight
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </article>
-                                    ))}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    <section className="callSheetPanel">
+                {production && (
+                    <section className="panel">
                         <div className="sectionHeader">
                             <div>
-                                <h3>UC-05 call sheets</h3>
+                                <h2>Full UI screens</h2>
                                 <p className="muted">
-                                    Generate a shoot-day packet from the
-                                    selected board. Cast and crew recipients
-                                    stay read-only; schedule authority remains
-                                    with the First AD.
+                                    The v4 reference screens are now available
+                                    as application routes backed by the live
+                                    API.
                                 </p>
                             </div>
+                            {board && (
+                                <a
+                                    className="buttonLink"
+                                    href={`/productions/${production.id}/board/${board.id}`}
+                                >
+                                    Open board cockpit
+                                </a>
+                            )}
+                        </div>
+                        <div className="routeCards">
+                            <a
+                                href={`/productions/${production.id}${board ? `?boardId=${board.id}` : ""}`}
+                            >
+                                Overview
+                            </a>
+                            <a
+                                href={`/productions/${production.id}/breakdown${board ? `?boardId=${board.id}` : ""}`}
+                            >
+                                Breakdown review
+                            </a>
+                            <a
+                                href={`/productions/${production.id}/constraints${board ? `?boardId=${board.id}` : ""}`}
+                            >
+                                Constraint entry
+                            </a>
+                            <a
+                                href={`/productions/${production.id}/grounding${board ? `?boardId=${board.id}` : ""}`}
+                            >
+                                Grounded facts
+                            </a>
+                            <a
+                                href={`/productions/${production.id}/replans${board ? `?boardId=${board.id}` : ""}`}
+                            >
+                                Replan options
+                            </a>
+                            <a
+                                href={`/productions/${production.id}/coverage${board ? `?boardId=${board.id}` : ""}`}
+                            >
+                                Coverage / actuals
+                            </a>
+                            <a
+                                href={`/productions/${production.id}/call-sheets${board ? `?boardId=${board.id}` : ""}`}
+                            >
+                                Call sheets
+                            </a>
+                            <a
+                                href={`/productions/${production.id}/audit${board ? `?boardId=${board.id}` : ""}`}
+                            >
+                                Audit log
+                            </a>
+                            <a
+                                href={`/productions/${production.id}/infeasible${board ? `?boardId=${board.id}` : ""}`}
+                            >
+                                Infeasible board
+                            </a>
+                            <a
+                                href={`/productions/${production.id}/costs${board ? `?boardId=${board.id}` : ""}`}
+                            >
+                                Cost approval
+                            </a>
+                        </div>
+                    </section>
+                )}
+
+                <section className="panel grid" id="demo">
+                    <div>
+                        <h2>Fast smoke</h2>
+                        <p>
+                            Runs the authored fixture through the API, database,
+                            and scheduler, then opens the new board cockpit.
+                        </p>
+                        <button type="button" onClick={runFixtureDemo}>
+                            Run fixture demo
+                        </button>
+                    </div>
+                    <div id="manual-setup">
+                        <h2>Production</h2>
+                        <label>
+                            Title
+                            <input
+                                value={title}
+                                onChange={(event) =>
+                                    setTitle(event.target.value)
+                                }
+                            />
+                        </label>
+                        <label className="inline">
+                            <input
+                                type="checkbox"
+                                checked={seedDemo}
+                                onChange={(event) =>
+                                    setSeedDemo(event.target.checked)
+                                }
+                            />
+                            Seed Ferry Job demo cast, locations, and dates
+                        </label>
+                        <button type="button" onClick={createProduction}>
+                            Create / reset production
+                        </button>
+                        {production && (
+                            <p className="muted">
+                                Active: {production.title} ·{" "}
+                                {production.cast_count} cast ·{" "}
+                                {production.location_count} locations ·{" "}
+                                {production.shoot_day_count} shoot days
+                            </p>
+                        )}
+                    </div>
+                </section>
+
+                {production && (
+                    <section className="panel">
+                        <h2>Production setup</h2>
+                        <div className="grid three">
+                            <div>
+                                <h3>Cast</h3>
+                                <label>
+                                    Cast ID
+                                    <input
+                                        value={castForm.cast_id}
+                                        onChange={(event) =>
+                                            setCastForm({
+                                                ...castForm,
+                                                cast_id: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label>
+                                    Performer
+                                    <input
+                                        value={castForm.performer}
+                                        onChange={(event) =>
+                                            setCastForm({
+                                                ...castForm,
+                                                performer: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label>
+                                    Character
+                                    <input
+                                        value={castForm.character}
+                                        onChange={(event) =>
+                                            setCastForm({
+                                                ...castForm,
+                                                character: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label className="inline">
+                                    <input
+                                        type="checkbox"
+                                        checked={castForm.is_minor}
+                                        onChange={(event) =>
+                                            setCastForm({
+                                                ...castForm,
+                                                is_minor: event.target.checked,
+                                            })
+                                        }
+                                    />{" "}
+                                    Minor performer
+                                </label>
+                                <button type="button" onClick={addCastMember}>
+                                    Add cast
+                                </button>
+                                <ul className="compactList">
+                                    {castMembers.map((member) => (
+                                        <li key={member.id}>
+                                            {member.cast_id} —{" "}
+                                            {member.character}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div>
+                                <h3>Locations</h3>
+                                <label>
+                                    Location ID
+                                    <input
+                                        value={locationForm.location_id}
+                                        onChange={(event) =>
+                                            setLocationForm({
+                                                ...locationForm,
+                                                location_id: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label>
+                                    Name
+                                    <input
+                                        value={locationForm.name}
+                                        onChange={(event) =>
+                                            setLocationForm({
+                                                ...locationForm,
+                                                name: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label>
+                                    City
+                                    <input
+                                        value={locationForm.city}
+                                        onChange={(event) =>
+                                            setLocationForm({
+                                                ...locationForm,
+                                                city: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label>
+                                    State
+                                    <input
+                                        value={locationForm.state}
+                                        onChange={(event) =>
+                                            setLocationForm({
+                                                ...locationForm,
+                                                state: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label>
+                                    Latitude
+                                    <input
+                                        value={locationForm.latitude}
+                                        onChange={(event) =>
+                                            setLocationForm({
+                                                ...locationForm,
+                                                latitude: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label>
+                                    Longitude
+                                    <input
+                                        value={locationForm.longitude}
+                                        onChange={(event) =>
+                                            setLocationForm({
+                                                ...locationForm,
+                                                longitude: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label>
+                                    Timezone
+                                    <input
+                                        value={locationForm.timezone}
+                                        onChange={(event) =>
+                                            setLocationForm({
+                                                ...locationForm,
+                                                timezone: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </label>
+                                <label>
+                                    Aliases
+                                    <input
+                                        value={locationForm.aliases}
+                                        onChange={(event) =>
+                                            setLocationForm({
+                                                ...locationForm,
+                                                aliases: event.target.value,
+                                            })
+                                        }
+                                        placeholder="FERRY TERMINAL / RIVER DOCK"
+                                    />
+                                </label>
+                                <button type="button" onClick={addLocation}>
+                                    Add location
+                                </button>
+                                <ul className="compactList">
+                                    {locations.map((location) => (
+                                        <li key={location.id}>
+                                            {location.location_id} —{" "}
+                                            {location.name}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div>
+                                <h3>Shoot dates</h3>
+                                <label>
+                                    One ISO date per line
+                                    <textarea
+                                        value={shootDates}
+                                        onChange={(event) =>
+                                            setShootDates(event.target.value)
+                                        }
+                                        rows={8}
+                                    />
+                                </label>
+                                <button type="button" onClick={saveCalendar}>
+                                    Save calendar
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                )}
+
+                {production && (
+                    <section className="panel grid three">
+                        <div>
+                            <h2>Locks</h2>
+                            <p>
+                                Persist locked production reality as hard solver
+                                constraints before a re-solve.
+                            </p>
                             <label>
-                                Shoot date
-                                <select
-                                    value={callSheetDate}
+                                Work ID
+                                <input
+                                    value={lockWorkId}
                                     onChange={(event) =>
-                                        setCallSheetDate(event.target.value)
+                                        setLockWorkId(event.target.value)
+                                    }
+                                />
+                            </label>
+                            <label>
+                                Locked date
+                                <input
+                                    type="date"
+                                    value={lockDate}
+                                    onChange={(event) =>
+                                        setLockDate(event.target.value)
+                                    }
+                                />
+                            </label>
+                            <button
+                                type="button"
+                                onClick={createLockConstraint}
+                            >
+                                Save active lock
+                            </button>
+                        </div>
+                        <div>
+                            <h2>Grounding</h2>
+                            <p>
+                                Queue Parallel evidence retrieval; evidence
+                                stays inert until a human activates a typed
+                                constraint.
+                            </p>
+                            <label>
+                                Location
+                                <select
+                                    value={groundingLocationId}
+                                    onChange={(event) =>
+                                        setGroundingLocationId(
+                                            event.target.value,
+                                        )
                                     }
                                 >
-                                    {(board.result.days ?? []).map((day) => (
-                                        <option key={day.date} value={day.date}>
-                                            {day.date}
+                                    {locations.map((location) => (
+                                        <option
+                                            key={location.location_id}
+                                            value={location.location_id}
+                                        >
+                                            {location.location_id}
                                         </option>
                                     ))}
                                 </select>
                             </label>
-                            <button
-                                type="button"
-                                onClick={() => void generateCallSheet()}
-                            >
-                                Generate call sheet
+                            <label>
+                                Target date
+                                <input
+                                    type="date"
+                                    value={groundingDate}
+                                    onChange={(event) =>
+                                        setGroundingDate(event.target.value)
+                                    }
+                                />
+                            </label>
+                            <button type="button" onClick={enqueueGrounding}>
+                                Enqueue weather grounding
                             </button>
+                            <ul className="compactList">
+                                {grounding.map((row) => (
+                                    <li key={row.id}>
+                                        {row.fact_kind} · {row.location_id} ·{" "}
+                                        {row.target_date} · {row.status} ·{" "}
+                                        {row.evidence.covering_urls?.length ??
+                                            0}
+                                        {" covering source(s)"}
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
-                        {callSheets.length > 0 && (
-                            <div className="callSheetTabs">
-                                {callSheets.map((sheet) => (
-                                    <button
-                                        className="secondary"
-                                        key={sheet.id}
-                                        type="button"
-                                        onClick={() =>
-                                            setSelectedCallSheet(sheet)
-                                        }
-                                    >
-                                        {sheet.shoot_date}
-                                    </button>
+                        <div>
+                            <h2>Constraints & jobs</h2>
+                            <ul className="compactList">
+                                {constraints.map((row) => (
+                                    <li key={row.id}>
+                                        <button
+                                            type="button"
+                                            className="tiny"
+                                            onClick={() =>
+                                                void toggleConstraint(
+                                                    row,
+                                                    !row.active,
+                                                )
+                                            }
+                                        >
+                                            {row.active
+                                                ? "Deactivate"
+                                                : "Activate"}
+                                        </button>{" "}
+                                        <strong>{row.constraint_id}</strong> ·{" "}
+                                        {row.family}/{row.policy} ·{" "}
+                                        {expressionSummary(row)}
+                                    </li>
+                                ))}
+                            </ul>
+                            <h3>Job history</h3>
+                            <ul className="compactList">
+                                {jobs.map((job) => (
+                                    <li key={job.id}>
+                                        <button
+                                            type="button"
+                                            className="tiny"
+                                            onClick={() =>
+                                                void refreshJob(job.id)
+                                            }
+                                        >
+                                            Refresh
+                                        </button>{" "}
+                                        <span className={jobClass(job)}>
+                                            {job.status}
+                                        </span>{" "}
+                                        {job.job_type} · attempts {job.attempts}
+                                        {job.error ? ` · ${job.error}` : ""}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </section>
+                )}
+
+                <section className="panel grid">
+                    <div>
+                        <h2>Screenplay intake</h2>
+                        <label>
+                            Breakdown mode
+                            <select
+                                value={agentMode}
+                                onChange={(event) =>
+                                    setAgentMode(
+                                        event.target.value as AgentMode,
+                                    )
+                                }
+                            >
+                                <option value="gemini">Gemini live</option>
+                                <option value="fixture">Fixture smoke</option>
+                            </select>
+                        </label>
+                        <label>
+                            PDF or text screenplay
+                            <input
+                                type="file"
+                                accept=".pdf,.txt,.fountain,text/plain,application/pdf"
+                                onChange={(event) =>
+                                    setFile(event.target.files?.[0] ?? null)
+                                }
+                            />
+                        </label>
+                        <button type="button" onClick={uploadAndBreakDown}>
+                            Upload and break down
+                        </button>
+                    </div>
+                    <div>
+                        <h2>Review summary</h2>
+                        {asset && (
+                            <p>
+                                Asset: {asset.filename}{" "}
+                                {asset.normalized_text_uri
+                                    ? "· normalized text stored"
+                                    : ""}
+                            </p>
+                        )}
+                        {breakdown ? (
+                            <div className="meta">
+                                <span>
+                                    {breakdown.candidates.length} candidates
+                                </span>
+                                <span>{acceptedCount} accepted</span>
+                                <span>{readyCount} ready</span>
+                                <span>
+                                    {breakdown.unresolved_locations.length}{" "}
+                                    unresolved locations
+                                </span>
+                                <span>
+                                    {breakdown.unresolved_cast.length}{" "}
+                                    unresolved cast cues
+                                </span>
+                            </div>
+                        ) : (
+                            <p className="muted">No breakdown yet.</p>
+                        )}
+                    </div>
+                </section>
+
+                {breakdown && (
+                    <section className="panel">
+                        <div className="sectionHeader">
+                            <h2>Candidate review</h2>
+                            <div className="actions">
+                                <select
+                                    value={filter}
+                                    onChange={(event) =>
+                                        setFilter(
+                                            event.target
+                                                .value as CandidateFilter,
+                                        )
+                                    }
+                                >
+                                    <option value="all">All</option>
+                                    <option value="ready">Ready</option>
+                                    <option value="blocked">Blocked</option>
+                                    <option value="accepted">Accepted</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={batchAcceptReady}
+                                >
+                                    Batch accept ready
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={solveAccepted}
+                                    disabled={acceptedCount === 0}
+                                >
+                                    Solve accepted
+                                </button>
+                            </div>
+                        </div>
+                        <div className="sceneList">
+                            {visibleCandidates.map((candidate) => (
+                                <CandidateEditor
+                                    key={candidate.id}
+                                    candidate={candidate}
+                                    onSave={saveCandidate}
+                                    onReview={reviewCandidate}
+                                />
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {schedule && (
+                    <section className="panel meta">
+                        <span>Schedule run: {schedule.status}</span>
+                    </section>
+                )}
+
+                {board && (
+                    <section className="panel board" id="solve">
+                        <h2>Board: {board.solver_status}</h2>
+                        {board.result.days && (
+                            <div className="boardGrid">
+                                {board.result.days.map((day) => (
+                                    <div className="dayCard" key={day.date}>
+                                        <h3>{day.date}</h3>
+                                        <p className="muted">
+                                            {timeLabel(day.call_time)}–
+                                            {timeLabel(day.wrap_time)} ·{" "}
+                                            {day.company_moves} company move(s)
+                                        </p>
+                                        {(day.strips ?? []).map((strip) => (
+                                            <article
+                                                className="stripCard"
+                                                key={`${day.date}-${strip.sequence}`}
+                                            >
+                                                <div className="sceneHeader">
+                                                    <strong>
+                                                        {strip.scene_id}
+                                                    </strong>
+                                                    <span>
+                                                        {strip.location.name}
+                                                    </span>
+                                                    <span className="pill">
+                                                        {strip.day_night}
+                                                    </span>
+                                                </div>
+                                                <small>
+                                                    {strip.work_id} ·{" "}
+                                                    {strip.kind} ·{" "}
+                                                    {strip.duration_minutes ??
+                                                        0}{" "}
+                                                    min ·{" "}
+                                                    {timeLabel(
+                                                        strip.planned_call_time,
+                                                    )}
+                                                    –
+                                                    {timeLabel(
+                                                        strip.planned_wrap_time,
+                                                    )}
+                                                </small>
+                                                <div className="badges">
+                                                    {strip.cast.map(
+                                                        (member) => (
+                                                            <span
+                                                                className="pill"
+                                                                key={`${strip.work_id}-${member.id}`}
+                                                            >
+                                                                {
+                                                                    member.character
+                                                                }
+                                                            </span>
+                                                        ),
+                                                    )}
+                                                    {Object.entries(strip.flags)
+                                                        .filter(
+                                                            ([, value]) =>
+                                                                value,
+                                                        )
+                                                        .map(([flag]) => (
+                                                            <span
+                                                                className="pill warn"
+                                                                key={`${strip.work_id}-${flag}`}
+                                                            >
+                                                                {flag}
+                                                            </span>
+                                                        ))}
+                                                    {strip.requires_daylight && (
+                                                        <span className="pill good">
+                                                            daylight
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
                                 ))}
                             </div>
                         )}
-                        {selectedCallSheet ? (
-                            <article className="callSheetCard">
-                                <div className="sceneHeader">
-                                    <strong>
-                                        {
-                                            selectedCallSheet.payload
-                                                .call_sheet_version
+                        <section className="callSheetPanel">
+                            <div className="sectionHeader">
+                                <div>
+                                    <h3>UC-05 call sheets</h3>
+                                    <p className="muted">
+                                        Generate a shoot-day packet from the
+                                        selected board. Cast and crew recipients
+                                        stay read-only; schedule authority
+                                        remains with the First AD.
+                                    </p>
+                                </div>
+                                <label>
+                                    Shoot date
+                                    <select
+                                        value={callSheetDate}
+                                        onChange={(event) =>
+                                            setCallSheetDate(event.target.value)
                                         }
-                                    </strong>
-                                    <span>
-                                        Crew{" "}
-                                        {timeLabel(
-                                            selectedCallSheet.payload.crew_call,
-                                        )}
-                                        –
-                                        {timeLabel(
-                                            selectedCallSheet.payload
-                                                .wrap_estimate,
-                                        )}
-                                    </span>
-                                    <a
-                                        href={`/api/coverset/call-sheets/${selectedCallSheet.id}/export?format=text`}
                                     >
-                                        Text export
-                                    </a>
-                                </div>
-                                <div className="callSheetColumns">
-                                    <div>
-                                        <h4>Scenes</h4>
-                                        <ul className="compactList">
-                                            {selectedCallSheet.payload.scenes.map(
-                                                (scene) => (
-                                                    <li key={scene.scene_id}>
-                                                        {timeLabel(
-                                                            scene.planned_call_time,
-                                                        )}{" "}
-                                                        {scene.scene_id} ·{" "}
-                                                        {scene.location_name}
-                                                    </li>
-                                                ),
-                                            )}
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <h4>Cast calls</h4>
-                                        <ul className="compactList">
-                                            {selectedCallSheet.payload.cast_calls.map(
-                                                (row) => (
-                                                    <li key={row.cast_id}>
-                                                        {row.character}:{" "}
-                                                        {timeLabel(
-                                                            row.call_time,
-                                                        )}
-                                                        {row.is_minor &&
-                                                        row.minor_max_work_hours
-                                                            ? ` · minor max ${row.minor_max_work_hours}h`
-                                                            : ""}
-                                                    </li>
-                                                ),
-                                            )}
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <h4>Daylight</h4>
-                                        <ul className="compactList">
-                                            {selectedCallSheet.payload.daylight_windows.map(
-                                                (window) => (
-                                                    <li
-                                                        key={
-                                                            window.location_name
-                                                        }
-                                                    >
-                                                        {window.location_name}:{" "}
-                                                        {timeLabel(
-                                                            window.sunrise,
-                                                        )}{" "}
-                                                        sunrise /{" "}
-                                                        {timeLabel(
-                                                            window.sunset,
-                                                        )}{" "}
-                                                        sunset
-                                                    </li>
-                                                ),
-                                            )}
-                                        </ul>
-                                    </div>
-                                </div>
-                                <details>
-                                    <summary>
-                                        Turnaround, permits, recipients
-                                    </summary>
-                                    <ul className="compactList">
-                                        {selectedCallSheet.payload.turnaround_notes.map(
-                                            (note) => (
-                                                <li key={note.display}>
-                                                    <span
-                                                        className={
-                                                            note.satisfied
-                                                                ? "pill good"
-                                                                : "pill warn"
-                                                        }
-                                                    >
-                                                        {note.satisfied
-                                                            ? "ok"
-                                                            : "check"}
-                                                    </span>{" "}
-                                                    {note.display}:{" "}
-                                                    {note.rest_hours}h rest
-                                                    (minimum{" "}
-                                                    {note.minimum_hours}h)
-                                                </li>
-                                            ),
-                                        )}
-                                        {selectedCallSheet.payload.permit_notes.map(
-                                            (note) => (
-                                                <li key={note.constraint_id}>
-                                                    Permit {note.constraint_id}:{" "}
-                                                    {note.detail}
-                                                </li>
-                                            ),
-                                        )}
-                                        {selectedCallSheet.payload.recipients.map(
-                                            (recipient) => (
-                                                <li
-                                                    key={`${recipient.recipient_type}-${recipient.display_name}`}
+                                        {(board.result.days ?? []).map(
+                                            (day) => (
+                                                <option
+                                                    key={day.date}
+                                                    value={day.date}
                                                 >
-                                                    {recipient.display_name} ·{" "}
-                                                    {recipient.authority}
-                                                </li>
+                                                    {day.date}
+                                                </option>
                                             ),
                                         )}
-                                    </ul>
-                                </details>
-                                <details>
-                                    <summary>Rendered call sheet</summary>
-                                    <pre>{selectedCallSheet.rendered_text}</pre>
-                                </details>
-                            </article>
-                        ) : (
-                            <p className="muted">
-                                No call sheet generated for this board yet.
-                            </p>
+                                    </select>
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => void generateCallSheet()}
+                                >
+                                    Generate call sheet
+                                </button>
+                            </div>
+                            {callSheets.length > 0 && (
+                                <div className="callSheetTabs">
+                                    {callSheets.map((sheet) => (
+                                        <button
+                                            className="secondary"
+                                            key={sheet.id}
+                                            type="button"
+                                            onClick={() =>
+                                                setSelectedCallSheet(sheet)
+                                            }
+                                        >
+                                            {sheet.shoot_date}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {selectedCallSheet ? (
+                                <article className="callSheetCard">
+                                    <div className="sceneHeader">
+                                        <strong>
+                                            {
+                                                selectedCallSheet.payload
+                                                    .call_sheet_version
+                                            }
+                                        </strong>
+                                        <span>
+                                            Crew{" "}
+                                            {timeLabel(
+                                                selectedCallSheet.payload
+                                                    .crew_call,
+                                            )}
+                                            –
+                                            {timeLabel(
+                                                selectedCallSheet.payload
+                                                    .wrap_estimate,
+                                            )}
+                                        </span>
+                                        <a
+                                            href={`/api/coverset/call-sheets/${selectedCallSheet.id}/export?format=text`}
+                                        >
+                                            Text export
+                                        </a>
+                                    </div>
+                                    <div className="callSheetColumns">
+                                        <div>
+                                            <h4>Scenes</h4>
+                                            <ul className="compactList">
+                                                {selectedCallSheet.payload.scenes.map(
+                                                    (scene) => (
+                                                        <li
+                                                            key={scene.scene_id}
+                                                        >
+                                                            {timeLabel(
+                                                                scene.planned_call_time,
+                                                            )}{" "}
+                                                            {scene.scene_id} ·{" "}
+                                                            {
+                                                                scene.location_name
+                                                            }
+                                                        </li>
+                                                    ),
+                                                )}
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <h4>Cast calls</h4>
+                                            <ul className="compactList">
+                                                {selectedCallSheet.payload.cast_calls.map(
+                                                    (row) => (
+                                                        <li key={row.cast_id}>
+                                                            {row.character}:{" "}
+                                                            {timeLabel(
+                                                                row.call_time,
+                                                            )}
+                                                            {row.is_minor &&
+                                                            row.minor_max_work_hours
+                                                                ? ` · minor max ${row.minor_max_work_hours}h`
+                                                                : ""}
+                                                        </li>
+                                                    ),
+                                                )}
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <h4>Daylight</h4>
+                                            <ul className="compactList">
+                                                {selectedCallSheet.payload.daylight_windows.map(
+                                                    (window) => (
+                                                        <li
+                                                            key={
+                                                                window.location_name
+                                                            }
+                                                        >
+                                                            {
+                                                                window.location_name
+                                                            }
+                                                            :{" "}
+                                                            {timeLabel(
+                                                                window.sunrise,
+                                                            )}{" "}
+                                                            sunrise /{" "}
+                                                            {timeLabel(
+                                                                window.sunset,
+                                                            )}{" "}
+                                                            sunset
+                                                        </li>
+                                                    ),
+                                                )}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <details>
+                                        <summary>
+                                            Turnaround, permits, recipients
+                                        </summary>
+                                        <ul className="compactList">
+                                            {selectedCallSheet.payload.turnaround_notes.map(
+                                                (note) => (
+                                                    <li key={note.display}>
+                                                        <span
+                                                            className={
+                                                                note.satisfied
+                                                                    ? "pill good"
+                                                                    : "pill warn"
+                                                            }
+                                                        >
+                                                            {note.satisfied
+                                                                ? "ok"
+                                                                : "check"}
+                                                        </span>{" "}
+                                                        {note.display}:{" "}
+                                                        {note.rest_hours}h rest
+                                                        (minimum{" "}
+                                                        {note.minimum_hours}h)
+                                                    </li>
+                                                ),
+                                            )}
+                                            {selectedCallSheet.payload.permit_notes.map(
+                                                (note) => (
+                                                    <li
+                                                        key={note.constraint_id}
+                                                    >
+                                                        Permit{" "}
+                                                        {note.constraint_id}:{" "}
+                                                        {note.detail}
+                                                    </li>
+                                                ),
+                                            )}
+                                            {selectedCallSheet.payload.recipients.map(
+                                                (recipient) => (
+                                                    <li
+                                                        key={`${recipient.recipient_type}-${recipient.display_name}`}
+                                                    >
+                                                        {recipient.display_name}{" "}
+                                                        · {recipient.authority}
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    </details>
+                                    <details>
+                                        <summary>Rendered call sheet</summary>
+                                        <pre>
+                                            {selectedCallSheet.rendered_text}
+                                        </pre>
+                                    </details>
+                                </article>
+                            ) : (
+                                <p className="muted">
+                                    No call sheet generated for this board yet.
+                                </p>
+                            )}
+                        </section>
+                        {board.result.explanation_traces && (
+                            <details className="explanations">
+                                <summary>Constraint explanation traces</summary>
+                                <ul className="compactList">
+                                    {board.result.explanation_traces.map(
+                                        (trace) => (
+                                            <li key={trace.constraint_id}>
+                                                <span
+                                                    className={
+                                                        trace.satisfied
+                                                            ? "pill good"
+                                                            : "pill warn"
+                                                    }
+                                                >
+                                                    {trace.satisfied
+                                                        ? "ok"
+                                                        : "blocked"}
+                                                </span>{" "}
+                                                <strong>
+                                                    {trace.constraint_id}
+                                                </strong>{" "}
+                                                · {trace.family}/{trace.policy}
+                                                {trace.detail
+                                                    ? ` · ${trace.detail}`
+                                                    : ""}
+                                                {trace.source
+                                                    ? ` · ${trace.source}`
+                                                    : ""}
+                                            </li>
+                                        ),
+                                    )}
+                                </ul>
+                            </details>
                         )}
-                    </section>
-                    {board.result.explanation_traces && (
-                        <details className="explanations">
-                            <summary>Constraint explanation traces</summary>
-                            <ul className="compactList">
-                                {board.result.explanation_traces.map(
-                                    (trace) => (
-                                        <li key={trace.constraint_id}>
-                                            <span
-                                                className={
-                                                    trace.satisfied
-                                                        ? "pill good"
-                                                        : "pill warn"
-                                                }
-                                            >
-                                                {trace.satisfied
-                                                    ? "ok"
-                                                    : "blocked"}
-                                            </span>{" "}
-                                            <strong>
-                                                {trace.constraint_id}
-                                            </strong>{" "}
-                                            · {trace.family}/{trace.policy}
-                                            {trace.detail
-                                                ? ` · ${trace.detail}`
-                                                : ""}
-                                            {trace.source
-                                                ? ` · ${trace.source}`
-                                                : ""}
-                                        </li>
-                                    ),
-                                )}
-                            </ul>
+                        <details>
+                            <summary>Text stripboard export</summary>
+                            <pre>{board.stripboard}</pre>
                         </details>
-                    )}
-                    <details>
-                        <summary>Text stripboard export</summary>
-                        <pre>{board.stripboard}</pre>
-                    </details>
-                </section>
-            )}
+                    </section>
+                )}
             </main>
         </div>
     );

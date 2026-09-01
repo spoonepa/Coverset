@@ -256,13 +256,25 @@ function ScreenShell({
   const base = `/productions/${productionId}`;
   const query = boardId ? `?boardId=${encodeURIComponent(boardId)}` : "";
   const nav = [
-    { label: "Dashboard", icon: "dashboard", href: boardNav(productionId, boardId) },
+    {
+      label: "Dashboard",
+      icon: "dashboard",
+      href: boardNav(productionId, boardId),
+    },
     { label: "Breakdown", icon: "list_alt", href: `${base}/breakdown${query}` },
     { label: "Constraints", icon: "rule", href: `${base}/constraints${query}` },
     { label: "Sources", icon: "source", href: `${base}/grounding${query}` },
     { label: "Replan", icon: "rebase_edit", href: `${base}/replans${query}` },
-    { label: "Coverage", icon: "video_library", href: `${base}/coverage${query}` },
-    { label: "Call sheets", icon: "description", href: `${base}/call-sheets${query}` },
+    {
+      label: "Coverage",
+      icon: "video_library",
+      href: `${base}/coverage${query}`,
+    },
+    {
+      label: "Call sheets",
+      icon: "description",
+      href: `${base}/call-sheets${query}`,
+    },
     { label: "Audit", icon: "history", href: `${base}/audit${query}` },
     { label: "Costs", icon: "attach_money", href: `${base}/costs${query}` },
     { label: "Infeasible", icon: "block", href: `${base}/infeasible${query}` },
@@ -495,7 +507,9 @@ function BoardMini({ board }: { board: Board | null }) {
                   <span className="stripLocation">{stripLocation(strip)}</span>
                   <span className="stripCast">
                     {strip.cast_ids.slice(0, 4).map((castId) => (
-                      <span key={castId}>{castId.replace(/^cast[-_]/, "")}</span>
+                      <span key={castId}>
+                        {castId.replace(/^cast[-_]/, "")}
+                      </span>
                     ))}
                     {!strip.cast_ids.length && <span>—</span>}
                   </span>
@@ -682,7 +696,9 @@ export function BoardDashboardScreen({
               </p>
             </div>
             <div className="commandMetrics">
-              <DataField label="Days">{board?.result.days?.length ?? 0}</DataField>
+              <DataField label="Days">
+                {board?.result.days?.length ?? 0}
+              </DataField>
               <DataField label="Work strips">
                 {board?.result.strips?.length ?? 0}
               </DataField>
@@ -716,16 +732,18 @@ export function BoardDashboardScreen({
           </div>
           <div className="inspectorSection">
             <h3>Constraint explanation traces</h3>
-            {(board?.result.explanation_traces ?? []).slice(0, 8).map((trace) => (
-              <p
-                className="traceLine"
-                key={`${trace.work_id}-${trace.constraint_id ?? trace.reason}`}
-              >
-                <strong>{trace.work_id}</strong>
-                <span>{trace.constraint_id ?? "reason"}</span>
-                {trace.reason}
-              </p>
-            ))}
+            {(board?.result.explanation_traces ?? [])
+              .slice(0, 8)
+              .map((trace) => (
+                <p
+                  className="traceLine"
+                  key={`${trace.work_id}-${trace.constraint_id ?? trace.reason}`}
+                >
+                  <strong>{trace.work_id}</strong>
+                  <span>{trace.constraint_id ?? "reason"}</span>
+                  {trace.reason}
+                </p>
+              ))}
             {!(board?.result.explanation_traces ?? []).length && (
               <EmptyState>No explanation traces reported.</EmptyState>
             )}
@@ -893,7 +911,11 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
               </DataField>
             </div>
           </div>
-          <div className="candidateTable" role="table" aria-label="Candidate review">
+          <div
+            className="candidateTable"
+            role="table"
+            aria-label="Candidate review"
+          >
             <div className="candidateHeader" role="row">
               <span>Scene</span>
               <span>Description</span>
@@ -1159,7 +1181,9 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
                     <span className="mono">{proposal.id}</span>
                     <Pill tone="warn">{proposal.status}</Pill>
                   </div>
-                  <span className="caps">confidence {Math.round(proposal.confidence * 100)}%</span>
+                  <span className="caps">
+                    confidence {Math.round(proposal.confidence * 100)}%
+                  </span>
                 </header>
                 <p className="quote">“{proposal.source_text}”</p>
                 <JsonBlock value={proposal.payload} />
@@ -1345,7 +1369,9 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
             <div className="commandMetrics">
               <DataField label="Evidence">{data.grounding.length}</DataField>
               <DataField label="Values">{groundedValues.length}</DataField>
-              <DataField label="Constraints">{data.constraints.length}</DataField>
+              <DataField label="Constraints">
+                {data.constraints.length}
+              </DataField>
             </div>
           </div>
           <div className="groundingCards">
@@ -1357,7 +1383,9 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
                 <header>
                   <div>
                     <span className="material-symbols-outlined">
-                      {evidence.fact_kind === "weather" ? "cloud_sync" : "verified"}
+                      {evidence.fact_kind === "weather"
+                        ? "cloud_sync"
+                        : "verified"}
                     </span>
                     <h2>
                       {evidence.id} · {evidence.fact_kind} ·{" "}
@@ -1375,7 +1403,9 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
                   </Pill>
                 </header>
                 <div className="evidenceGrid">
-                  <DataField label="Target date">{evidence.target_date}</DataField>
+                  <DataField label="Target date">
+                    {evidence.target_date}
+                  </DataField>
                   <DataField label="Source domain">
                     {asString(evidence.evidence.source_url, "not recorded")}
                   </DataField>
@@ -1454,7 +1484,10 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
                   {asString(selectedEvidence.evidence.content_hash)}
                 </DataField>
                 <DataField label="Extraction mode">
-                  {asString(selectedEvidence.evidence.extraction_mode, "full content")}
+                  {asString(
+                    selectedEvidence.evidence.extraction_mode,
+                    "full content",
+                  )}
                 </DataField>
               </div>
             ) : (
@@ -1590,8 +1623,9 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
         <div>
           <h2>Material fact change</h2>
           <p>
-            Monitor changes can open requests, but cannot select a board. Options
-            below preserve locked history and expose cost approval requirements.
+            Monitor changes can open requests, but cannot select a board.
+            Options below preserve locked history and expose cost approval
+            requirements.
           </p>
         </div>
         <div className="commandMetrics">
@@ -1614,7 +1648,9 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
               >
                 <strong>Day {index + 1}</strong>
                 <span>{day.date}</span>
-                <small>{lockedDates.has(day.date) ? "locked" : "available"}</small>
+                <small>
+                  {lockedDates.has(day.date) ? "locked" : "available"}
+                </small>
               </div>
             ))}
             {!board && <EmptyState>No board history yet.</EmptyState>}
@@ -1625,7 +1661,9 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
             <article className="optionCard" key={diff.id}>
               <header>
                 <div>
-                  <span className="caps">Option {String.fromCharCode(65 + index)}</span>
+                  <span className="caps">
+                    Option {String.fromCharCode(65 + index)}
+                  </span>
                   <h3>{diff.id}</h3>
                   <p>
                     {diff.base_board_id} → {diff.revised_board_id} · validation
@@ -1633,13 +1671,18 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
                   </p>
                 </div>
                 <Pill tone={diff.cost_delta > 0 ? "warn" : "good"}>
-                  {diff.required_approvals.length ? "approval gate" : "validated"}
+                  {diff.required_approvals.length
+                    ? "approval gate"
+                    : "validated"}
                 </Pill>
               </header>
               <MetricGrid
                 items={[
                   ["Cost delta", `$${diff.cost_delta.toLocaleString()}`],
-                  ["Added days", asStringList(diff.diff.added_days).length || 0],
+                  [
+                    "Added days",
+                    asStringList(diff.diff.added_days).length || 0,
+                  ],
                   [
                     "Added pickups",
                     asStringList(diff.diff.added_pickups).join(", ") || "none",
@@ -2098,7 +2141,10 @@ export function CallSheetsScreen({ productionId, boardId }: ScreenProps) {
                   ["Crew call", asString(selected.payload.crew_call, "—")],
                   [
                     "Wrap estimate",
-                    asString(selected.payload.wrap_estimate, asString(selected.payload.wrap, "—")),
+                    asString(
+                      selected.payload.wrap_estimate,
+                      asString(selected.payload.wrap, "—"),
+                    ),
                   ],
                   ["Generated by", selected.generated_by_name],
                   ["Recipients", selected.payload.recipients?.length ?? 0],
@@ -2323,8 +2369,9 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
               : "No cost-gated board selected"}
           </h2>
           <p>
-            Added-day exposure stays pending until a UPM or Line Producer records
-            a decision. The First AD may select boards, but may not spend.
+            Added-day exposure stays pending until a UPM or Line Producer
+            records a decision. The First AD may select boards, but may not
+            spend.
           </p>
         </div>
         <div className="commandMetrics">
@@ -2347,10 +2394,30 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
                 <span>Delta</span>
               </div>
               {[
-                ["Shoot days", "current", "revised", asStringList(selectedDiff.diff.added_days).length],
-                ["Pickups added", "0", "new work", asStringList(selectedDiff.diff.added_pickups).length],
-                ["Call times changed", "—", "changed", asStringList(selectedDiff.diff.changed_call_times).length],
-                ["Cost exposure", "$0", `$${selectedDiff.cost_delta.toLocaleString()}`, `$${selectedDiff.cost_delta.toLocaleString()}`],
+                [
+                  "Shoot days",
+                  "current",
+                  "revised",
+                  asStringList(selectedDiff.diff.added_days).length,
+                ],
+                [
+                  "Pickups added",
+                  "0",
+                  "new work",
+                  asStringList(selectedDiff.diff.added_pickups).length,
+                ],
+                [
+                  "Call times changed",
+                  "—",
+                  "changed",
+                  asStringList(selectedDiff.diff.changed_call_times).length,
+                ],
+                [
+                  "Cost exposure",
+                  "$0",
+                  `$${selectedDiff.cost_delta.toLocaleString()}`,
+                  `$${selectedDiff.cost_delta.toLocaleString()}`,
+                ],
               ].map(([label, base, revised, delta]) => (
                 <div className="costRow" key={label}>
                   <span>{label}</span>
@@ -2458,7 +2525,9 @@ export function InfeasibleConflictScreen({
           <section className="commandBanner errorBanner">
             <div>
               <h2>
-                {failedJobs.length ? "No valid board exists" : "No conflict set yet"}
+                {failedJobs.length
+                  ? "No valid board exists"
+                  : "No conflict set yet"}
               </h2>
               <p>
                 CP-SAT infeasible is different from a budget timeout. This page
@@ -2470,7 +2539,9 @@ export function InfeasibleConflictScreen({
                 {data.board?.solver_status ?? "no board"}
               </DataField>
               <DataField label="Failed jobs">{failedJobs.length}</DataField>
-              <DataField label="Constraints">{data.constraints.length}</DataField>
+              <DataField label="Constraints">
+                {data.constraints.length}
+              </DataField>
             </div>
           </section>
           {failedJobs.length > 0 ? (

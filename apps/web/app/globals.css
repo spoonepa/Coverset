@@ -465,12 +465,20 @@ summary {
 
 .railIcon {
   font-size: 21px;
-  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 500,
+    "GRAD" 0,
+    "opsz" 24;
 }
 
 .railNav a.active .railIcon,
 .railNav a[aria-current="page"] .railIcon {
-  font-variation-settings: "FILL" 1, "wght" 600, "GRAD" 0, "opsz" 24;
+  font-variation-settings:
+    "FILL" 1,
+    "wght" 600,
+    "GRAD" 0,
+    "opsz" 24;
 }
 
 .railLabel {
@@ -849,12 +857,20 @@ summary {
 
 .commandBanner.warning {
   border-color: color-mix(in srgb, var(--warning) 72%, transparent);
-  background: color-mix(in srgb, var(--warning) 12%, var(--surface-container-lowest));
+  background: color-mix(
+    in srgb,
+    var(--warning) 12%,
+    var(--surface-container-lowest)
+  );
 }
 
 .commandBanner.errorBanner {
   border-color: color-mix(in srgb, var(--error) 72%, transparent);
-  background: color-mix(in srgb, var(--error) 10%, var(--surface-container-lowest));
+  background: color-mix(
+    in srgb,
+    var(--error) 10%,
+    var(--surface-container-lowest)
+  );
 }
 
 .commandMetrics,
@@ -961,7 +977,10 @@ summary {
 }
 
 .stripTable .stripRow {
-  grid-template-columns: 46px 54px 68px minmax(180px, 1fr) minmax(130px, 240px) minmax(90px, 130px) 120px 56px;
+  grid-template-columns: 46px 54px 68px minmax(180px, 1fr) minmax(130px, 240px) minmax(
+      90px,
+      130px
+    ) 120px 56px;
   margin: 0;
   border: 0;
   border-bottom: 1px solid var(--outline-variant);
