@@ -21,6 +21,15 @@ locals {
   ])
 
   cloudbuild_service_account = "serviceAccount:${data.google_project.current.number}@cloudbuild.gserviceaccount.com"
+  developer_email            = startswith(var.developer_principal, "user:") ? trimprefix(var.developer_principal, "user:") : ""
+  dev_actor_roles = [
+    "first_ad",
+    "second_ad",
+    "script_supervisor",
+    "director",
+    "upm",
+    "line_producer",
+  ]
 }
 
 resource "google_project_service" "required" {
@@ -844,6 +853,18 @@ resource "google_cloud_run_v2_service" "web" {
       env {
         name  = "NEXT_TELEMETRY_DISABLED"
         value = "1"
+      }
+      env {
+        name  = "COVERSET_ACTOR_EMAIL"
+        value = local.developer_email
+      }
+      env {
+        name  = "COVERSET_ACTOR_ROLES"
+        value = join(",", local.dev_actor_roles)
+      }
+      env {
+        name  = "COVERSET_AUTH_ROLE_MAP"
+        value = local.developer_email == "" ? "{}" : jsonencode({ (local.developer_email) = local.dev_actor_roles })
       }
     }
   }
