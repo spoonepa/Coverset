@@ -48,13 +48,20 @@ type ScreenData = {
   production: Production | null;
   board: Board | null;
   jobs: Job[];
+  breakdowns: BreakdownRun[];
   grounding: GroundingEvidence[];
+  groundedValues: GroundedValue[];
+  constraintProposals: ConstraintProposal[];
   constraints: ConstraintRow[];
   locks: LockedDay[];
   monitoredSources: MonitoredSource[];
   monitorFindings: MonitorFinding[];
   replanRequests: ReplanRequest[];
   scheduleDiffs: ScheduleDiff[];
+  coverageItems: CoverageItem[];
+  coverageFindings: CoverageFinding[];
+  pickupTasks: PickupTask[];
+  costApprovals: CostApproval[];
   callSheets: CallSheet[];
   audit: AuditEvent[];
 };
@@ -63,13 +70,20 @@ const initialData: ScreenData = {
   production: null,
   board: null,
   jobs: [],
+  breakdowns: [],
   grounding: [],
+  groundedValues: [],
+  constraintProposals: [],
   constraints: [],
   locks: [],
   monitoredSources: [],
   monitorFindings: [],
   replanRequests: [],
   scheduleDiffs: [],
+  coverageItems: [],
+  coverageFindings: [],
+  pickupTasks: [],
+  costApprovals: [],
   callSheets: [],
   audit: [],
 };
@@ -116,7 +130,74 @@ function firstBoardStrip(board: Board | null): BoardStrip | null {
 }
 
 function firstBoardDate(board: Board | null): string {
-  return board?.result.days?.[0]?.date ?? "2026-09-14";
+  return board?.result.days?.[0]?.date ?? "";
+}
+
+function evidenceField(
+  evidence: GroundingEvidence,
+  key: string,
+  fallback = "",
+): string {
+  return asString(evidence.evidence[key], fallback);
+}
+
+function evidenceSourceUrl(evidence: GroundingEvidence): string {
+  const direct = evidenceField(evidence, "source_url");
+  if (direct) return direct;
+  const urls = asStringList(evidence.evidence.source_urls);
+  if (urls[0]) return urls[0];
+  const sources = evidence.evidence.sources;
+  if (Array.isArray(sources)) {
+    for (const item of sources) {
+      if (item && typeof item === "object") {
+        const url = asString((item as Record<string, unknown>).url, "");
+        if (url) return url;
+      }
+    }
+  }
+  return "";
+}
+
+function evidenceQuote(evidence: GroundingEvidence): string {
+  const direct = evidenceField(evidence, "quote");
+  if (direct) return direct;
+  const sources = evidence.evidence.sources;
+  if (Array.isArray(sources)) {
+    for (const item of sources) {
+      if (!item || typeof item !== "object") continue;
+      const excerpts = asStringList((item as Record<string, unknown>).excerpts);
+      if (excerpts[0]) return excerpts[0];
+    }
+  }
+  return "";
+}
+
+function coverageItemsForStrip(
+  items: CoverageItem[],
+  strip: BoardStrip,
+): CoverageItem[] {
+  return items.filter((item) => item.scene_id === strip.scene_id);
+}
+
+function coverageFindingForStrip(
+  items: CoverageItem[],
+  findings: CoverageFinding[],
+  strip: BoardStrip,
+): CoverageFinding | null {
+  const itemIds = new Set(
+    coverageItemsForStrip(items, strip).map((item) => item.id),
+  );
+  return (
+    findings.find((finding) => itemIds.has(finding.coverage_item_id)) ?? null
+  );
+}
+
+function pickupForFinding(
+  tasks: PickupTask[],
+  finding: CoverageFinding | null,
+): PickupTask | null {
+  if (!finding) return null;
+  return tasks.find((task) => task.finding_id === finding.id) ?? null;
 }
 
 function stripsForDay(board: Board, date: string): BoardStrip[] {
@@ -152,21 +233,37 @@ function useProductionData(productionId: string, boardId?: string) {
       const [
         production,
         jobs,
+        breakdowns,
         grounding,
+        groundedValues,
+        constraintProposals,
         constraints,
         locks,
         monitoredSources,
         monitorFindings,
         replanRequests,
         scheduleDiffs,
+        coverageItems,
+        coverageFindings,
+        pickupTasks,
+        costApprovals,
         audit,
         board,
         callSheets,
       ] = await Promise.all([
         coversetFetch<Production>(`/productions/${productionId}`),
         coversetFetch<Job[]>(`/productions/${productionId}/jobs`),
+        coversetFetch<BreakdownRun[]>(
+          `/productions/${productionId}/breakdowns`,
+        ),
         coversetFetch<GroundingEvidence[]>(
           `/productions/${productionId}/grounding`,
+        ),
+        coversetFetch<GroundedValue[]>(
+          `/productions/${productionId}/grounded-values`,
+        ),
+        coversetFetch<ConstraintProposal[]>(
+          `/productions/${productionId}/constraint-proposals`,
         ),
         coversetFetch<ConstraintRow[]>(
           `/productions/${productionId}/constraints`,
@@ -184,6 +281,18 @@ function useProductionData(productionId: string, boardId?: string) {
         coversetFetch<ScheduleDiff[]>(
           `/productions/${productionId}/schedule-diffs`,
         ),
+        coversetFetch<CoverageItem[]>(
+          `/productions/${productionId}/coverage-items`,
+        ),
+        coversetFetch<CoverageFinding[]>(
+          `/productions/${productionId}/coverage-findings`,
+        ),
+        coversetFetch<PickupTask[]>(
+          `/productions/${productionId}/pickup-tasks`,
+        ),
+        coversetFetch<CostApproval[]>(
+          `/productions/${productionId}/cost-approvals`,
+        ),
         coversetFetch<AuditEvent[]>(`/productions/${productionId}/audit`),
         boardId
           ? coversetFetch<Board>(`/boards/${boardId}`)
@@ -196,13 +305,20 @@ function useProductionData(productionId: string, boardId?: string) {
         production,
         board,
         jobs,
+        breakdowns,
         grounding,
+        groundedValues,
+        constraintProposals,
         constraints,
         locks,
         monitoredSources,
         monitorFindings,
         replanRequests,
         scheduleDiffs,
+        coverageItems,
+        coverageFindings,
+        pickupTasks,
+        costApprovals,
         callSheets,
         audit,
       });
@@ -654,15 +770,18 @@ export function BoardDashboardScreen({
   const board = data.board;
   const objective = board?.result.objective ?? {};
   const lockDay = async () => {
-    if (!board) return;
     const shootDate = firstBoardDate(board);
+    if (!board || !shootDate) {
+      setError("Load a board with at least one shoot day before locking.");
+      return;
+    }
     setError("");
     try {
       await coversetFetch<LockedDay>(`/boards/${board.id}/locks`, {
         method: "POST",
         body: JSON.stringify({
           shoot_date: shootDate,
-          call_sheet_version: `ui-lock-${shootDate}`,
+          call_sheet_version: `actuals-${shootDate}`,
           actor_name: defaultNames.script_supervisor,
           actor_role: "script_supervisor",
         }),
@@ -778,12 +897,13 @@ export function BoardDashboardScreen({
 }
 
 export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
-  const { error, message, refresh, setData, setError, setMessage } =
+  const { data, error, message, refresh, setData, setError, setMessage } =
     useProductionData(productionId, boardId);
   const [file, setFile] = useState<File | null>(null);
   const [breakdown, setBreakdown] = useState<BreakdownRun | null>(null);
   const [agentMode, setAgentMode] = useState("fixture");
-  const candidates = breakdown?.candidates ?? [];
+  const activeBreakdown = breakdown ?? data.breakdowns[0] ?? null;
+  const candidates = activeBreakdown?.candidates ?? [];
 
   const uploadAndBreakDown = async () => {
     if (!file) {
@@ -820,6 +940,7 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
         },
       );
       setBreakdown(run);
+      await refresh();
       setMessage(`Breakdown ${run.status}.`);
     } catch (err) {
       setError(formatError(err));
@@ -833,12 +954,13 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
         method: "POST",
         body: JSON.stringify({ decision }),
       });
-      if (breakdown) {
+      if (activeBreakdown) {
         const refreshed = await coversetFetch<BreakdownRun>(
-          `/breakdowns/${breakdown.id}`,
+          `/breakdowns/${activeBreakdown.id}`,
         );
         setBreakdown(refreshed);
       }
+      await refresh();
       setMessage(`Candidate ${decision}ed.`);
     } catch (err) {
       setError(formatError(err));
@@ -983,10 +1105,10 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
                 </div>
               </article>
             ))}
-            {!breakdown && (
+            {!activeBreakdown && (
               <EmptyState>
-                No breakdown has been run in this browser session. Upload a
-                screenplay or use the root fixture demo.
+                No breakdown runs loaded yet. Upload a screenplay or use the
+                root fixture demo.
               </EmptyState>
             )}
           </div>
@@ -1048,9 +1170,9 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
 export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
   const { data, error, message, refresh, setError, setMessage } =
     useProductionData(productionId, boardId);
-  const [text, setText] = useState("Maximum daily hours 11");
-  const [proposals, setProposals] = useState<ConstraintProposal[]>([]);
+  const [text, setText] = useState("");
   const [actor, setActor] = useActor("first_ad");
+  const proposals = data.constraintProposals;
   const activeCount = data.constraints.filter((row) => row.active).length;
 
   const translate = async () => {
@@ -1063,7 +1185,6 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
           body: JSON.stringify({ text, actor_name: actor.name }),
         },
       );
-      setProposals(rows);
       setMessage(`${rows.length} inactive proposal(s) created.`);
       await refresh();
     } catch (err) {
@@ -1144,10 +1265,11 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
             Plain English
             <textarea
               value={text}
+              placeholder="Enter a production constraint"
               onChange={(event) => setText(event.target.value)}
             />
           </label>
-          <button type="button" onClick={translate}>
+          <button type="button" onClick={translate} disabled={!text.trim()}>
             Translate into inactive proposals
           </button>
           <div className="advisoryCard">
@@ -1213,8 +1335,7 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
             ))}
             {!proposals.length && (
               <EmptyState>
-                No browser-session proposals yet. Translate text from the left
-                panel.
+                No persisted proposals yet. Translate text from the left panel.
               </EmptyState>
             )}
             {data.constraints.map((row) => (
@@ -1269,17 +1390,28 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
 }
 
 export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
-  const { data, error, message, refresh, setData, setError, setMessage } =
+  const { data, error, message, refresh, setError, setMessage } =
     useProductionData(productionId, boardId);
   const [kind, setKind] = useState("weather");
   const [locationId, setLocationId] = useState("");
-  const [targetDate, setTargetDate] = useState("2026-03-17");
-  const [groundedValues, setGroundedValues] = useState<GroundedValue[]>([]);
+  const [targetDate, setTargetDate] = useState("");
+  const groundedValues = data.groundedValues;
   const selectedEvidence = data.grounding[0] ?? null;
+
+  useEffect(() => {
+    const boardDate = firstBoardDate(data.board);
+    if (boardDate && !targetDate) {
+      setTargetDate(boardDate);
+    }
+  }, [data.board, targetDate]);
 
   const runGrounding = async () => {
     const location =
-      locationId || firstBoardStrip(data.board)?.location_id || "LOC-001";
+      locationId || firstBoardStrip(data.board)?.location_id || "";
+    if (!location || !targetDate) {
+      setError("Load a board date and location before grounding a value.");
+      return;
+    }
     setError("");
     try {
       const evidence = await coversetFetch<GroundingEvidence>(
@@ -1293,10 +1425,6 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
           }),
         },
       );
-      setData((current) => ({
-        ...current,
-        grounding: [evidence, ...current.grounding],
-      }));
       setMessage(`Grounded ${evidence.fact_kind} evidence ${evidence.id}.`);
       await refresh();
     } catch (err) {
@@ -1305,14 +1433,14 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
   };
 
   const recordValue = async (evidence: GroundingEvidence) => {
-    const sourceUrl = asString(
-      evidence.evidence.source_url,
-      "https://example.invalid/source",
-    );
-    const quote = asString(
-      evidence.evidence.quote,
-      "source span extracted and normalized",
-    );
+    const sourceUrl = evidenceSourceUrl(evidence);
+    const quote = evidenceQuote(evidence);
+    if (!sourceUrl || !quote) {
+      setError(
+        "Grounding evidence must include a source URL and quote before a value can be recorded.",
+      );
+      return;
+    }
     setError("");
     try {
       const value = await coversetFetch<GroundedValue>(
@@ -1321,24 +1449,26 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
           method: "POST",
           body: JSON.stringify({
             normalized_value: {
-              value: "ui-reviewed",
               fact_kind: evidence.fact_kind,
+              quote,
+              source_url: sourceUrl,
             },
             units: evidence.fact_kind === "weather" ? "risk" : "rule",
             source_url: sourceUrl,
             source_quote: quote,
-            source_span: asString(evidence.evidence.source_span, "source text"),
-            query: asString(
-              evidence.evidence.query,
-              "ui grounded value extraction",
+            source_span: evidenceField(evidence, "source_span", "source text"),
+            query: evidenceField(
+              evidence,
+              "query",
+              "grounded value extraction",
             ),
             validator_family: evidence.fact_kind,
             validator_reason:
-              "UI operator reviewed source span before activation.",
+              "Operator reviewed source span before activation.",
           }),
         },
       );
-      setGroundedValues((current) => [value, ...current]);
+      await refresh();
       setMessage(`Recorded grounded value ${value.id}.`);
     } catch (err) {
       setError(formatError(err));
@@ -1407,20 +1537,18 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
                     {evidence.target_date}
                   </DataField>
                   <DataField label="Source domain">
-                    {asString(evidence.evidence.source_url, "not recorded")}
+                    {evidenceSourceUrl(evidence) || "not recorded"}
                   </DataField>
                   <DataField label="Source span">
-                    {asString(evidence.evidence.source_span, "source text")}
+                    {evidenceField(evidence, "source_span", "source text")}
                   </DataField>
                   <DataField label="Query">
-                    {asString(evidence.evidence.query, "UI grounding query")}
+                    {evidenceField(evidence, "query", "grounding query")}
                   </DataField>
                 </div>
                 <blockquote>
-                  {asString(
-                    evidence.evidence.quote,
-                    "Source span will appear here after retrieval.",
-                  )}
+                  {evidenceQuote(evidence) ||
+                    "Source span will appear here after retrieval."}
                 </blockquote>
                 <button type="button" onClick={() => recordValue(evidence)}>
                   Record reviewed grounded value
@@ -1457,7 +1585,7 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
             <input
               value={locationId}
               placeholder={
-                firstBoardStrip(data.board)?.location_id ?? "LOC-001"
+                firstBoardStrip(data.board)?.location_id ?? "location id"
               }
               onChange={(event) => setLocationId(event.target.value)}
             />
@@ -1518,6 +1646,9 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
   const { data, error, message, refresh, setError, setMessage } =
     useProductionData(productionId, boardId);
   const [actor, setActor] = useActor("first_ad");
+  const [monitorKind, setMonitorKind] = useState("permit");
+  const [monitorSourceUrl, setMonitorSourceUrl] = useState("");
+  const [monitorQuery, setMonitorQuery] = useState("");
   const board = data.board;
   const lockedDates = new Set(data.locks.map((lock) => lock.shoot_date));
 
@@ -1529,22 +1660,37 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
       );
       return;
     }
+    const enteredSourceUrl = monitorSourceUrl.trim();
+    const existingSource = data.monitoredSources.find(
+      (source) =>
+        source.board_id === board.id &&
+        (!enteredSourceUrl || source.source_url === enteredSourceUrl),
+    );
+    const sourceUrl = enteredSourceUrl || existingSource?.source_url || "";
+    if (!sourceUrl) {
+      setError("Enter a monitored source URL before creating a replan.");
+      return;
+    }
+    const query =
+      monitorQuery.trim() || `${monitorKind} monitor for ${strip.location_id}`;
     setError("");
     try {
-      const source = await coversetFetch<MonitoredSource>(
-        `/productions/${productionId}/monitored-sources`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            board_id: board.id,
-            source_url: "https://film.example.gov/permits",
-            fact_kind: "permit",
-            location_id: strip.location_id,
-            query: "film permit hours",
-            external_monitor_id: `ui-monitor-${Date.now()}`,
-          }),
-        },
-      );
+      const source =
+        existingSource ??
+        (await coversetFetch<MonitoredSource>(
+          `/productions/${productionId}/monitored-sources`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              board_id: board.id,
+              source_url: sourceUrl,
+              fact_kind: monitorKind,
+              location_id: strip.location_id,
+              query,
+              external_monitor_id: `operator-monitor-${Date.now()}`,
+            }),
+          },
+        ));
       const event = await coversetFetch<MonitorChangeEvent>(
         `/productions/${productionId}/monitor/events`,
         {
@@ -1554,11 +1700,11 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
             board_id: board.id,
             source_url: source.source_url,
             fact_kind: source.fact_kind,
-            old_fingerprint: "old",
-            new_fingerprint: `new-${Date.now()}`,
+            old_fingerprint: source.last_fingerprint || "unseen",
+            new_fingerprint: `${source.last_fingerprint || "changed"}-${Date.now()}`,
             affected_work_ids: [strip.work_id],
             material: true,
-            message: "UI material monitor change",
+            message: `Material ${source.fact_kind} change: ${query}`,
           }),
         },
       );
@@ -1723,6 +1869,34 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
             onActorChange={setActor}
             roles={["first_ad", "director", "producer"]}
           />
+          <label>
+            Fact kind
+            <select
+              value={monitorKind}
+              onChange={(event) => setMonitorKind(event.target.value)}
+            >
+              <option value="permit">Permit</option>
+              <option value="weather">Weather</option>
+            </select>
+          </label>
+          <label>
+            Source URL
+            <input
+              value={monitorSourceUrl}
+              placeholder={
+                data.monitoredSources[0]?.source_url ?? "https://..."
+              }
+              onChange={(event) => setMonitorSourceUrl(event.target.value)}
+            />
+          </label>
+          <label>
+            Monitor query
+            <input
+              value={monitorQuery}
+              placeholder="What changed in the source?"
+              onChange={(event) => setMonitorQuery(event.target.value)}
+            />
+          </label>
           <button
             type="button"
             onClick={createMaterialMonitorReplan}
@@ -1758,8 +1932,38 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
   const [finding, setFinding] = useState<CoverageFinding | null>(null);
   const [pickup, setPickup] = useState<PickupTask | null>(null);
   const [pickupReplan, setPickupReplan] = useState<ReplanRequest | null>(null);
+  const [findingMessage, setFindingMessage] = useState("");
   const board = data.board;
   const strips = board?.result.strips ?? [];
+  const primaryStrip = firstBoardStrip(board);
+  const selectedFinding =
+    finding ??
+    (primaryStrip
+      ? coverageFindingForStrip(
+          data.coverageItems,
+          data.coverageFindings,
+          primaryStrip,
+        )
+      : (data.coverageFindings[0] ?? null));
+  const selectedPickup =
+    pickup ?? pickupForFinding(data.pickupTasks, selectedFinding) ?? null;
+  const selectedCoverageItem =
+    coverageItem ??
+    data.coverageItems.find(
+      (item) => item.id === selectedFinding?.coverage_item_id,
+    ) ??
+    (primaryStrip
+      ? coverageItemsForStrip(data.coverageItems, primaryStrip)[0]
+      : data.coverageItems[0]) ??
+    null;
+  const selectedPickupReplan =
+    pickupReplan ??
+    data.replanRequests.find(
+      (request) =>
+        request.source_kind === "pickup" &&
+        request.source_id === selectedPickup?.id,
+    ) ??
+    null;
 
   const createFinding = async () => {
     const strip = firstBoardStrip(board);
@@ -1767,6 +1971,10 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
       setError(
         "Open this screen with a board id before creating coverage actuals.",
       );
+      return;
+    }
+    if (!findingMessage.trim()) {
+      setError("Enter a coverage finding before recording actuals.");
       return;
     }
     setError("");
@@ -1777,9 +1985,9 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
           method: "POST",
           body: JSON.stringify({
             scene_id: strip.scene_id,
-            coverage_key: `ui-${strip.scene_id}-insert-${Date.now()}`,
+            coverage_key: `operator-${strip.scene_id}-insert-${Date.now()}`,
             coverage_type: "insert",
-            planned: { shot: "insert", source: "UI floor actual" },
+            planned: { shot: "insert", source: "script supervisor actual" },
           }),
         },
       );
@@ -1796,7 +2004,7 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
           method: "POST",
           body: JSON.stringify({
             board_id: board.id,
-            message: "insert is unusable from camera shake",
+            message: findingMessage.trim(),
             actor_name: defaultNames.script_supervisor,
             actor_role: "script_supervisor",
           }),
@@ -1812,11 +2020,11 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
   };
 
   const requestPickup = async () => {
-    if (!finding) return;
+    if (!selectedFinding) return;
     setError("");
     try {
       const task = await coversetFetch<PickupTask>(
-        `/coverage-findings/${finding.id}/pickup`,
+        `/coverage-findings/${selectedFinding.id}/pickup`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -1826,6 +2034,7 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
         },
       );
       setPickup(task);
+      await refresh();
       setMessage(`Director requested pickup ${task.id}.`);
     } catch (err) {
       setError(formatError(err));
@@ -1834,11 +2043,11 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
 
   const confirmPickup = async () => {
     const strip = firstBoardStrip(board);
-    if (!pickup || !strip) return;
+    if (!selectedPickup || !strip) return;
     setError("");
     try {
       const task = await coversetFetch<PickupTask>(
-        `/pickup-tasks/${pickup.id}/confirm`,
+        `/pickup-tasks/${selectedPickup.id}/confirm`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -1857,6 +2066,7 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
         },
       );
       setPickup(task);
+      await refresh();
       setMessage(`First AD confirmed pickup spec ${task.id}.`);
     } catch (err) {
       setError(formatError(err));
@@ -1864,16 +2074,17 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
   };
 
   const createPickupReplan = async () => {
-    if (!pickup || !board) return;
+    const shootDate = firstBoardDate(board);
+    if (!selectedPickup || !board || !shootDate) return;
     setError("");
     try {
       const request = await coversetFetch<ReplanRequest>(
-        `/pickup-tasks/${pickup.id}/replan`,
+        `/pickup-tasks/${selectedPickup.id}/replan`,
         {
           method: "POST",
           body: JSON.stringify({
             current_board_id: board.id,
-            cutoff_at: `${firstBoardDate(board)}T12:00:00-04:00`,
+            cutoff_at: `${shootDate}T12:00:00-04:00`,
             lock_policy: "preserve_locked",
           }),
         },
@@ -1887,15 +2098,18 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
   };
 
   const lockDay = async () => {
-    if (!board) return;
     const shootDate = firstBoardDate(board);
+    if (!board || !shootDate) {
+      setError("Load a board with at least one shoot day before locking.");
+      return;
+    }
     setError("");
     try {
       await coversetFetch<LockedDay>(`/boards/${board.id}/locks`, {
         method: "POST",
         body: JSON.stringify({
           shoot_date: shootDate,
-          call_sheet_version: `ui-lock-${shootDate}`,
+          call_sheet_version: `actuals-${shootDate}`,
           actor_name: defaultNames.script_supervisor,
           actor_role: "script_supervisor",
         }),
@@ -1931,41 +2145,61 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
             <div className="commandMetrics">
               <DataField label="Strips">{strips.length}</DataField>
               <DataField label="Locked days">{data.locks.length}</DataField>
-              <DataField label="Findings">{finding ? 1 : 0}</DataField>
+              <DataField label="Findings">
+                {data.coverageFindings.length}
+              </DataField>
             </div>
           </div>
           <div className="coverageList">
-            {strips.map((strip, index) => (
-              <article
-                className={`coverageCard ${index === 0 ? "needsReview" : "validated"}`}
-                key={strip.work_id}
-              >
-                <header>
-                  <div>
-                    <span className="sceneNumber">{strip.scene_number}</span>
-                    <h3>{asString(strip.slugline, strip.scene_id)}</h3>
+            {strips.map((strip) => {
+              const stripItems = coverageItemsForStrip(
+                data.coverageItems,
+                strip,
+              );
+              const stripFinding = coverageFindingForStrip(
+                data.coverageItems,
+                data.coverageFindings,
+                strip,
+              );
+              const shotCount = stripItems.filter(
+                (item) => item.status !== "planned",
+              ).length;
+              return (
+                <article
+                  className={`coverageCard ${stripFinding ? "needsReview" : "validated"}`}
+                  key={strip.work_id}
+                >
+                  <header>
+                    <div>
+                      <span className="sceneNumber">{strip.scene_number}</span>
+                      <h3>{asString(strip.slugline, strip.scene_id)}</h3>
+                    </div>
+                    <Pill tone={stripFinding ? "warn" : "good"}>
+                      {stripFinding ? "needs review" : "validated"}
+                    </Pill>
+                  </header>
+                  <div className="coverageMeta">
+                    <DataField label="Cast">
+                      {strip.cast_ids.join(", ") || "—"}
+                    </DataField>
+                    <DataField label="Location">
+                      {stripLocation(strip)}
+                    </DataField>
+                    <DataField label="Coverage items">
+                      {stripItems.length
+                        ? `${shotCount} / ${stripItems.length}`
+                        : "none"}
+                    </DataField>
                   </div>
-                  <Pill tone={index === 0 && finding ? "warn" : "good"}>
-                    {index === 0 && finding ? "needs review" : "validated"}
-                  </Pill>
-                </header>
-                <div className="coverageMeta">
-                  <DataField label="Cast">
-                    {strip.cast_ids.join(", ") || "—"}
-                  </DataField>
-                  <DataField label="Location">{stripLocation(strip)}</DataField>
-                  <DataField label="Setups captured">
-                    {index === 0 && coverageItem ? "4 / 5" : "complete"}
-                  </DataField>
-                </div>
-                {index === 0 && finding && (
-                  <div className="advisoryCard">
-                    <Pill tone="advisory">Advisory finding</Pill>
-                    <p>{finding.message}</p>
-                  </div>
-                )}
-              </article>
-            ))}
+                  {stripFinding && (
+                    <div className="advisoryCard">
+                      <Pill tone="advisory">Advisory finding</Pill>
+                      <p>{stripFinding.message}</p>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
             {!strips.length && <EmptyState>No board strips loaded.</EmptyState>}
           </div>
           <div className="lockActualsPanel">
@@ -2000,31 +2234,51 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
           <button type="button" onClick={lockDay} disabled={!board}>
             Lock first board day
           </button>
-          <button type="button" onClick={createFinding} disabled={!board}>
-            Record unusable insert finding
+          <label>
+            Finding message
+            <textarea
+              value={findingMessage}
+              placeholder="Describe the unusable or missing coverage."
+              onChange={(event) => setFindingMessage(event.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={createFinding}
+            disabled={!board || !findingMessage.trim()}
+          >
+            Record coverage finding
           </button>
           <div className="inspectorSection">
             <h3>Director decision</h3>
             <div className="stackedButtons">
-              <button type="button" onClick={requestPickup} disabled={!finding}>
+              <button
+                type="button"
+                onClick={requestPickup}
+                disabled={!selectedFinding}
+              >
                 Director requests pickup
               </button>
-              <button type="button" onClick={confirmPickup} disabled={!pickup}>
+              <button
+                type="button"
+                onClick={confirmPickup}
+                disabled={!selectedPickup}
+              >
                 First AD confirms spec
               </button>
               <button
                 type="button"
                 onClick={createPickupReplan}
-                disabled={!pickup}
+                disabled={!selectedPickup}
               >
                 Create pickup replan
               </button>
             </div>
           </div>
-          {coverageItem && <JsonBlock value={coverageItem} />}
-          {finding && <JsonBlock value={finding} />}
-          {pickup && <JsonBlock value={pickup} />}
-          {pickupReplan && <JsonBlock value={pickupReplan} />}
+          {selectedCoverageItem && <JsonBlock value={selectedCoverageItem} />}
+          {selectedFinding && <JsonBlock value={selectedFinding} />}
+          {selectedPickup && <JsonBlock value={selectedPickup} />}
+          {selectedPickupReplan && <JsonBlock value={selectedPickupReplan} />}
           <div className="inspectorSection">
             <h3>Related schedule diffs</h3>
             {data.scheduleDiffs.slice(0, 2).map((diff) => (
@@ -2044,20 +2298,26 @@ export function CallSheetsScreen({ productionId, boardId }: ScreenProps) {
   const { data, error, message, refresh, setData, setError, setMessage } =
     useProductionData(productionId, boardId);
   const [actor, setActor] = useActor("second_ad");
-  const [shootDate, setShootDate] = useState("2026-09-14");
+  const [shootDate, setShootDate] = useState("");
   const [selected, setSelected] = useState<CallSheet | null>(null);
   const board = data.board;
   const dayOptions = useMemo(() => board?.result.days ?? [], [board]);
 
   useEffect(() => {
-    if (dayOptions[0]?.date) {
+    if (dayOptions[0]?.date && !shootDate) {
       setShootDate(dayOptions[0].date);
     }
-  }, [dayOptions]);
+  }, [dayOptions, shootDate]);
+
+  useEffect(() => {
+    if (!selected && data.callSheets[0]) {
+      setSelected(data.callSheets[0]);
+    }
+  }, [data.callSheets, selected]);
 
   const generate = async () => {
-    if (!board) {
-      setError("Open call sheets with a board id before generating.");
+    if (!board || !shootDate) {
+      setError("Open call sheets with a board shoot date before generating.");
       return;
     }
     setError("");
@@ -2081,6 +2341,7 @@ export function CallSheetsScreen({ productionId, boardId }: ScreenProps) {
           ...current.callSheets.filter((item) => item.id !== sheet.id),
         ],
       }));
+      await refresh();
       setMessage(`Generated call sheet ${sheet.id}.`);
     } catch (err) {
       setError(formatError(err));
@@ -2201,7 +2462,11 @@ export function CallSheetsScreen({ productionId, boardId }: ScreenProps) {
               )}
             </select>
           </label>
-          <button type="button" onClick={generate} disabled={!board}>
+          <button
+            type="button"
+            onClick={generate}
+            disabled={!board || !shootDate}
+          >
             Generate call sheet
           </button>
           <p className="muted">
@@ -2314,7 +2579,7 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
   const { data, error, message, refresh, setError, setMessage } =
     useProductionData(productionId, boardId);
   const [actor, setActor] = useActor("upm");
-  const [approvals, setApprovals] = useState<CostApproval[]>([]);
+  const approvals = data.costApprovals;
   const selectedDiff = data.scheduleDiffs[0] ?? null;
 
   const approve = async (
@@ -2325,7 +2590,7 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
     const fallbackDay = data.board?.result.days?.at(-1)?.date;
     setError("");
     try {
-      const approval = await coversetFetch<CostApproval>(
+      await coversetFetch<CostApproval>(
         `/boards/${diff.revised_board_id}/cost-approvals`,
         {
           method: "POST",
@@ -2342,7 +2607,6 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
           }),
         },
       );
-      setApprovals((current) => [approval, ...current]);
       await refresh();
       setMessage(`${decision} cost exposure for ${diff.revised_board_id}.`);
     } catch (err) {
@@ -2489,7 +2753,7 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
               <JsonBlock key={approval.id} value={approval} />
             ))}
             {!approvals.length && (
-              <EmptyState>No browser-session cost decisions yet.</EmptyState>
+              <EmptyState>No persisted cost decisions yet.</EmptyState>
             )}
           </div>
         </aside>

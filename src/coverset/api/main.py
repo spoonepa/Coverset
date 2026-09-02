@@ -141,16 +141,25 @@ from .services import (  # type: ignore[import-not-found]
     ground_fact,
     list_aliases,
     list_audit_events,
+    list_breakdown_runs,
     list_call_sheets,
     list_candidates_for_run,
     list_cast,
+    list_constraint_proposals,
     list_constraints,
+    list_cost_approvals,
+    list_cost_approvals_for_board,
+    list_coverage_findings,
+    list_coverage_items,
+    list_grounded_values,
+    list_grounded_values_for_evidence,
     list_grounding_evidence,
     list_jobs,
     list_locations,
     list_locked_days,
     list_monitor_findings,
     list_monitored_sources,
+    list_pickup_tasks,
     list_replan_requests,
     list_schedule_diffs,
     list_shoot_days,
@@ -167,6 +176,7 @@ from .services import (  # type: ignore[import-not-found]
     review_candidate,
     run_breakdown,
     run_scheduler,
+    seed_demo_workflow_state,
     select_board,
     set_calendar,
     translate_constraint_text,
@@ -371,6 +381,20 @@ def run_breakdown_endpoint(
     return _breakdown_response(session, run)
 
 
+@app.get(
+    "/productions/{production_id}/breakdowns",
+    response_model=list[BreakdownRunResponse],
+)
+def list_breakdowns_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[BreakdownRunResponse]:
+    return [
+        _breakdown_response(session, row)
+        for row in list_breakdown_runs(session, production_id)
+    ]
+
+
 @app.get("/breakdowns/{run_id}", response_model=BreakdownRunResponse)
 def get_breakdown_endpoint(
     run_id: str,
@@ -546,6 +570,34 @@ def list_grounding_endpoint(
     ]
 
 
+@app.get(
+    "/productions/{production_id}/grounded-values",
+    response_model=list[GroundedValueResponse],
+)
+def list_grounded_values_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[GroundedValueResponse]:
+    return [
+        _grounded_value_response(row)
+        for row in list_grounded_values(session, production_id)
+    ]
+
+
+@app.get(
+    "/grounding/{evidence_id}/values",
+    response_model=list[GroundedValueResponse],
+)
+def list_grounded_values_for_evidence_endpoint(
+    evidence_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[GroundedValueResponse]:
+    return [
+        _grounded_value_response(row)
+        for row in list_grounded_values_for_evidence(session, evidence_id)
+    ]
+
+
 @app.post(
     "/grounding/{evidence_id}/values",
     response_model=GroundedValueResponse,
@@ -581,6 +633,20 @@ def translate_constraints_endpoint(
             text=payload.text,
             actor_name=payload.actor_name,
         )
+    ]
+
+
+@app.get(
+    "/productions/{production_id}/constraint-proposals",
+    response_model=list[ConstraintProposalResponse],
+)
+def list_constraint_proposals_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[ConstraintProposalResponse]:
+    return [
+        _constraint_proposal_response(row)
+        for row in list_constraint_proposals(session, production_id)
     ]
 
 
@@ -877,6 +943,34 @@ def select_board_endpoint(
     )
 
 
+@app.get(
+    "/productions/{production_id}/cost-approvals",
+    response_model=list[CostApprovalResponse],
+)
+def list_cost_approvals_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[CostApprovalResponse]:
+    return [
+        _cost_approval_response(row)
+        for row in list_cost_approvals(session, production_id)
+    ]
+
+
+@app.get(
+    "/boards/{board_id}/cost-approvals",
+    response_model=list[CostApprovalResponse],
+)
+def list_cost_approvals_for_board_endpoint(
+    board_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[CostApprovalResponse]:
+    return [
+        _cost_approval_response(row)
+        for row in list_cost_approvals_for_board(session, board_id)
+    ]
+
+
 @app.post("/boards/{board_id}/cost-approvals", response_model=CostApprovalResponse)
 def approve_cost_endpoint(
     board_id: str,
@@ -894,6 +988,47 @@ def approve_cost_endpoint(
             decision=payload.decision,
         )
     )
+
+
+@app.get(
+    "/productions/{production_id}/coverage-items",
+    response_model=list[CoverageItemResponse],
+)
+def list_coverage_items_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[CoverageItemResponse]:
+    return [
+        _coverage_item_response(row)
+        for row in list_coverage_items(session, production_id)
+    ]
+
+
+@app.get(
+    "/productions/{production_id}/coverage-findings",
+    response_model=list[CoverageFindingResponse],
+)
+def list_coverage_findings_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[CoverageFindingResponse]:
+    return [
+        _coverage_finding_response(row)
+        for row in list_coverage_findings(session, production_id)
+    ]
+
+
+@app.get(
+    "/productions/{production_id}/pickup-tasks",
+    response_model=list[PickupTaskResponse],
+)
+def list_pickup_tasks_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[PickupTaskResponse]:
+    return [
+        _pickup_task_response(row) for row in list_pickup_tasks(session, production_id)
+    ]
 
 
 @app.post(
@@ -1138,6 +1273,7 @@ def run_demo_endpoint(
     schedule_run = run_scheduler(session, production_id=production.id)
     if not schedule_run.board_id:
         raise ServiceError(schedule_run.error or "demo did not produce a board")
+    seed_demo_workflow_state(session, production.id, schedule_run.board_id)
     return _board_response(get_board(session, schedule_run.board_id))
 
 
