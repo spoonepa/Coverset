@@ -198,11 +198,21 @@ async function mockApi(page: Page) {
     if (path === "/boards/board_1" && method === "GET")
       return route.fulfill(json(board));
     if (path === "/boards/board_2" && method === "GET") {
+      const approved = costApprovals.some(
+        (approval) =>
+          approval.board_id === "board_2" && approval.decision === "approved",
+      );
       return route.fulfill(
         json({
           ...board,
           id: "board_2",
-          approval_state: "pending_cost_approval",
+          approval_state: approved ? "approved" : "pending_cost_approval",
+          result: {
+            ...board.result,
+            approval_state: approved ? "approved" : "pending_cost_approval",
+            required_approvals: ["upm_or_line_producer_cost_approval"],
+            cost_delta: 6500,
+          },
         }),
       );
     }
@@ -372,6 +382,14 @@ async function mockApi(page: Page) {
       if (payload.actor_role !== "first_ad")
         return route.fulfill(
           json({ detail: "only first_ad may select boards" }, 403),
+        );
+      const approved = costApprovals.some(
+        (approval) =>
+          approval.board_id === "board_2" && approval.decision === "approved",
+      );
+      if (!approved)
+        return route.fulfill(
+          json({ detail: "cost approval is required before board selection" }, 409),
         );
       return route.fulfill(
         json({
@@ -547,8 +565,9 @@ test("full UI routes expose operational workflows", async ({ page }) => {
 
   await page.goto("/productions/prod_1/board/board_1");
   await expect(
-    page.getByRole("heading", { name: "Stripboard dashboard" }),
+    page.getByRole("heading", { name: "The Ferry Job" }),
   ).toBeVisible();
+  await expect(page.getByText("Stripboard dashboard").first()).toBeVisible();
   await expect(page.locator(".sideRail")).toBeVisible();
   await expect(page.locator(".stripboardBoard")).toBeVisible();
   await expect(page.getByText("W-BRK-001").first()).toBeVisible();
@@ -586,10 +605,10 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   await expect(page.getByText("replan_1")).toBeVisible();
   await page.getByRole("button", { name: "Generate options" }).click();
   await expect(page.getByText("sdiff_1")).toBeVisible();
-  await page
-    .getByRole("button", { name: "Select revised board as First AD" })
-    .click();
-  await expect(page.getByText("Selected board board_2.")).toBeVisible();
+  await expect(page.getByText("approval required")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Select revised board as First AD" }),
+  ).toBeDisabled();
 
   await page.goto("/productions/prod_1/coverage?boardId=board_1");
   await expect(page.locator(".coverageWorkbench")).toBeVisible();
@@ -629,9 +648,16 @@ test("full UI routes expose operational workflows", async ({ page }) => {
     page.getByText("approved cost exposure for board_2."),
   ).toBeVisible();
 
+  await page.goto("/productions/prod_1/replans?boardId=board_1");
+  await expect(page.getByText("selectable")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Select revised board as First AD" })
+    .click();
+  await expect(page.getByText("Selected board board_2.")).toBeVisible();
+
   await page.goto("/productions/prod_1/audit?boardId=board_1");
   await expect(page.locator(".auditLedger")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
+  await expect(page.getByText("Audit log").first()).toBeVisible();
   await expect(page.getByText("board.solved")).toBeVisible();
 
   await page.goto("/productions/prod_1/infeasible?boardId=board_1");

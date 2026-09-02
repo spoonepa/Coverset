@@ -36,13 +36,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--on-surface);
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(67, 70, 85, 0.28),
-      transparent 34rem
-    ),
-    var(--background);
+  background: var(--background);
   font-size: 14px;
   line-height: 20px;
 }
@@ -289,6 +283,12 @@ summary {
   color: var(--warning);
 }
 
+.pill.neutral {
+  color: var(--on-primary);
+  background: var(--primary-container);
+  border-color: var(--primary-container);
+}
+
 .candidateForm {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -396,6 +396,7 @@ summary {
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  overflow: hidden;
   padding: 16px 8px;
   border-right: 1px solid var(--outline-variant);
   background: var(--surface-container-low);
@@ -442,6 +443,7 @@ summary {
   height: 48px;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   border-radius: 4px;
   color: var(--on-surface-variant);
   text-decoration: none;
@@ -464,6 +466,9 @@ summary {
 }
 
 .railIcon {
+  width: 24px;
+  overflow: hidden;
+  text-align: center;
   font-size: 21px;
   font-variation-settings:
     "FILL" 0,
@@ -507,10 +512,12 @@ summary {
 
 .routeShell {
   width: calc(100% - var(--rail-width));
+  height: 100vh;
   min-height: 100vh;
   margin-left: var(--rail-width);
-  padding: 0 24px 32px;
+  padding: 0;
   overflow: auto;
+  background: var(--background);
 }
 
 .routeTopbar {
@@ -521,27 +528,81 @@ summary {
   min-height: 64px;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin: 0 -24px 16px;
-  padding: 10px 24px;
+  gap: 20px;
+  padding: 0 24px;
   border-bottom: 1px solid var(--outline-variant);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: blur(16px);
+  background: var(--surface);
+}
+
+.routeTopbarLeft {
+  display: flex;
+  min-width: 0;
+  height: 64px;
+  align-items: center;
+  gap: 24px;
 }
 
 .routeTopbar h1 {
   margin: 0;
+  white-space: nowrap;
   font-size: 18px;
   font-weight: 900;
   line-height: 24px;
 }
 
-.routeTopbar p:not(.eyebrow) {
-  max-width: 780px;
-  margin: 2px 0 0;
+.routeTabs {
+  display: flex;
+  height: 64px;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.routeTabs span {
+  display: flex;
+  max-width: 380px;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 16px;
+  border-bottom: 2px solid transparent;
   color: var(--on-surface-variant);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.routeTabs span.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.topbarMetrics {
+  display: flex;
+  min-width: 220px;
+  height: 32px;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 16px;
+  border-left: 1px solid var(--outline-variant);
+}
+
+.topbarMetrics span {
+  color: var(--outline);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 12px;
+  text-transform: uppercase;
+}
+
+.topbarMetrics strong {
+  max-width: 360px;
+  overflow: hidden;
+  color: var(--on-surface);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   font-size: 12px;
+  font-weight: 700;
   line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .routeTopbarActions {
@@ -554,7 +615,14 @@ summary {
 
 .routeTopbarActions button,
 .routeTopbarActions .buttonLink {
+  min-height: 32px;
   margin-top: 0;
+  padding: 7px 14px;
+  border-radius: 2px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 14px;
 }
 
 .routeStatus {
@@ -563,6 +631,7 @@ summary {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin: 8px 16px 0;
 }
 
 .routeCards,
@@ -744,12 +813,13 @@ summary {
 .workflowTri,
 .replanBoard {
   display: grid;
-  min-height: calc(100vh - 150px);
+  min-height: calc(100vh - 64px);
   gap: 8px;
+  padding: 16px;
 }
 
 .workflowSplit {
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) 320px;
 }
 
 .workflowTri {
@@ -774,6 +844,25 @@ summary {
   min-width: 0;
   padding: 8px;
   overflow: auto;
+}
+
+.boardWorkbench {
+  gap: 0;
+  padding: 16px;
+}
+
+.boardWorkbench .workspacePanel {
+  border-right: 0;
+  border-radius: 0;
+  background: var(--background);
+}
+
+.boardWorkbench .inspectorPanel {
+  border-radius: 0;
+}
+
+.boardWorkbench .commandBanner.neutral {
+  display: none;
 }
 
 .inspectorPanel,
@@ -923,13 +1012,23 @@ summary {
   position: relative;
   overflow: hidden;
   border: 1px solid var(--outline-variant);
-  border-radius: 6px;
+  border-radius: 2px;
   background: var(--surface-container-lowest);
+}
+
+.stripDay.locked {
+  opacity: 0.72;
 }
 
 .stripDay.active {
   border-color: var(--primary-container);
-  box-shadow: inset 4px 0 0 var(--primary);
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 0 0 1px color-mix(in srgb, var(--primary-container) 72%, transparent);
+}
+
+.stripDay.planned .dayTitle {
+  color: var(--on-surface-variant);
 }
 
 .stripDayHeader {
@@ -940,6 +1039,13 @@ summary {
   padding: 10px 12px 10px 16px;
   border-bottom: 1px solid var(--outline-variant);
   background: var(--surface-container-low);
+}
+
+.stripDayHeader > div:first-child {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 16px;
 }
 
 .dayTitle {

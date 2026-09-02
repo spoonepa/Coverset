@@ -429,11 +429,19 @@ def seed_demo_workflow_state(
         },
     )
     if monitor_event.replan_request_id:
-        generate_replan_options(
-            session,
-            replan_request_id=monitor_event.replan_request_id,
-            max_options=1,
-        )
+        try:
+            generate_replan_options(
+                session,
+                replan_request_id=monitor_event.replan_request_id,
+                max_options=1,
+            )
+        except ServiceError as exc:
+            audit(
+                session,
+                production_id,
+                "production.demo_seed_replan_skipped",
+                {"replan_request_id": monitor_event.replan_request_id, "error": str(exc)},
+            )
 
     lock_board_day(
         session,
@@ -2353,6 +2361,33 @@ def _apply_cost_approval_state(board: BoardModel, diff_row: Any) -> None:
     board.result_json = result
 
 
+def _ensure_board_cost_approval_resolved(
+    session: Session, board: BoardModel
+) -> None:
+    result = dict(board.result_json or {})
+    required_approvals = {str(value) for value in result.get("required_approvals", [])}
+    cost_required = (
+        board.approval_state == "pending_cost_approval"
+        or "upm_or_line_producer_cost_approval" in required_approvals
+    )
+    if board.approval_state == "cost_rejected":
+        raise ServiceError(
+            "cost approval was rejected for this board", status_code=409
+        )
+    if not cost_required:
+        return
+    approved = session.scalars(
+        select(CostApprovalModel).where(
+            CostApprovalModel.board_id == board.id,
+            CostApprovalModel.decision == "approved",
+        )
+    ).first()
+    if approved is None or board.approval_state != "approved":
+        raise ServiceError(
+            "cost approval is required before board selection", status_code=409
+        )
+
+
 def select_board(
     session: Session,
     *,
@@ -2363,6 +2398,7 @@ def select_board(
 ) -> BoardSelectionModel:
     board = get_board(session, board_id)
     actor = _actor_for_decision(actor_name, actor_role, capability="select_board")
+    _ensure_board_cost_approval_resolved(session, board)
     prior_run_id: str | None = None
     if prior_board_id:
         prior = get_board(session, prior_board_id)

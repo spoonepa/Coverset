@@ -1453,6 +1453,35 @@ def test_pickup_workflow_requires_confirmed_spec_and_preserves_locked_days(
         revised = client.get(f"/boards/{diff['revised_board_id']}")
         assert revised.status_code == 200, revised.text
         assert revised.json()["approval_state"] == "pending_cost_approval"
+        blocked_selection = client.post(
+            f"/boards/{diff['revised_board_id']}/selection",
+            json={
+                "prior_board_id": board.id,
+                "actor_name": "R. Okonkwo",
+                "actor_role": "first_ad",
+            },
+        )
+        assert blocked_selection.status_code == 409, blocked_selection.text
+        assert "cost approval" in blocked_selection.json()["detail"]
+        approval = client.post(
+            f"/boards/{diff['revised_board_id']}/cost-approvals",
+            json={
+                "cost_delta": diff["cost_delta"],
+                "added_shoot_days": diff["diff"]["added_days"],
+                "actor_name": "M. Chen",
+                "actor_role": "upm",
+            },
+        )
+        assert approval.status_code == 200, approval.text
+        selection = client.post(
+            f"/boards/{diff['revised_board_id']}/selection",
+            json={
+                "prior_board_id": board.id,
+                "actor_name": "R. Okonkwo",
+                "actor_role": "first_ad",
+            },
+        )
+        assert selection.status_code == 200, selection.text
         locked_work_ids = {
             assignment["work_id"]
             for assignment in client.get(f"/productions/{production.id}/locks").json()[

@@ -351,6 +351,7 @@ function ScreenShell({
   title,
   eyebrow,
   description,
+  productionTitle,
   productionId,
   boardId,
   status,
@@ -361,6 +362,7 @@ function ScreenShell({
   title: string;
   eyebrow: string;
   description: string;
+  productionTitle?: string;
   productionId: string;
   boardId?: string;
   status: string;
@@ -432,25 +434,45 @@ function ScreenShell({
 
       <main className="routeShell">
         <header className="routeTopbar">
-          <div>
-            <p className="eyebrow">{eyebrow}</p>
-            <h1>{title}</h1>
-            <p>{description}</p>
+          <div className="routeTopbarLeft">
+            <h1>{productionTitle ?? title}</h1>
+            <nav className="routeTabs" aria-label="Current workflow context">
+              <span className="active mono">{title}</span>
+              <span className="mono" title={description}>{eyebrow}</span>
+            </nav>
+            <div className="topbarMetrics" aria-live="polite">
+              <span>Status</span>
+              <strong>{status}</strong>
+            </div>
           </div>
           <div className="routeTopbarActions">
-            <a className="buttonLink secondary" href={base}>
-              Overview
+            <a
+              className="buttonLink secondary"
+              href={withBoard(`${base}/replans`, boardId)}
+            >
+              Compare Options
             </a>
-            <button className="secondary" type="button" onClick={onRefresh}>
-              Refresh
+            <a
+              className="buttonLink secondary"
+              href={withBoard(`${base}/grounding`, boardId)}
+            >
+              View Sources
+            </a>
+            <a className="buttonLink secondary" href={boardNav(productionId, boardId)}>
+              Validate Board
+            </a>
+            <button type="button" onClick={onRefresh}>
+              Generate Board
             </button>
           </div>
         </header>
 
-        <section className="panel status routeStatus">
-          <strong>Status:</strong> {status}
-          {error && <pre className="error">{error}</pre>}
-        </section>
+        {error && (
+          <section className="panel status routeStatus">
+            <strong>Status:</strong> {status}
+            <pre className="error">{error}</pre>
+          </section>
+        )}
         {children}
       </main>
     </div>
@@ -553,16 +575,44 @@ function formatTime(value: unknown): string {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function formatShootDate(value: string): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  })
+    .format(date)
+    .toUpperCase();
+}
+
+function humanizeSlug(value: string): string {
+  return value
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function stripLocation(strip: BoardStrip): string {
   const location = strip.location;
   if (location && typeof location === "object") {
     const record = location as Record<string, unknown>;
-    return asString(record.name, strip.location_id);
+    return asString(record.name, humanizeSlug(strip.location_id));
   }
-  return strip.location_id;
+  return humanizeSlug(strip.location_id);
 }
 
 function stripDuration(strip: BoardStrip): string {
@@ -575,7 +625,13 @@ function stripDuration(strip: BoardStrip): string {
   return `${hours}:${String(remaining).padStart(2, "0")}`;
 }
 
-function BoardMini({ board }: { board: Board | null }) {
+function BoardMini({
+  board,
+  locks = [],
+}: {
+  board: Board | null;
+  locks?: LockedDay[];
+}) {
   if (!board) {
     return (
       <EmptyState>
@@ -584,22 +640,33 @@ function BoardMini({ board }: { board: Board | null }) {
       </EmptyState>
     );
   }
+  const lockedDates = new Set(locks.map((lock) => lock.shoot_date));
+  const firstUnlockedIndex = Math.max(
+    0,
+    (board.result.days ?? []).findIndex((day) => !lockedDates.has(day.date)),
+  );
   return (
     <div className="stripboardBoard">
       {(board.result.days ?? []).map((day, index) => {
         const dayStrips = stripsForDay(board, day.date);
         const dayKind = asString(day.kind, dayStrips[0]?.day_night ?? "shoot");
+        const locked = lockedDates.has(day.date);
+        const dayState = locked
+          ? "locked"
+          : index === firstUnlockedIndex
+            ? "active"
+            : "planned";
         return (
-          <section
-            className={`stripDay ${index === 0 ? "active" : ""}`.trim()}
-            key={day.date}
-          >
+          <section className={`stripDay ${dayState}`.trim()} key={day.date}>
             <header className="stripDayHeader">
               <div>
                 <div className="dayTitle">DAY {index + 1}</div>
-                <div className="dayMeta">{day.date}</div>
+                <div className="dayMeta">{formatShootDate(day.date)}</div>
               </div>
               <div className="dayBadges">
+                <Pill tone={dayState === "active" ? "neutral" : ""}>
+                  {dayState}
+                </Pill>
                 <Pill tone={dayKind === "night" ? "warn" : "good"}>
                   {dayKind} shoot
                 </Pill>
@@ -724,6 +791,7 @@ export function ProductionOverviewScreen({
       title="Production operations cockpit"
       eyebrow="Coverset UI"
       description="Route-based access to the full operational screen set backed by the merged API workflows."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
@@ -798,6 +866,7 @@ export function BoardDashboardScreen({
       title="Stripboard dashboard"
       eyebrow="First AD board view"
       description="Solved days, strips, objective signals, board approval state, locks, and route links for downstream decisions."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
@@ -824,7 +893,7 @@ export function BoardDashboardScreen({
               <DataField label="Locks">{data.locks.length}</DataField>
             </div>
           </div>
-          <BoardMini board={board} />
+          <BoardMini board={board} locks={data.locks} />
         </section>
         <aside className="inspectorPanel">
           <div className="inspectorHeader">
@@ -1000,6 +1069,7 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
       title="Scene breakdown / review"
       eyebrow="Gemini advisory, human acceptance"
       description="Upload screenplay text, inspect candidate records, and keep candidates inert until explicitly accepted."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
@@ -1240,6 +1310,7 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
       title="Plain-English constraint entry"
       eyebrow="Candidate constraints fail closed"
       description="Production prose becomes inactive typed proposals; activation remains a separate human act."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
@@ -1480,6 +1551,7 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
       title="Grounded facts / source provenance"
       eyebrow="Parallel evidence remains advisory"
       description="Inspect source spans, extraction mode, validators, conflicts, and value-level provenance before constraints are activated."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
@@ -1759,6 +1831,7 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
       title="Replan option comparison"
       eyebrow="Monitor requests, First AD selection"
       description="Generate deterministic options from replan requests and keep board selection separate from monitor automation."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
@@ -1803,53 +1876,83 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
           </div>
         </aside>
         <main className="optionDeck">
-          {data.scheduleDiffs.map((diff, index) => (
-            <article className="optionCard" key={diff.id}>
-              <header>
-                <div>
-                  <span className="caps">
-                    Option {String.fromCharCode(65 + index)}
-                  </span>
-                  <h3>{diff.id}</h3>
-                  <p>
-                    {diff.base_board_id} → {diff.revised_board_id} · validation
-                    report expected before selection
-                  </p>
+          {data.scheduleDiffs.map((diff, index) => {
+            const costApprovalRequired = diff.required_approvals.includes(
+              "upm_or_line_producer_cost_approval",
+            );
+            const approvedCost = data.costApprovals.some(
+              (approval) =>
+                approval.board_id === diff.revised_board_id &&
+                approval.decision === "approved",
+            );
+            const rejectedCost = data.costApprovals.some(
+              (approval) =>
+                approval.board_id === diff.revised_board_id &&
+                approval.decision === "rejected",
+            );
+            const selectionBlocked = costApprovalRequired && !approvedCost;
+            return (
+              <article className="optionCard" key={diff.id}>
+                <header>
+                  <div>
+                    <span className="caps">
+                      Option {String.fromCharCode(65 + index)}
+                    </span>
+                    <h3>{diff.id}</h3>
+                    <p>
+                      {diff.base_board_id} → {diff.revised_board_id} · validation
+                      report expected before selection
+                    </p>
+                  </div>
+                  <Pill tone={selectionBlocked ? "warn" : "good"}>
+                    {selectionBlocked ? "approval required" : "selectable"}
+                  </Pill>
+                </header>
+                <MetricGrid
+                  items={[
+                    ["Cost delta", `$${diff.cost_delta.toLocaleString()}`],
+                    [
+                      "Added days",
+                      asStringList(diff.diff.added_days).length || 0,
+                    ],
+                    [
+                      "Added pickups",
+                      asStringList(diff.diff.added_pickups).join(", ") || "none",
+                    ],
+                    ["Approvals", diff.required_approvals.length || "none"],
+                  ]}
+                />
+                {diff.rendered_text && <pre>{diff.rendered_text}</pre>}
+                {selectionBlocked && (
+                  <small>
+                    {rejectedCost
+                      ? "Cost approval was rejected; generate a new option before selection."
+                      : "UPM or line producer cost approval is required before First AD selection."}
+                  </small>
+                )}
+                <div className="actions optionActions">
+                  <button
+                    type="button"
+                    disabled={selectionBlocked}
+                    title={
+                      selectionBlocked
+                        ? "Cost approval must be resolved before board selection."
+                        : undefined
+                    }
+                    onClick={() => selectBoard(diff)}
+                  >
+                    Select revised board as {roleNames[actor.role]}
+                  </button>
+                  <a
+                    className="buttonLink secondary"
+                    href={`/productions/${diff.production_id}/board/${diff.revised_board_id}`}
+                  >
+                    Open board
+                  </a>
                 </div>
-                <Pill tone={diff.cost_delta > 0 ? "warn" : "good"}>
-                  {diff.required_approvals.length
-                    ? "approval gate"
-                    : "validated"}
-                </Pill>
-              </header>
-              <MetricGrid
-                items={[
-                  ["Cost delta", `$${diff.cost_delta.toLocaleString()}`],
-                  [
-                    "Added days",
-                    asStringList(diff.diff.added_days).length || 0,
-                  ],
-                  [
-                    "Added pickups",
-                    asStringList(diff.diff.added_pickups).join(", ") || "none",
-                  ],
-                  ["Approvals", diff.required_approvals.length || "none"],
-                ]}
-              />
-              {diff.rendered_text && <pre>{diff.rendered_text}</pre>}
-              <div className="actions optionActions">
-                <button type="button" onClick={() => selectBoard(diff)}>
-                  Select revised board as {roleNames[actor.role]}
-                </button>
-                <a
-                  className="buttonLink secondary"
-                  href={`/productions/${diff.production_id}/board/${diff.revised_board_id}`}
-                >
-                  Open board
-                </a>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
           {!data.scheduleDiffs.length && (
             <EmptyState>
               No schedule diffs yet. Generate options from a replan request.
@@ -2126,6 +2229,7 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
       title="Coverage pickup and lock-day actuals"
       eyebrow="Production floor workflow"
       description="Script Supervisor records actuals and findings; Director/First AD decide whether pickup work becomes schedulable."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
@@ -2353,6 +2457,7 @@ export function CallSheetsScreen({ productionId, boardId }: ScreenProps) {
       title="Call sheet preview"
       eyebrow="Second AD only"
       description="Generate persisted call sheets from solved board-day snapshots without re-running scheduling."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
@@ -2509,6 +2614,7 @@ export function AuditLogScreen({ productionId, boardId }: ScreenProps) {
       title="Audit log"
       eyebrow="Authority and provenance ledger"
       description="Review the chronological record of advisory events, human decisions, exports, locks, replans, and approvals."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
@@ -2619,6 +2725,7 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
       title="Cost approval"
       eyebrow="UPM / Line Producer gate"
       description="Review added-day exposure from schedule diffs and keep cost approval separate from board selection."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
@@ -2778,6 +2885,7 @@ export function InfeasibleConflictScreen({
       title="Infeasible board diagnostics"
       eyebrow="Truthful conflict surface"
       description="Show real solver failures and avoid hard-coded conflict math when the API has not exposed a minimal conflict subset."
+      productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
       status={message}
