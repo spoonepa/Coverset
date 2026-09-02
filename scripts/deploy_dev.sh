@@ -91,17 +91,18 @@ gcloud builds submit . \
 
 echo "== writing generated Terraform image vars =="
 cat >"${GENERATED_TFVARS}" <<EOF
-project_id          = "${PROJECT_ID}"
-region              = "${REGION}"
-repository_id       = "${REPOSITORY}"
-developer_principal   = "${DEVELOPER_PRINCIPAL}"
-agent_mode            = "${AGENT_MODE}"
+project_id             = "${PROJECT_ID}"
+region                 = "${REGION}"
+repository_id          = "${REPOSITORY}"
+developer_principal    = "${DEVELOPER_PRINCIPAL}"
+agent_mode             = "${AGENT_MODE}"
 terraform_state_bucket = "${TF_STATE_BUCKET}"
 billing_account_id    = "${BILLING_ACCOUNT_ID}"
-api_image             = "${API_IMAGE}"
-worker_image          = "${WORKER_IMAGE}"
-web_image             = "${WEB_IMAGE}"
+api_image              = "${API_IMAGE}"
+worker_image           = "${WORKER_IMAGE}"
+web_image              = "${WEB_IMAGE}"
 EOF
+terraform -chdir="${TF_DIR}" fmt "$(basename "${GENERATED_TFVARS}")" >/dev/null
 
 echo "== terraform apply real images =="
 terraform -chdir="${TF_DIR}" apply -auto-approve -input=false

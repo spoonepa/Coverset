@@ -35,6 +35,24 @@ function cleanEmail(value: string): string {
   return value.replace(/^accounts\.google\.com:/, "").trim();
 }
 
+function emailFromAuthorization(headers: Headers): string {
+  const headerValue = header(headers, "authorization");
+  const match = /^Bearer\s+([^\s.]+\.[^\s.]+\.[^\s.]+)$/i.exec(headerValue);
+  if (!match) {
+    return "";
+  }
+  try {
+    const payload = JSON.parse(
+      Buffer.from(match[1].split(".")[1] ?? "", "base64url").toString(
+        "utf8",
+      ),
+    ) as { email?: unknown };
+    return typeof payload.email === "string" ? cleanEmail(payload.email) : "";
+  } catch {
+    return "";
+  }
+}
+
 function isRole(value: string): value is ActorRole {
   return ROLE_VALUES.includes(value as ActorRole);
 }
@@ -90,13 +108,12 @@ export function actorClaimsFromHeaders(headers: Headers): ActorClaims {
   const singleHeaderRole = parseRoles(
     header(headers, process.env.COVERSET_AUTH_ROLE_HEADER),
   );
-  const email = cleanEmail(
-    process.env.COVERSET_ACTOR_EMAIL ??
-      header(
-        headers,
-        process.env.COVERSET_AUTH_EMAIL_HEADER ?? "x-goog-authenticated-user-email",
-      ),
+  const envEmail = process.env.COVERSET_ACTOR_EMAIL;
+  const headerEmail = header(
+    headers,
+    process.env.COVERSET_AUTH_EMAIL_HEADER ?? "x-goog-authenticated-user-email",
   );
+  const email = cleanEmail(envEmail ?? (headerEmail || emailFromAuthorization(headers)));
   const mappedRoles = rolesFromClaimMap(email);
   let roles: ActorRole[] = [];
   if (envRoles.length > 0) {
