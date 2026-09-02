@@ -7,9 +7,10 @@ import datetime as dt
 import hashlib
 import json
 import re
+from collections.abc import Sequence
 from dataclasses import replace
 from io import BytesIO, StringIO
-from typing import Any, Protocol, Sequence
+from typing import Any, Protocol
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
