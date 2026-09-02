@@ -55,13 +55,20 @@ const board = {
   },
 };
 
+let breakdowns: Json[];
+let constraintProposals: Json[];
 let constraints: Json[];
 let grounding: Json[];
+let groundedValues: Json[];
 let locks: Json[];
 let monitoredSources: Json[];
 let monitorFindings: Json[];
 let replanRequests: Json[];
 let scheduleDiffs: Json[];
+let coverageItems: Json[];
+let coverageFindings: Json[];
+let pickupTasks: Json[];
+let costApprovals: Json[];
 let callSheets: Json[];
 let audit: Json[];
 let coverageItem: Json | null;
@@ -69,13 +76,20 @@ let coverageFinding: Json | null;
 let pickupTask: Json | null;
 
 function resetState() {
+  breakdowns = [];
+  constraintProposals = [];
   constraints = [];
   grounding = [];
+  groundedValues = [];
   locks = [];
   monitoredSources = [];
   monitorFindings = [];
   replanRequests = [];
   scheduleDiffs = [];
+  coverageItems = [];
+  coverageFindings = [];
+  pickupTasks = [];
+  costApprovals = [];
   callSheets = [];
   audit = [
     {
@@ -151,8 +165,14 @@ async function mockApi(page: Page) {
       return route.fulfill(json(production));
     if (path === "/productions/prod_1/jobs" && method === "GET")
       return route.fulfill(json([]));
+    if (path === "/productions/prod_1/breakdowns" && method === "GET")
+      return route.fulfill(json(breakdowns));
     if (path === "/productions/prod_1/grounding" && method === "GET")
       return route.fulfill(json(grounding));
+    if (path === "/productions/prod_1/grounded-values" && method === "GET")
+      return route.fulfill(json(groundedValues));
+    if (path === "/productions/prod_1/constraint-proposals" && method === "GET")
+      return route.fulfill(json(constraintProposals));
     if (path === "/productions/prod_1/constraints" && method === "GET")
       return route.fulfill(json(constraints));
     if (path === "/productions/prod_1/locks" && method === "GET")
@@ -165,6 +185,14 @@ async function mockApi(page: Page) {
       return route.fulfill(json(replanRequests));
     if (path === "/productions/prod_1/schedule-diffs" && method === "GET")
       return route.fulfill(json(scheduleDiffs));
+    if (path === "/productions/prod_1/coverage-items" && method === "GET")
+      return route.fulfill(json(coverageItems));
+    if (path === "/productions/prod_1/coverage-findings" && method === "GET")
+      return route.fulfill(json(coverageFindings));
+    if (path === "/productions/prod_1/pickup-tasks" && method === "GET")
+      return route.fulfill(json(pickupTasks));
+    if (path === "/productions/prod_1/cost-approvals" && method === "GET")
+      return route.fulfill(json(costApprovals));
     if (path === "/productions/prod_1/audit" && method === "GET")
       return route.fulfill(json(audit));
     if (path === "/boards/board_1" && method === "GET")
@@ -180,28 +208,35 @@ async function mockApi(page: Page) {
     }
     if (path === "/boards/board_1/call-sheets" && method === "GET")
       return route.fulfill(json(callSheets));
+    if (path === "/boards/board_2/cost-approvals" && method === "GET")
+      return route.fulfill(
+        json(
+          costApprovals.filter((approval) => approval.board_id === "board_2"),
+        ),
+      );
+    if (path === "/grounding/evidence_1/values" && method === "GET")
+      return route.fulfill(json(groundedValues));
 
     if (
       path === "/productions/prod_1/constraints/translate" &&
       method === "POST"
     ) {
-      return route.fulfill(
-        json([
-          {
-            id: "proposal_1",
-            production_id: "prod_1",
-            source_text: "Maximum daily hours 11",
-            status: "needs_review",
-            confidence: 0.92,
-            payload: { expression_type: "maximum_daily_hours", hours: 11 },
-            validation_errors: [],
-            created_by_name: "R. Okonkwo",
-            accepted_by_name: null,
-            accepted_by_role: null,
-            accepted_constraint_id: null,
-          },
-        ]),
-      );
+      constraintProposals = [
+        {
+          id: "proposal_1",
+          production_id: "prod_1",
+          source_text: "Maximum daily hours 11",
+          status: "needs_review",
+          confidence: 0.92,
+          payload: { expression_type: "maximum_daily_hours", hours: 11 },
+          validation_errors: [],
+          created_by_name: "R. Okonkwo",
+          accepted_by_name: null,
+          accepted_by_role: null,
+          accepted_constraint_id: null,
+        },
+      ];
+      return route.fulfill(json(constraintProposals));
     }
     if (
       path === "/constraint-proposals/proposal_1/accept" &&
@@ -218,6 +253,17 @@ async function mockApi(page: Page) {
         provenance: { type: "human", accepted_by: { role: "first_ad" } },
       };
       constraints = [row];
+      constraintProposals = constraintProposals.map((proposal) =>
+        proposal.id === "proposal_1"
+          ? {
+              ...proposal,
+              status: "accepted",
+              accepted_by_name: "R. Okonkwo",
+              accepted_by_role: "first_ad",
+              accepted_constraint_id: row.id,
+            }
+          : proposal,
+      );
       return route.fulfill(json(row));
     }
     if (path === "/constraints/constraint_1/activation" && method === "PATCH") {
@@ -245,28 +291,28 @@ async function mockApi(page: Page) {
       return route.fulfill(json(row));
     }
     if (path === "/grounding/evidence_1/values" && method === "POST") {
-      return route.fulfill(
-        json({
-          id: "gval_1",
-          production_id: "prod_1",
-          evidence_id: "evidence_1",
-          fact_kind: "weather",
-          location_id: "maya-s-apartment",
-          target_date: "2026-03-17",
-          normalized_value: { value: "ui-reviewed" },
-          units: "risk",
-          source_url: "https://weather.example/source",
-          source_quote: "Rain risk for 2026-03-17 is high",
-          source_span: "paragraph 2",
-          query: "weather risk",
-          provider_response_id: "resp_1",
-          content_hash: "hash",
-          derived_from: "excerpt",
-          validator_result: { passed: true },
-          covering_date: true,
-          context_source_urls: ["https://weather.example/source"],
-        }),
-      );
+      const value = {
+        id: "gval_1",
+        production_id: "prod_1",
+        evidence_id: "evidence_1",
+        fact_kind: "weather",
+        location_id: "maya-s-apartment",
+        target_date: "2026-03-17",
+        normalized_value: { quote: "Rain risk for 2026-03-17 is high" },
+        units: "risk",
+        source_url: "https://weather.example/source",
+        source_quote: "Rain risk for 2026-03-17 is high",
+        source_span: "paragraph 2",
+        query: "weather risk",
+        provider_response_id: "resp_1",
+        content_hash: "hash",
+        derived_from: "excerpt",
+        validator_result: { passed: true },
+        covering_date: true,
+        context_source_urls: ["https://weather.example/source"],
+      };
+      groundedValues = [value];
+      return route.fulfill(json(value));
     }
 
     if (path === "/productions/prod_1/monitored-sources" && method === "POST") {
@@ -364,6 +410,7 @@ async function mockApi(page: Page) {
         shot: {},
         status: "planned",
       };
+      coverageItems = [coverageItem];
       return route.fulfill(json(coverageItem));
     }
     if (path === "/coverage-items/cov_1/shot" && method === "POST") {
@@ -372,6 +419,9 @@ async function mockApi(page: Page) {
         shot: { take: "A3", usable: false },
         status: "shot",
       };
+      coverageItems = coverageItems.map((item) =>
+        item.id === "cov_1" ? coverageItem! : item,
+      );
       return route.fulfill(json(coverageItem));
     }
     if (path === "/coverage-items/cov_1/findings" && method === "POST") {
@@ -387,6 +437,7 @@ async function mockApi(page: Page) {
         raised_by_role: "script_supervisor",
         human_raised: true,
       };
+      coverageFindings = [coverageFinding];
       return route.fulfill(json(coverageFinding));
     }
     if (path === "/coverage-findings/finding_1/pickup" && method === "POST") {
@@ -405,6 +456,12 @@ async function mockApi(page: Page) {
         confirmed_by_name: null,
         confirmed_by_role: null,
       };
+      coverageFindings = coverageFindings.map((item) =>
+        item.id === "finding_1"
+          ? { ...item, status: "pickup_requested" }
+          : item,
+      );
+      pickupTasks = [pickupTask];
       return route.fulfill(json(pickupTask));
     }
     if (path === "/pickup-tasks/ptask_1/confirm" && method === "POST") {
@@ -415,6 +472,9 @@ async function mockApi(page: Page) {
         confirmed_by_name: "R. Okonkwo",
         confirmed_by_role: "first_ad",
       };
+      pickupTasks = pickupTasks.map((item) =>
+        item.id === "ptask_1" ? pickupTask! : item,
+      );
       return route.fulfill(json(pickupTask));
     }
     if (path === "/pickup-tasks/ptask_1/replan" && method === "POST") {
@@ -462,18 +522,18 @@ async function mockApi(page: Page) {
         return route.fulfill(
           json({ detail: "only upm or line_producer may approve cost" }, 403),
         );
-      return route.fulfill(
-        json({
-          id: "cost_1",
-          production_id: "prod_1",
-          board_id: "board_2",
-          approver_name: "M. Chen",
-          approver_role: payload.actor_role,
-          cost_delta: 6500,
-          added_shoot_days: ["2026-09-15"],
-          decision: payload.decision,
-        }),
-      );
+      const approval = {
+        id: "cost_1",
+        production_id: "prod_1",
+        board_id: "board_2",
+        approver_name: "M. Chen",
+        approver_role: payload.actor_role,
+        cost_delta: 6500,
+        added_shoot_days: ["2026-09-15"],
+        decision: payload.decision,
+      };
+      costApprovals = [approval];
+      return route.fulfill(json(approval));
     }
 
     return route.fulfill(
@@ -495,6 +555,7 @@ test("full UI routes expose operational workflows", async ({ page }) => {
 
   await page.goto("/productions/prod_1/constraints?boardId=board_1");
   await expect(page.locator(".constraintWorkbench")).toBeVisible();
+  await page.getByLabel("Plain English").fill("Maximum daily hours 11");
   await page
     .getByRole("button", { name: "Translate into inactive proposals" })
     .click();
@@ -517,6 +578,8 @@ test("full UI routes expose operational workflows", async ({ page }) => {
 
   await page.goto("/productions/prod_1/replans?boardId=board_1");
   await expect(page.locator(".replanBoard")).toBeVisible();
+  await page.getByLabel("Source URL").fill("https://film.example.gov/permits");
+  await page.getByLabel("Monitor query").fill("film permit hours");
   await page
     .getByRole("button", { name: "Create material monitor replan" })
     .click();
@@ -533,8 +596,9 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   await page.getByRole("button", { name: "Lock first board day" }).click();
   await expect(page.getByText("2026-09-14").first()).toBeVisible();
   await page
-    .getByRole("button", { name: "Record unusable insert finding" })
-    .click();
+    .getByLabel("Finding message")
+    .fill("insert is unusable from camera shake");
+  await page.getByRole("button", { name: "Record coverage finding" }).click();
   await expect(
     page.getByText("Script Supervisor raised finding finding_1."),
   ).toBeVisible();

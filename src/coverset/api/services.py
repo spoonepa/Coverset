@@ -23,9 +23,11 @@ from coverset.call_sheet import (  # type: ignore[import-not-found]
     render_call_sheet_text,
 )
 from coverset.constraints import (
+    BlackoutDates,
     ConstraintError,
     ConstraintRecord,
     ConstraintSet,
+    DateWindows,
     Family,
     HumanSource,
     PinnedDay,
@@ -38,6 +40,7 @@ from coverset.grounding import (
     FactKind,
     GroundingError,
     SearchGrounder,
+    SourceExcerpt,
 )
 from coverset.locations import Location
 from coverset.scenes import CandidateStatus, SceneRecord
@@ -60,13 +63,18 @@ from .models import (  # type: ignore[import-not-found]
     CallSheetModel,
     CastMemberModel,
     ConstraintModel,
+    ConstraintProposalModel,
     CostApprovalModel,
+    CoverageFindingModel,
+    CoverageItemModel,
+    GroundedValueModel,
     GroundingEvidenceModel,
     JobModel,
     LocationAliasModel,
     LocationModel,
     LockedDayModel,
     MonitorFindingModel,
+    PickupTaskModel,
     ProductionModel,
     ReplanRequestModel,
     SceneCandidateModel,
@@ -188,6 +196,38 @@ def create_production(
     return production
 
 
+class FixtureGrounder:
+    def ground(self, kind: FactKind, location: Location, date: dt.date) -> Evidence:
+        if kind is FactKind.WEATHER:
+            url = "https://fixtures.coverset.local/weather-forecast"
+            quote = f"{date.isoformat()}: precipitation probability 85%."
+        else:
+            url = "https://fixtures.coverset.local/film-permits"
+            quote = (
+                f"{date.isoformat()}: Film permit allows exterior work from "
+                "07:00 to 22:00."
+            )
+        return Evidence(
+            kind=kind,
+            location=location,
+            date=date,
+            sources=(
+                SourceExcerpt(
+                    url=url,
+                    excerpts=(quote,),
+                    title="Fixture grounded source",
+                    publish_date=date.isoformat(),
+                    full_content=quote,
+                ),
+            ),
+            search_id=f"fixture-{kind.value}-{date.isoformat()}",
+            session_id=f"fixture-{kind.value}",
+            retrieved_at=dt.datetime.now(dt.UTC),
+            escalated=True,
+            covering_urls=(url,),
+        )
+
+
 def seed_demo_entities(session: Session, production_id: str) -> None:
     if session.scalars(
         select(CastMemberModel).where(CastMemberModel.production_id == production_id)
@@ -294,6 +334,194 @@ def seed_demo_entities(session: Session, production_id: str) -> None:
         "production.demo_seeded",
         {"cast": 4, "locations": 4, "shoot_days": len(shoot_days)},
     )
+
+
+def seed_demo_workflow_state(
+    session: Session, production_id: str, board_id: str
+) -> None:
+    """Populate the demo production with persisted UI workflow state.
+
+    The browser routes should render backend state after reload, not local placeholders.
+    This seeds the demo through the same service calls used by the operational UI.
+    """
+    board = get_board(session, board_id)
+    days = [
+        dt.date.fromisoformat(str(day["date"]))
+        for day in board.result_json.get("days", [])
+        if day.get("date")
+    ]
+    strips = list(board.result_json.get("strips", []))
+    if not days or not strips:
+        return
+
+    first_day = days[0]
+    first_strip = dict(strips[0])
+    location_id = str(first_strip.get("location_id") or "")
+    scene_id = str(first_strip.get("scene_id") or "")
+    work_id = str(first_strip.get("work_id") or scene_id)
+    cast_ids = [str(cast_id) for cast_id in first_strip.get("cast_ids", [])]
+
+    proposals = translate_constraint_text(
+        session,
+        production_id,
+        text="Maximum daily hours 11",
+        actor_name="R. Okonkwo",
+    )
+    for proposal in proposals:
+        if proposal.status == "candidate" and not proposal.accepted_constraint_id:
+            accept_constraint_proposal(
+                session,
+                proposal_id=proposal.id,
+                actor_name="R. Okonkwo",
+                actor_role="first_ad",
+            )
+            break
+
+    evidence = ground_fact(
+        session,
+        production_id,
+        kind="weather",
+        location_id=location_id,
+        target_date=first_day,
+        grounder=FixtureGrounder(),
+    )
+    if evidence.status == "complete":
+        source_url = str(evidence.evidence_json["covering_urls"][0])
+        source_quote = str(evidence.evidence_json["sources"][0]["excerpts"][0])
+        record_grounded_value(
+            session,
+            evidence_id=evidence.id,
+            normalized_value={"condition": "rain", "probability": 0.85},
+            units="probability_0_1",
+            source_url=source_url,
+            source_quote=source_quote,
+            source_span="fixture forecast excerpt",
+            query="weather risk for scheduled shoot day",
+            validator_family="weather",
+            validator_reason="fixture source covers the scheduled date",
+        )
+
+    monitor_source = register_monitored_source(
+        session,
+        production_id,
+        board_id=board.id,
+        source_url="https://fixtures.coverset.local/weather-forecast",
+        fact_kind="weather",
+        location_id=location_id,
+        query="weather risk for scheduled shoot day",
+        external_monitor_id=f"fixture-monitor-{board.id}",
+    )
+    monitor_event = process_monitor_change(
+        session,
+        production_id,
+        payload={
+            "monitored_source_id": monitor_source.id,
+            "board_id": board.id,
+            "source_url": monitor_source.source_url,
+            "fact_kind": monitor_source.fact_kind,
+            "old_fingerprint": "rain-20",
+            "new_fingerprint": "rain-85",
+            "old_value": {"probability": 0.2},
+            "new_value": {"probability": 0.85},
+            "affected_work_ids": [work_id],
+            "material": True,
+            "message": "fixture weather risk crossed the replan threshold",
+        },
+    )
+    if monitor_event.replan_request_id:
+        generate_replan_options(
+            session,
+            replan_request_id=monitor_event.replan_request_id,
+            max_options=1,
+        )
+
+    lock_board_day(
+        session,
+        board_id=board.id,
+        shoot_date=first_day,
+        call_sheet_version=f"actuals-{first_day.isoformat()}",
+        actor_name="S. Patel",
+        actor_role="script_supervisor",
+    )
+    generate_call_sheet(
+        session,
+        board_id=board.id,
+        shoot_date=first_day,
+        actor_name="T. Nguyen",
+        actor_role="second_ad",
+    )
+
+    coverage = record_coverage_item(
+        session,
+        production_id,
+        scene_id=scene_id,
+        coverage_key=f"fixture-{scene_id}-insert-a",
+        coverage_type="insert",
+        planned={"shot": "insert", "source": "script supervisor actual"},
+    )
+    mark_coverage_item_shot(
+        session,
+        coverage_item_id=coverage.id,
+        shot={"take": "A3", "usable": False},
+    )
+    finding = raise_coverage_finding(
+        session,
+        coverage_item_id=coverage.id,
+        board_id=board.id,
+        message="insert is unusable from camera shake",
+        actor_name="S. Patel",
+        actor_role="script_supervisor",
+    )
+    pickup = request_pickup_from_finding(
+        session,
+        finding_id=finding.id,
+        actor_name="A. Kowalczyk",
+        actor_role="director",
+    )
+    confirm_pickup_task(
+        session,
+        pickup_task_id=pickup.id,
+        pickup_spec={
+            "scene_id": scene_id,
+            "coverage_type": "insert",
+            "location_id": location_id,
+            "cast_ids": cast_ids,
+            "duration_minutes": 15,
+            "priority": "must_have",
+            "day_night": str(first_strip.get("day_night") or "day"),
+        },
+        actor_name="R. Okonkwo",
+        actor_role="first_ad",
+    )
+    pickup_replan = create_pickup_replan(
+        session,
+        pickup_task_id=pickup.id,
+        current_board_id=board.id,
+        cutoff_at=dt.datetime.combine(
+            first_day,
+            dt.time(hour=12, tzinfo=dt.timezone(dt.timedelta(hours=-4))),
+        ),
+        lock_policy="preserve_locked",
+    )
+    diffs = generate_replan_options(
+        session,
+        replan_request_id=pickup_replan.id,
+        max_options=1,
+    )
+    if diffs:
+        diff = diffs[0]
+        added_days = [
+            dt.date.fromisoformat(day) for day in diff.diff_json.get("added_days", [])
+        ]
+        approve_cost(
+            session,
+            board_id=diff.revised_board_id,
+            actor_name="M. Chen",
+            actor_role="upm",
+            cost_delta=diff.cost_delta or 0,
+            added_shoot_days=added_days,
+            decision="approved",
+        )
 
 
 def get_production(session: Session, production_id: str) -> ProductionModel:
@@ -881,6 +1109,19 @@ def list_constraints(session: Session, production_id: str) -> list[ConstraintMod
     )
 
 
+def list_constraint_proposals(
+    session: Session, production_id: str
+) -> list[ConstraintProposalModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(ConstraintProposalModel)
+            .where(ConstraintProposalModel.production_id == production_id)
+            .order_by(ConstraintProposalModel.created_at.desc())
+        )
+    )
+
+
 def translate_constraint_text(
     session: Session,
     production_id: str,
@@ -1230,14 +1471,11 @@ def _constraint_expression_covers(
     record: ConstraintRecord, target_date: dt.date
 ) -> bool:
     expression = record.expression
-    expression_name = expression.__class__.__name__
-    if expression_name == "BlackoutDates":
-        return target_date in set(getattr(expression, "dates", ()))
-    if expression_name == "DateWindows":
-        return any(
-            window.covers(target_date) for window in getattr(expression, "windows", ())
-        )
-    if expression_name == "PinnedDay":
+    if isinstance(expression, BlackoutDates):
+        return target_date in set(expression.dates)
+    if isinstance(expression, DateWindows):
+        return any(window.covers(target_date) for window in expression.windows)
+    if isinstance(expression, PinnedDay):
         return expression.day == target_date
     return True
 
@@ -1391,6 +1629,32 @@ def get_grounding_evidence(
             f"grounding evidence not found: {evidence_id}", status_code=404
         )
     return row
+
+
+def list_grounded_values(
+    session: Session, production_id: str
+) -> list[GroundedValueModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(GroundedValueModel)
+            .where(GroundedValueModel.production_id == production_id)
+            .order_by(GroundedValueModel.created_at.desc())
+        )
+    )
+
+
+def list_grounded_values_for_evidence(
+    session: Session, evidence_id: str
+) -> list[GroundedValueModel]:
+    evidence = get_grounding_evidence(session, evidence_id)
+    return list(
+        session.scalars(
+            select(GroundedValueModel)
+            .where(GroundedValueModel.evidence_id == evidence.id)
+            .order_by(GroundedValueModel.created_at.desc())
+        )
+    )
 
 
 def list_grounding_evidence(
@@ -2133,6 +2397,32 @@ def select_board(
     return row
 
 
+def list_cost_approvals(
+    session: Session, production_id: str
+) -> list[CostApprovalModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(CostApprovalModel)
+            .where(CostApprovalModel.production_id == production_id)
+            .order_by(CostApprovalModel.created_at.desc())
+        )
+    )
+
+
+def list_cost_approvals_for_board(
+    session: Session, board_id: str
+) -> list[CostApprovalModel]:
+    board = get_board(session, board_id)
+    return list(
+        session.scalars(
+            select(CostApprovalModel)
+            .where(CostApprovalModel.board_id == board.id)
+            .order_by(CostApprovalModel.created_at.desc())
+        )
+    )
+
+
 def approve_cost(
     session: Session,
     *,
@@ -2181,6 +2471,45 @@ def approve_cost(
     )
     session.commit()
     return row
+
+
+def list_coverage_items(
+    session: Session, production_id: str
+) -> list[CoverageItemModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(CoverageItemModel)
+            .where(CoverageItemModel.production_id == production_id)
+            .order_by(
+                CoverageItemModel.updated_at.desc(), CoverageItemModel.created_at.desc()
+            )
+        )
+    )
+
+
+def list_coverage_findings(
+    session: Session, production_id: str
+) -> list[CoverageFindingModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(CoverageFindingModel)
+            .where(CoverageFindingModel.production_id == production_id)
+            .order_by(CoverageFindingModel.created_at.desc())
+        )
+    )
+
+
+def list_pickup_tasks(session: Session, production_id: str) -> list[PickupTaskModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(PickupTaskModel)
+            .where(PickupTaskModel.production_id == production_id)
+            .order_by(PickupTaskModel.created_at.desc())
+        )
+    )
 
 
 def record_coverage_item(
@@ -3008,6 +3337,19 @@ def get_breakdown_run(session: Session, run_id: str) -> BreakdownRunModel:
     if run is None:
         raise ServiceError(f"breakdown run not found: {run_id}", status_code=404)
     return run
+
+
+def list_breakdown_runs(
+    session: Session, production_id: str
+) -> list[BreakdownRunModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(BreakdownRunModel)
+            .where(BreakdownRunModel.production_id == production_id)
+            .order_by(BreakdownRunModel.created_at.desc())
+        )
+    )
 
 
 def list_candidates_for_run(session: Session, run_id: str) -> list[SceneCandidateModel]:

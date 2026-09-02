@@ -145,13 +145,34 @@ def test_demo_endpoint_runs_the_vertical_slice(db_session: Session):
     try:
         client = TestClient(app)
         response = client.post("/demo/run")
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["solver_status"] == "optimal"
+        assert "STRIPBOARD" in payload["stripboard"]
+
+        production_id = payload["production_id"]
+        board_id = payload["id"]
+        reload_paths = [
+            f"/productions/{production_id}/breakdowns",
+            f"/productions/{production_id}/constraint-proposals",
+            f"/productions/{production_id}/grounded-values",
+            f"/productions/{production_id}/coverage-items",
+            f"/productions/{production_id}/coverage-findings",
+            f"/productions/{production_id}/pickup-tasks",
+            f"/productions/{production_id}/cost-approvals",
+            f"/boards/{board_id}/call-sheets",
+            f"/productions/{production_id}/locks",
+            f"/productions/{production_id}/monitored-sources",
+            f"/productions/{production_id}/monitor/findings",
+            f"/productions/{production_id}/replan-requests",
+            f"/productions/{production_id}/schedule-diffs",
+        ]
+        for path in reload_paths:
+            reload_response = client.get(path)
+            assert reload_response.status_code == 200, reload_response.text
+            assert reload_response.json(), path
     finally:
         app.dependency_overrides.clear()
-
-    assert response.status_code == 200, response.text
-    payload = response.json()
-    assert payload["solver_status"] == "optimal"
-    assert "STRIPBOARD" in payload["stripboard"]
 
 
 def test_migrations_create_expected_tables_and_are_idempotent(tmp_path):
@@ -407,6 +428,10 @@ def test_candidate_edit_clears_blockers_before_explicit_accept(
             storage=storage,
             settings=settings,
         )
+        listed_breakdowns = client.get(f"/productions/{production_id}/breakdowns")
+        assert listed_breakdowns.status_code == 200, listed_breakdowns.text
+        assert listed_breakdowns.json()[0]["id"] == breakdown_run.id
+
         first = list_candidates_for_run(db_session, breakdown_run.id)[0]
         blocked = client.patch(
             f"/scene-candidates/{first.id}/review", json={"decision": "accept"}
@@ -988,6 +1013,12 @@ def test_p3_authority_and_replan_endpoints(db_session: Session, tmp_path):
             },
         )
         assert approved_cost.status_code == 200, approved_cost.text
+        production_costs = client.get(f"/productions/{production.id}/cost-approvals")
+        assert production_costs.status_code == 200, production_costs.text
+        assert production_costs.json()[0]["id"] == approved_cost.json()["id"]
+        board_costs = client.get(f"/boards/{board.id}/cost-approvals")
+        assert board_costs.status_code == 200, board_costs.text
+        assert board_costs.json()[0]["board_id"] == board.id
     finally:
         app.dependency_overrides.clear()
 
@@ -1083,6 +1114,11 @@ def test_completion_constraint_translation_grounded_values_and_permit_activation
         proposal = translated.json()[0]
         assert proposal["status"] == "candidate"
         assert proposal["payload"]["active"] is False
+        listed_proposals = client.get(
+            f"/productions/{production.id}/constraint-proposals"
+        )
+        assert listed_proposals.status_code == 200, listed_proposals.text
+        assert listed_proposals.json()[0]["id"] == proposal["id"]
 
         accepted = client.post(
             f"/constraint-proposals/{proposal['id']}/accept",
@@ -1116,6 +1152,12 @@ def test_completion_constraint_translation_grounded_values_and_permit_activation
         assert value.status_code == 200, value.text
         assert value.json()["covering_date"] is True
         assert value.json()["source_quote"] == "Precipitation probability 85%"
+        production_values = client.get(f"/productions/{production.id}/grounded-values")
+        assert production_values.status_code == 200, production_values.text
+        assert production_values.json()[0]["id"] == value.json()["id"]
+        evidence_values = client.get(f"/grounding/{weather.id}/values")
+        assert evidence_values.status_code == 200, evidence_values.text
+        assert evidence_values.json()[0]["evidence_id"] == weather.id
 
         permit_url = "https://brooklyn.example.gov/film-permits"
         permit_client, _ = parallel_stub(
@@ -1322,6 +1364,9 @@ def test_pickup_workflow_requires_confirmed_spec_and_preserves_locked_days(
             },
         )
         assert coverage.status_code == 200, coverage.text
+        coverage_list = client.get(f"/productions/{production.id}/coverage-items")
+        assert coverage_list.status_code == 200, coverage_list.text
+        assert coverage_list.json()[0]["id"] == coverage.json()["id"]
         shot = client.post(
             f"/coverage-items/{coverage.json()['id']}/shot",
             json={"shot": {"take": "A3", "usable": False}},
@@ -1337,11 +1382,17 @@ def test_pickup_workflow_requires_confirmed_spec_and_preserves_locked_days(
             },
         )
         assert finding.status_code == 200, finding.text
+        findings = client.get(f"/productions/{production.id}/coverage-findings")
+        assert findings.status_code == 200, findings.text
+        assert findings.json()[0]["id"] == finding.json()["id"]
         pickup = client.post(
             f"/coverage-findings/{finding.json()['id']}/pickup",
             json={"actor_name": "A. Kowalczyk", "actor_role": "director"},
         )
         assert pickup.status_code == 200, pickup.text
+        tasks = client.get(f"/productions/{production.id}/pickup-tasks")
+        assert tasks.status_code == 200, tasks.text
+        assert tasks.json()[0]["id"] == pickup.json()["id"]
         duplicate = client.post(
             f"/coverage-findings/{finding.json()['id']}/pickup",
             json={"actor_name": "A. Kowalczyk", "actor_role": "director"},
@@ -1377,6 +1428,9 @@ def test_pickup_workflow_requires_confirmed_spec_and_preserves_locked_days(
         )
         assert confirmed.status_code == 200, confirmed.text
         assert confirmed.json()["status"] == "schedulable"
+        confirmed_tasks = client.get(f"/productions/{production.id}/pickup-tasks")
+        assert confirmed_tasks.status_code == 200, confirmed_tasks.text
+        assert confirmed_tasks.json()[0]["status"] == "schedulable"
 
         replan = client.post(
             f"/pickup-tasks/{pickup.json()['id']}/replan",
