@@ -166,11 +166,14 @@ def test_demo_endpoint_runs_the_vertical_slice(db_session: Session):
             f"/productions/{production_id}/monitor/findings",
             f"/productions/{production_id}/replan-requests",
             f"/productions/{production_id}/schedule-diffs",
+            f"/productions/{production_id}/schedule-runs",
         ]
         for path in reload_paths:
             reload_response = client.get(path)
             assert reload_response.status_code == 200, reload_response.text
             assert reload_response.json(), path
+        schedule_runs = client.get(f"/productions/{production_id}/schedule-runs").json()
+        assert any(run["conflict"].get("constraint_ids") for run in schedule_runs)
     finally:
         app.dependency_overrides.clear()
 
@@ -198,6 +201,10 @@ def test_migrations_create_expected_tables_and_are_idempotent(tmp_path):
     }.issubset(set(inspector.get_table_names()))
     columns = {column["name"] for column in inspector.get_columns("scene_candidates")}
     assert "proposal_scene_json" in columns
+    schedule_columns = {
+        column["name"] for column in inspector.get_columns("schedule_runs")
+    }
+    assert "conflict_json" in schedule_columns
 
 
 @pytest.mark.req("BRK-001", "BRK-004", "BRK-013", "SOL-001")
@@ -667,6 +674,82 @@ def test_active_lock_constraint_pins_work_item_in_schedule(
     )
 
 
+@pytest.mark.req("SOL-003", "SOL-011")
+def test_infeasible_schedule_response_includes_conflict_metadata(
+    db_session: Session, tmp_path
+):
+    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    storage = ObjectStorage(settings)
+    production = create_production(
+        db_session, title="Conflicted Board", seed_demo_data=True
+    )
+    asset = upload_screenplay(
+        db_session,
+        production_id=production.id,
+        filename="the_ferry_job.txt",
+        media="text",
+        content=materialize_demo_script(),
+        storage=storage,
+    )
+    breakdown_run = run_breakdown(
+        db_session,
+        production_id=production.id,
+        screenplay_asset_id=asset.id,
+        auto_accept_schedulable=True,
+        agent_mode="fixture",
+        storage=storage,
+        settings=settings,
+    )
+    assert breakdown_run.status == "complete"
+    create_constraint(
+        db_session,
+        production.id,
+        payload={
+            "constraint_id": "C-DEV-D2",
+            "family": "cast",
+            "policy": "hard",
+            "subject_kind": "cast",
+            "subject_ref": "cast-dev",
+            "expression_type": "date_windows",
+            "windows": [{"start": dt.date(2026, 9, 15), "end": dt.date(2026, 9, 15)}],
+            "statement": "cast-dev is only available on 2026-09-15.",
+            "active": True,
+        },
+    )
+
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        response = client.post(f"/productions/{production.id}/boards/solve", json={})
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert payload["status"] == "infeasible"
+        conflict = payload["conflict"]
+        conflict_ids = set(conflict["constraint_ids"])
+        assert conflict_ids
+        assert conflict_ids == {"C-DEV-D2"}
+        assert conflict["irreducible"] is True
+        assert conflict["constraint_snapshot_hash"]
+        assert conflict["relaxation_check"]["status"] == "feasible_after_relaxation"
+        assert {
+            record["constraint_id"] for record in conflict["relaxable_constraints"]
+        } == conflict_ids
+        assert {
+            record["source"]["label"]
+            for record in conflict["relaxable_constraints"]
+        } == {"HUMAN RULE"}
+
+        history = client.get(f"/productions/{production.id}/schedule-runs")
+        assert history.status_code == 200, history.text
+        assert history.json()[0]["id"] == payload["id"]
+        assert history.json()[0]["conflict"]["constraint_ids"]
+    finally:
+        app.dependency_overrides.clear()
+
+
 @pytest.mark.req("LCK-001", "LCK-002", "SOL-004", "SOL-012")
 def test_locked_day_records_compile_into_replans(db_session: Session, tmp_path):
     production, board = solved_board(db_session, tmp_path)
@@ -881,6 +964,7 @@ def test_call_sheet_service_builds_second_ad_day_output(db_session: Session, tmp
 def test_call_sheet_endpoints_generate_list_and_export(db_session: Session, tmp_path):
     _, board = solved_board(db_session, tmp_path)
     shoot_date = board.result_json["days"][0]["date"]
+    claim_shoot_date = board.result_json["days"][1]["date"]
 
     def override_session() -> Iterator[Session]:
         yield db_session
@@ -898,6 +982,22 @@ def test_call_sheet_endpoints_generate_list_and_export(db_session: Session, tmp_
         )
         assert rejected.status_code == 403
 
+        claim_rejected = client.post(
+            f"/boards/{board.id}/call-sheets",
+            headers={
+                "x-coverset-authenticated": "true",
+                "x-coverset-actor-name": "Authenticated First AD",
+                "x-coverset-actor-roles": "first_ad",
+            },
+            json={
+                "shoot_date": shoot_date,
+                "actor_name": "Spoofed Second AD",
+                "actor_role": "second_ad",
+            },
+        )
+        assert claim_rejected.status_code == 403
+        assert "lacks required role" in claim_rejected.text
+
         created = client.post(
             f"/boards/{board.id}/call-sheets",
             json={
@@ -911,6 +1011,22 @@ def test_call_sheet_endpoints_generate_list_and_export(db_session: Session, tmp_
         assert body["payload"]["shoot_date"] == shoot_date
         assert body["payload"]["recipients"][0]["authority"] == "read_only"
         assert "Daylight" in body["rendered_text"]
+
+        claim_created = client.post(
+            f"/boards/{board.id}/call-sheets",
+            headers={
+                "x-coverset-authenticated": "true",
+                "x-coverset-actor-name": "Authenticated Second AD",
+                "x-coverset-actor-roles": "second_ad",
+            },
+            json={
+                "shoot_date": claim_shoot_date,
+                "actor_name": "Spoofed Name",
+                "actor_role": "second_ad",
+            },
+        )
+        assert claim_created.status_code == 200, claim_created.text
+        assert claim_created.json()["generated_by_name"] == "Authenticated Second AD"
 
         listed = client.get(f"/boards/{board.id}/call-sheets")
         assert listed.status_code == 200, listed.text

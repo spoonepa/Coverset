@@ -86,6 +86,29 @@ export type CandidateBatchAcceptResponse = {
   candidates: Candidate[];
 };
 
+export type ScheduleConflictConstraint = {
+  constraint_id: string;
+  family: string;
+  policy: string;
+  subject: string;
+  expression: string;
+  relaxable: boolean;
+  active: boolean;
+  source: JsonObject;
+};
+
+export type ScheduleConflict = {
+  status?: string;
+  constraint_ids?: string[];
+  structural_causes?: string[];
+  irreducible?: boolean;
+  detail?: string;
+  binding_constraint_count?: number;
+  constraint_snapshot_hash?: string;
+  relaxable_constraints?: ScheduleConflictConstraint[];
+  relaxation_check?: JsonObject;
+};
+
 export type ScheduleRun = {
   id: string;
   production_id: string;
@@ -94,6 +117,7 @@ export type ScheduleRun = {
   input_hash: string;
   board_id: string | null;
   diagnostics: string[];
+  conflict: ScheduleConflict;
 };
 
 export type Job = {

@@ -30,6 +30,22 @@ const production = {
   shoot_day_count: 0,
 };
 
+const actorClaims = {
+  name: "Authenticated Operator",
+  email: "operator@coverset.local",
+  role: "first_ad",
+  roles: [
+    "first_ad",
+    "second_ad",
+    "script_supervisor",
+    "director",
+    "upm",
+    "line_producer",
+  ],
+  authenticated: true,
+  source: "test-claim",
+};
+
 let cast = [] as Array<Record<string, unknown>>;
 let locations = [] as Array<Record<string, unknown>>;
 let calendar = [] as string[];
@@ -170,6 +186,9 @@ async function mockApi(page: Page) {
     if (path === "/productions" && method === "POST") {
       return route.fulfill(json(production));
     }
+    if (path === "/session" && method === "GET") {
+      return route.fulfill(json(actorClaims));
+    }
     if (path === "/productions/prod_1" && method === "GET") {
       return route.fulfill(
         json({
@@ -222,7 +241,46 @@ async function mockApi(page: Page) {
     if (path === "/productions/prod_1/grounding" && method === "GET") {
       return route.fulfill(json([]));
     }
+    if (path === "/productions/prod_1/grounded-values" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/constraint-proposals" && method === "GET") {
+      return route.fulfill(json([]));
+    }
     if (path === "/productions/prod_1/constraints" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/locks" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/monitored-sources" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/monitor/findings" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/replan-requests" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/schedule-diffs" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/schedule-runs" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/coverage-items" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/coverage-findings" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/pickup-tasks" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/cost-approvals" && method === "GET") {
+      return route.fulfill(json([]));
+    }
+    if (path === "/productions/prod_1/audit" && method === "GET") {
       return route.fulfill(json([]));
     }
     if (path === "/productions/prod_1/screenplays" && method === "POST") {
@@ -353,6 +411,7 @@ async function mockApi(page: Page) {
           error: "",
           diagnostics: [],
           input_hash: "hash",
+          conflict: {},
         }),
       );
     }

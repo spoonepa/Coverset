@@ -8,6 +8,7 @@ import {
   exportPath,
   formatError,
 } from "../../shared/coverset-api";
+import type { ActorClaims } from "../../shared/auth-claims";
 import type {
   Actor,
   ActorRole,
@@ -32,6 +33,7 @@ import type {
   Production,
   ReplanRequest,
   ScheduleDiff,
+  ScheduleRun,
 } from "../../shared/coverset-types";
 
 type ScreenProps = {
@@ -58,12 +60,30 @@ type ScreenData = {
   monitorFindings: MonitorFinding[];
   replanRequests: ReplanRequest[];
   scheduleDiffs: ScheduleDiff[];
+  scheduleRuns: ScheduleRun[];
   coverageItems: CoverageItem[];
   coverageFindings: CoverageFinding[];
   pickupTasks: PickupTask[];
   costApprovals: CostApproval[];
   callSheets: CallSheet[];
   audit: AuditEvent[];
+  actorClaims: ActorClaims;
+};
+
+const defaultActorClaims: ActorClaims = {
+  name: "Developer",
+  email: "",
+  role: "first_ad",
+  roles: [
+    "first_ad",
+    "second_ad",
+    "script_supervisor",
+    "director",
+    "upm",
+    "line_producer",
+  ],
+  authenticated: true,
+  source: "development-fallback",
 };
 
 const initialData: ScreenData = {
@@ -80,12 +100,14 @@ const initialData: ScreenData = {
   monitorFindings: [],
   replanRequests: [],
   scheduleDiffs: [],
+  scheduleRuns: [],
   coverageItems: [],
   coverageFindings: [],
   pickupTasks: [],
   costApprovals: [],
   callSheets: [],
   audit: [],
+  actorClaims: defaultActorClaims,
 };
 
 const roleNames: Record<ActorRole, string> = {
@@ -96,16 +118,6 @@ const roleNames: Record<ActorRole, string> = {
   producer: "Producer",
   upm: "UPM",
   line_producer: "Line Producer",
-};
-
-const defaultNames: Record<ActorRole, string> = {
-  first_ad: "R. Okonkwo",
-  second_ad: "T. Nguyen",
-  script_supervisor: "S. Patel",
-  director: "A. Kowalczyk",
-  producer: "M. Rivera",
-  upm: "M. Chen",
-  line_producer: "L. Brooks",
 };
 
 function asString(value: unknown, fallback = "—"): string {
@@ -212,12 +224,36 @@ function boardNav(productionId: string, boardId?: string): string {
     : `/productions/${productionId}`;
 }
 
+function productionInitials(title?: string): string {
+  const words = (title || "Coverset")
+    .split(/\s+/)
+    .map((word) => word.replace(/[^A-Za-z0-9]/g, ""))
+    .filter(Boolean);
+  return (words.slice(0, 2).map((word) => word[0]).join("") || "CS").toUpperCase();
+}
+
 function withBoard(path: string, boardId?: string): string {
   return boardId ? `${path}?boardId=${encodeURIComponent(boardId)}` : path;
 }
 
-function useActor(role: ActorRole): [Actor, (actor: Actor) => void] {
-  return useState<Actor>({ name: defaultNames[role], role });
+function roleListLabel(roles: ActorRole[]): string {
+  return roles.map((role) => roleNames[role]).join(" / ");
+}
+
+function hasActorRole(claims: ActorClaims, roles: ActorRole[]): boolean {
+  return roles.some((role) => claims.roles.includes(role));
+}
+
+function actorForRoles(claims: ActorClaims, roles: ActorRole[]): Actor {
+  const role = roles.find((candidate) => claims.roles.includes(candidate)) ?? roles[0];
+  return { name: claims.name || "Authenticated user", role };
+}
+
+function actorDeniedReason(claims: ActorClaims, roles: ActorRole[]): string {
+  if (!claims.authenticated) {
+    return "Authenticated user required.";
+  }
+  return `Requires ${roleListLabel(roles)} claim.`;
 }
 
 function useProductionData(productionId: string, boardId?: string) {
@@ -243,6 +279,7 @@ function useProductionData(productionId: string, boardId?: string) {
         monitorFindings,
         replanRequests,
         scheduleDiffs,
+        scheduleRuns,
         coverageItems,
         coverageFindings,
         pickupTasks,
@@ -250,6 +287,7 @@ function useProductionData(productionId: string, boardId?: string) {
         audit,
         board,
         callSheets,
+        actorClaims,
       ] = await Promise.all([
         coversetFetch<Production>(`/productions/${productionId}`),
         coversetFetch<Job[]>(`/productions/${productionId}/jobs`),
@@ -281,6 +319,9 @@ function useProductionData(productionId: string, boardId?: string) {
         coversetFetch<ScheduleDiff[]>(
           `/productions/${productionId}/schedule-diffs`,
         ),
+        coversetFetch<ScheduleRun[]>(
+          `/productions/${productionId}/schedule-runs`,
+        ),
         coversetFetch<CoverageItem[]>(
           `/productions/${productionId}/coverage-items`,
         ),
@@ -300,6 +341,7 @@ function useProductionData(productionId: string, boardId?: string) {
         boardId
           ? coversetFetch<CallSheet[]>(`/boards/${boardId}/call-sheets`)
           : Promise.resolve([]),
+        coversetFetch<ActorClaims>("/session"),
       ]);
       setData({
         production,
@@ -315,12 +357,14 @@ function useProductionData(productionId: string, boardId?: string) {
         monitorFindings,
         replanRequests,
         scheduleDiffs,
+        scheduleRuns,
         coverageItems,
         coverageFindings,
         pickupTasks,
         costApprovals,
         callSheets,
         audit,
+        actorClaims,
       });
       setMessage("Production data loaded.");
     } catch (err) {
@@ -402,7 +446,7 @@ function ScreenShell({
     <div className="appFrame">
       <aside className="sideRail" aria-label="Coverset workflow screens">
         <a className="railBrand" href={base} aria-label="Production overview">
-          CS
+          {productionInitials(productionTitle)}
         </a>
         <nav className="railNav">
           {nav.map((item) => {
@@ -464,6 +508,12 @@ function ScreenShell({
             <button type="button" onClick={onRefresh}>
               Generate Board
             </button>
+            <span className="topbarIcon material-symbols-outlined" aria-hidden="true">
+              notifications
+            </span>
+            <span className="topbarIcon material-symbols-outlined" aria-hidden="true">
+              settings
+            </span>
           </div>
         </header>
 
@@ -480,41 +530,25 @@ function ScreenShell({
 }
 
 function ActorRoleControl({
-  actor,
-  onActorChange,
-  roles = Object.keys(roleNames) as ActorRole[],
+  claims,
+  roles,
+  title = "Authenticated actor",
 }: {
-  actor: Actor;
-  onActorChange: (actor: Actor) => void;
-  roles?: ActorRole[];
+  claims: ActorClaims;
+  roles: ActorRole[];
+  title?: string;
 }) {
+  const allowed = hasActorRole(claims, roles);
   return (
-    <div className="actorControl">
-      <label>
-        Actor
-        <input
-          value={actor.name}
-          onChange={(event) =>
-            onActorChange({ ...actor, name: event.target.value })
-          }
-        />
-      </label>
-      <label>
-        Role
-        <select
-          value={actor.role}
-          onChange={(event) => {
-            const role = event.target.value as ActorRole;
-            onActorChange({ name: defaultNames[role], role });
-          }}
-        >
-          {roles.map((role) => (
-            <option key={role} value={role}>
-              {roleNames[role]}
-            </option>
-          ))}
-        </select>
-      </label>
+    <div className="actorControl claimControl">
+      <DataField label={title}>{claims.name}</DataField>
+      <DataField label="Required claim">{roleListLabel(roles)}</DataField>
+      <DataField label="Session source">
+        {claims.source || "missing-claim"}
+      </DataField>
+      <Pill tone={allowed ? "good" : "error"}>
+        {allowed ? "claim verified" : "role missing"}
+      </Pill>
     </div>
   );
 }
@@ -837,6 +871,8 @@ export function BoardDashboardScreen({
     useProductionData(productionId, boardId);
   const board = data.board;
   const objective = board?.result.objective ?? {};
+  const lockActor = actorForRoles(data.actorClaims, ["script_supervisor"]);
+  const canLockDay = hasActorRole(data.actorClaims, ["script_supervisor"]);
   const lockDay = async () => {
     const shootDate = firstBoardDate(board);
     if (!board || !shootDate) {
@@ -850,8 +886,8 @@ export function BoardDashboardScreen({
         body: JSON.stringify({
           shoot_date: shootDate,
           call_sheet_version: `actuals-${shootDate}`,
-          actor_name: defaultNames.script_supervisor,
-          actor_role: "script_supervisor",
+          actor_name: lockActor.name,
+          actor_role: lockActor.role,
         }),
       });
       setMessage(`Locked ${shootDate}.`);
@@ -903,7 +939,16 @@ export function BoardDashboardScreen({
               {board?.approval_state ?? "unknown"}
             </Pill>
           </div>
-          <button type="button" onClick={lockDay} disabled={!board}>
+          <button
+            type="button"
+            onClick={lockDay}
+            disabled={!board || !canLockDay}
+            title={
+              canLockDay
+                ? undefined
+                : actorDeniedReason(data.actorClaims, ["script_supervisor"])
+            }
+          >
             Lock first shoot day
           </button>
           <div className="dataStack">
@@ -1241,7 +1286,9 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
   const { data, error, message, refresh, setError, setMessage } =
     useProductionData(productionId, boardId);
   const [text, setText] = useState("");
-  const [actor, setActor] = useActor("first_ad");
+  const actor = actorForRoles(data.actorClaims, ["first_ad"]);
+  const canTranslate = data.actorClaims.authenticated;
+  const canManageConstraints = hasActorRole(data.actorClaims, ["first_ad"]);
   const proposals = data.constraintProposals;
   const activeCount = data.constraints.filter((row) => row.active).length;
 
@@ -1328,9 +1375,9 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
             </p>
           </div>
           <ActorRoleControl
-            actor={actor}
-            onActorChange={setActor}
-            roles={["first_ad", "producer", "script_supervisor"]}
+            claims={data.actorClaims}
+            roles={["first_ad"]}
+            title="Authenticated constraint actor"
           />
           <label>
             Plain English
@@ -1340,7 +1387,12 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
               onChange={(event) => setText(event.target.value)}
             />
           </label>
-          <button type="button" onClick={translate} disabled={!text.trim()}>
+          <button
+            type="button"
+            onClick={translate}
+            disabled={!text.trim() || !canTranslate}
+            title={canTranslate ? undefined : actorDeniedReason(data.actorClaims, ["first_ad"])}
+          >
             Translate into inactive proposals
           </button>
           <div className="advisoryCard">
@@ -1391,6 +1443,12 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
                   <button
                     type="button"
                     onClick={() => decide(proposal, "accept")}
+                    disabled={!canManageConstraints}
+                    title={
+                      canManageConstraints
+                        ? undefined
+                        : actorDeniedReason(data.actorClaims, ["first_ad"])
+                    }
                   >
                     Accept as human
                   </button>
@@ -1398,6 +1456,12 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
                     className="secondary"
                     type="button"
                     onClick={() => decide(proposal, "reject")}
+                    disabled={!canManageConstraints}
+                    title={
+                      canManageConstraints
+                        ? undefined
+                        : actorDeniedReason(data.actorClaims, ["first_ad"])
+                    }
                   >
                     Reject
                   </button>
@@ -1423,7 +1487,16 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
                   </span>
                 </header>
                 <JsonBlock value={row.provenance} />
-                <button type="button" onClick={() => toggle(row)}>
+                <button
+                  type="button"
+                  onClick={() => toggle(row)}
+                  disabled={!canManageConstraints}
+                  title={
+                    canManageConstraints
+                      ? undefined
+                      : actorDeniedReason(data.actorClaims, ["first_ad"])
+                  }
+                >
                   {row.active ? "Deactivate" : "Activate"}
                 </button>
               </article>
@@ -1437,8 +1510,8 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
             <p>Activation is a separate human commitment.</p>
           </div>
           <div className="dataStack">
-            <DataField label="Acting as">
-              {roleNames[actor.role]} · {actor.name}
+            <DataField label="Authenticated actor">
+              {actor.name} · {roleListLabel(["first_ad"])}
             </DataField>
             <DataField label="Constraint snapshot">
               recomputed on activation
@@ -1717,7 +1790,8 @@ export function GroundedFactsScreen({ productionId, boardId }: ScreenProps) {
 export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
   const { data, error, message, refresh, setError, setMessage } =
     useProductionData(productionId, boardId);
-  const [actor, setActor] = useActor("first_ad");
+  const actor = actorForRoles(data.actorClaims, ["first_ad"]);
+  const canSelectBoard = hasActorRole(data.actorClaims, ["first_ad"]);
   const [monitorKind, setMonitorKind] = useState("permit");
   const [monitorSourceUrl, setMonitorSourceUrl] = useState("");
   const [monitorQuery, setMonitorQuery] = useState("");
@@ -1890,7 +1964,9 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
                 approval.board_id === diff.revised_board_id &&
                 approval.decision === "rejected",
             );
-            const selectionBlocked = costApprovalRequired && !approvedCost;
+            const roleBlocked = !canSelectBoard;
+            const selectionBlocked =
+              roleBlocked || (costApprovalRequired && !approvedCost);
             return (
               <article className="optionCard" key={diff.id}>
                 <header>
@@ -1925,9 +2001,11 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
                 {diff.rendered_text && <pre>{diff.rendered_text}</pre>}
                 {selectionBlocked && (
                   <small>
-                    {rejectedCost
-                      ? "Cost approval was rejected; generate a new option before selection."
-                      : "UPM or line producer cost approval is required before First AD selection."}
+                    {roleBlocked
+                      ? actorDeniedReason(data.actorClaims, ["first_ad"])
+                      : rejectedCost
+                        ? "Cost approval was rejected; generate a new option before selection."
+                        : "UPM or line producer cost approval is required before First AD selection."}
                   </small>
                 )}
                 <div className="actions optionActions">
@@ -1936,7 +2014,9 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
                     disabled={selectionBlocked}
                     title={
                       selectionBlocked
-                        ? "Cost approval must be resolved before board selection."
+                        ? roleBlocked
+                          ? actorDeniedReason(data.actorClaims, ["first_ad"])
+                          : "Cost approval must be resolved before board selection."
                         : undefined
                     }
                     onClick={() => selectBoard(diff)}
@@ -1968,9 +2048,9 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
             </p>
           </div>
           <ActorRoleControl
-            actor={actor}
-            onActorChange={setActor}
-            roles={["first_ad", "director", "producer"]}
+            claims={data.actorClaims}
+            roles={["first_ad"]}
+            title="Authenticated selection actor"
           />
           <label>
             Fact kind
@@ -2038,6 +2118,12 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
   const [findingMessage, setFindingMessage] = useState("");
   const board = data.board;
   const strips = board?.result.strips ?? [];
+  const scriptActor = actorForRoles(data.actorClaims, ["script_supervisor"]);
+  const directorActor = actorForRoles(data.actorClaims, ["director"]);
+  const firstAdActor = actorForRoles(data.actorClaims, ["first_ad"]);
+  const canRecordActuals = hasActorRole(data.actorClaims, ["script_supervisor"]);
+  const canRequestPickup = hasActorRole(data.actorClaims, ["director"]);
+  const canConfirmPickup = hasActorRole(data.actorClaims, ["first_ad"]);
   const primaryStrip = firstBoardStrip(board);
   const selectedFinding =
     finding ??
@@ -2108,15 +2194,15 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
           body: JSON.stringify({
             board_id: board.id,
             message: findingMessage.trim(),
-            actor_name: defaultNames.script_supervisor,
-            actor_role: "script_supervisor",
+            actor_name: scriptActor.name,
+            actor_role: scriptActor.role,
           }),
         },
       );
       setCoverageItem(shot);
       setFinding(raised);
       await refresh();
-      setMessage(`Script Supervisor raised finding ${raised.id}.`);
+      setMessage(`${roleNames[scriptActor.role]} raised finding ${raised.id}.`);
     } catch (err) {
       setError(formatError(err));
     }
@@ -2131,14 +2217,14 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
         {
           method: "POST",
           body: JSON.stringify({
-            actor_name: defaultNames.director,
-            actor_role: "director",
+            actor_name: directorActor.name,
+            actor_role: directorActor.role,
           }),
         },
       );
       setPickup(task);
       await refresh();
-      setMessage(`Director requested pickup ${task.id}.`);
+      setMessage(`${roleNames[directorActor.role]} requested pickup ${task.id}.`);
     } catch (err) {
       setError(formatError(err));
     }
@@ -2154,8 +2240,8 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
         {
           method: "POST",
           body: JSON.stringify({
-            actor_name: defaultNames.first_ad,
-            actor_role: "first_ad",
+            actor_name: firstAdActor.name,
+            actor_role: firstAdActor.role,
             pickup_spec: {
               scene_id: strip.scene_id,
               coverage_type: "insert",
@@ -2170,7 +2256,7 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
       );
       setPickup(task);
       await refresh();
-      setMessage(`First AD confirmed pickup spec ${task.id}.`);
+      setMessage(`${roleNames[firstAdActor.role]} confirmed pickup spec ${task.id}.`);
     } catch (err) {
       setError(formatError(err));
     }
@@ -2213,8 +2299,8 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
         body: JSON.stringify({
           shoot_date: shootDate,
           call_sheet_version: `actuals-${shootDate}`,
-          actor_name: defaultNames.script_supervisor,
-          actor_role: "script_supervisor",
+          actor_name: scriptActor.name,
+          actor_role: scriptActor.role,
         }),
       });
       setMessage(`Locked ${shootDate} actuals.`);
@@ -2312,7 +2398,7 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
               <span>✓ Every strip has an outcome recorded</span>
               <span>✓ Actual call and wrap captured by Script Supervisor</span>
               <span>✓ Part-shot remainder converted to schedulable work</span>
-              <span>✓ Recorded by {defaultNames.script_supervisor}</span>
+              <span>✓ Recorded by {scriptActor.name}</span>
             </div>
           </div>
           {data.locks.length > 0 && (
@@ -2331,11 +2417,25 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
         </section>
         <aside className="inspectorPanel coverageInspector">
           <div className="inspectorHeader">
-            <p className="eyebrow">Script Supervisor</p>
-            <h2>{defaultNames.script_supervisor}</h2>
-            <p>May record actuals and raise findings; may not select boards.</p>
+            <p className="eyebrow">Authenticated claims</p>
+            <h2>Production floor authority</h2>
+            <p>Script Supervisor, Director, and First AD actions use signed session role claims.</p>
           </div>
-          <button type="button" onClick={lockDay} disabled={!board}>
+          <ActorRoleControl
+            claims={data.actorClaims}
+            roles={["script_supervisor", "director", "first_ad"]}
+            title="Available floor actor"
+          />
+          <button
+            type="button"
+            onClick={lockDay}
+            disabled={!board || !canRecordActuals}
+            title={
+              canRecordActuals
+                ? undefined
+                : actorDeniedReason(data.actorClaims, ["script_supervisor"])
+            }
+          >
             Lock first board day
           </button>
           <label>
@@ -2349,7 +2449,7 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
           <button
             type="button"
             onClick={createFinding}
-            disabled={!board || !findingMessage.trim()}
+            disabled={!board || !findingMessage.trim() || !canRecordActuals}
           >
             Record coverage finding
           </button>
@@ -2359,14 +2459,19 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
               <button
                 type="button"
                 onClick={requestPickup}
-                disabled={!selectedFinding}
+                disabled={!selectedFinding || !canRequestPickup}
               >
                 Director requests pickup
               </button>
               <button
                 type="button"
                 onClick={confirmPickup}
-                disabled={!selectedPickup}
+                disabled={!selectedPickup || !canConfirmPickup}
+                title={
+                  canConfirmPickup
+                    ? undefined
+                    : actorDeniedReason(data.actorClaims, ["first_ad"])
+                }
               >
                 First AD confirms spec
               </button>
@@ -2401,7 +2506,8 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
 export function CallSheetsScreen({ productionId, boardId }: ScreenProps) {
   const { data, error, message, refresh, setData, setError, setMessage } =
     useProductionData(productionId, boardId);
-  const [actor, setActor] = useActor("second_ad");
+  const actor = actorForRoles(data.actorClaims, ["second_ad"]);
+  const canGenerateCallSheet = hasActorRole(data.actorClaims, ["second_ad"]);
   const [shootDate, setShootDate] = useState("");
   const [selected, setSelected] = useState<CallSheet | null>(null);
   const board = data.board;
@@ -2547,9 +2653,9 @@ export function CallSheetsScreen({ productionId, boardId }: ScreenProps) {
             <p>Only the Second AD endpoint may persist a call sheet.</p>
           </div>
           <ActorRoleControl
-            actor={actor}
-            onActorChange={setActor}
-            roles={["second_ad", "first_ad", "producer"]}
+            claims={data.actorClaims}
+            roles={["second_ad"]}
+            title="Authenticated call-sheet actor"
           />
           <label>
             Shoot date
@@ -2570,13 +2676,18 @@ export function CallSheetsScreen({ productionId, boardId }: ScreenProps) {
           <button
             type="button"
             onClick={generate}
-            disabled={!board || !shootDate}
+            disabled={!board || !shootDate || !canGenerateCallSheet}
+            title={
+              canGenerateCallSheet
+                ? undefined
+                : actorDeniedReason(data.actorClaims, ["second_ad"])
+            }
           >
             Generate call sheet
           </button>
           <p className="muted">
-            Try First AD to see the API-enforced rejection; switch back to
-            Second AD for success.
+            The API proxy signs this request with the authenticated user's
+            Second AD claim; the backend rejects spoofed roles.
           </p>
           <div className="inspectorSection">
             <h3>Existing sheets</h3>
@@ -2684,7 +2795,8 @@ export function AuditLogScreen({ productionId, boardId }: ScreenProps) {
 export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
   const { data, error, message, refresh, setError, setMessage } =
     useProductionData(productionId, boardId);
-  const [actor, setActor] = useActor("upm");
+  const actor = actorForRoles(data.actorClaims, ["upm", "line_producer"]);
+  const canApproveCosts = hasActorRole(data.actorClaims, ["upm", "line_producer"]);
   const approvals = data.costApprovals;
   const selectedDiff = data.scheduleDiffs[0] ?? null;
 
@@ -2821,6 +2933,15 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
                   <button
                     type="button"
                     onClick={() => approve(diff, "approved")}
+                    disabled={!canApproveCosts}
+                    title={
+                      canApproveCosts
+                        ? undefined
+                        : actorDeniedReason(data.actorClaims, [
+                            "upm",
+                            "line_producer",
+                          ])
+                    }
                   >
                     Approve as {roleNames[actor.role]}
                   </button>
@@ -2828,6 +2949,15 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
                     className="secondary"
                     type="button"
                     onClick={() => approve(diff, "rejected")}
+                    disabled={!canApproveCosts}
+                    title={
+                      canApproveCosts
+                        ? undefined
+                        : actorDeniedReason(data.actorClaims, [
+                            "upm",
+                            "line_producer",
+                          ])
+                    }
                   >
                     Reject
                   </button>
@@ -2843,9 +2973,9 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
             <p>Authority is enforced by the API, not by presentation state.</p>
           </div>
           <ActorRoleControl
-            actor={actor}
-            onActorChange={setActor}
-            roles={["upm", "line_producer", "first_ad"]}
+            claims={data.actorClaims}
+            roles={["upm", "line_producer"]}
+            title="Authenticated cost approver"
           />
           <div className="dataStack">
             <DataField label="Approver">{actor.name}</DataField>
@@ -2877,14 +3007,23 @@ export function InfeasibleConflictScreen({
     productionId,
     boardId,
   );
+  const conflictRuns = data.scheduleRuns.filter((run) => {
+    const constraintCount = run.conflict.constraint_ids?.length ?? 0;
+    const structuralCount = run.conflict.structural_causes?.length ?? 0;
+    return run.status === "infeasible" || constraintCount + structuralCount > 0;
+  });
   const failedJobs = data.jobs.filter(
     (job) => job.status === "failed" || job.error,
   );
+  const primaryConflict = conflictRuns[0]?.conflict;
+  const conflictItemCount =
+    (primaryConflict?.constraint_ids?.length ?? 0) +
+    (primaryConflict?.structural_causes?.length ?? 0);
   return (
     <ScreenShell
       title="Infeasible board diagnostics"
       eyebrow="Truthful conflict surface"
-      description="Show real solver failures and avoid hard-coded conflict math when the API has not exposed a minimal conflict subset."
+      description="Show solver-returned conflict subsets, structural causes, provenance, and relaxation checks without fabricated conflict math."
       productionTitle={data.production?.title}
       productionId={productionId}
       boardId={boardId}
@@ -2897,26 +3036,136 @@ export function InfeasibleConflictScreen({
           <section className="commandBanner errorBanner">
             <div>
               <h2>
-                {failedJobs.length
+                {conflictRuns.length || failedJobs.length
                   ? "No valid board exists"
                   : "No conflict set yet"}
               </h2>
               <p>
                 CP-SAT infeasible is different from a budget timeout. This page
-                only renders failure facts the API actually returned.
+                names only solver conflict metadata the API persisted for the
+                production.
               </p>
             </div>
             <div className="commandMetrics">
-              <DataField label="Board status">
-                {data.board?.solver_status ?? "no board"}
+              <DataField label="Schedule runs">
+                {data.scheduleRuns.length}
               </DataField>
-              <DataField label="Failed jobs">{failedJobs.length}</DataField>
-              <DataField label="Constraints">
-                {data.constraints.length}
+              <DataField label="Conflict items">{conflictItemCount}</DataField>
+              <DataField label="Irreducible">
+                {primaryConflict?.irreducible ? "yes" : "no"}
               </DataField>
             </div>
           </section>
-          {failedJobs.length > 0 ? (
+          {primaryConflict && (
+            <section className="conflictWhy">
+              <span className="eyebrow">Why</span>
+              <p>
+                {primaryConflict.detail ||
+                  "The solver proved infeasible under the persisted active constraint snapshot."}
+              </p>
+              <span className="mono">
+                snapshot {primaryConflict.constraint_snapshot_hash ?? "—"}
+              </span>
+            </section>
+          )}
+          {conflictRuns.length > 0 ? (
+            <section className="conflictSet">
+              <div className="sectionTitleRow">
+                <div>
+                  <h2>
+                    Irreducible conflicting subset — {conflictItemCount}{" "}
+                    {conflictItemCount === 1 ? "constraint" : "constraints"}
+                  </h2>
+                  <p>
+                    Only backend-persisted conflict members are listed; unrelated
+                    active constraints stay out of the subset.
+                  </p>
+                </div>
+                <span className="mono">
+                  of {primaryConflict?.binding_constraint_count ?? 0} active
+                  constraints
+                </span>
+              </div>
+              {conflictRuns.map((run) => {
+                const records = run.conflict.relaxable_constraints ?? [];
+                const structural = run.conflict.structural_causes ?? [];
+                const relaxationStatus = asString(
+                  run.conflict.relaxation_check?.status,
+                  "not_applicable",
+                );
+                return (
+                  <article className="conflictCard" key={run.id}>
+                    <header>
+                      <span className="mono">STATUS: {run.status.toUpperCase()}</span>
+                      <strong>{run.id}</strong>
+                      <Pill tone={run.conflict.irreducible ? "warn" : "error"}>
+                        {run.conflict.irreducible
+                          ? "irreducible"
+                          : "diagnostic"}
+                      </Pill>
+                    </header>
+                    <MetricGrid
+                      items={[
+                        ["Snapshot", run.conflict.constraint_snapshot_hash ?? "—"],
+                        ["Binding", run.conflict.binding_constraint_count ?? 0],
+                        ["Relaxed check", relaxationStatus],
+                      ]}
+                    />
+                    {run.conflict.detail && <p>{run.conflict.detail}</p>}
+                    {records.length > 0 && (
+                      <div className="conflictRecords">
+                        {records.map((record) => {
+                          const sourceUrls = asStringList(
+                            record.source.source_urls,
+                          );
+                          return (
+                            <div
+                              className="conflictRecord"
+                              key={record.constraint_id}
+                            >
+                              <div>
+                                <strong>{record.constraint_id}</strong>
+                                <span>
+                                  {record.family} · {record.policy} ·{" "}
+                                  {record.subject}
+                                </span>
+                              </div>
+                              <div className="actions">
+                                {record.relaxable && <Pill>RELAXABLE</Pill>}
+                                <Pill tone="advisory">
+                                  {asString(record.source.label, "SOURCE")}
+                                </Pill>
+                              </div>
+                              <p>{asString(record.source.description)}</p>
+                              {sourceUrls.map((url) => (
+                                <small className="mono" key={url}>
+                                  SOURCE URL {url}
+                                </small>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {structural.length > 0 && (
+                      <div className="conflictRecords">
+                        {structural.map((cause) => (
+                          <div className="conflictRecord" key={cause}>
+                            <strong>{cause}</strong>
+                            <span>STRUCTURAL CAUSE</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="authorizationTrace conflictProof">
+                      <Pill tone="good">Re-solved with reported set relaxed</Pill>
+                      <span className="mono">{relaxationStatus}</span>
+                    </div>
+                  </article>
+                );
+              })}
+            </section>
+          ) : failedJobs.length > 0 ? (
             <section className="conflictSet">
               <h2>Reported failures</h2>
               {failedJobs.map((job, index) => (
@@ -2967,8 +3216,9 @@ export function InfeasibleConflictScreen({
           <div className="inspectorSection dashed">
             <h3>Not fabricated</h3>
             <p className="muted">
-              The v4 reference shows a minimal conflict subset. This live route
-              waits for backend conflict metadata before naming one.
+              Conflict rows come from persisted schedule-run metadata. If the
+              solver reports only a structural failure, this route names that
+              instead of inventing relaxable constraints.
             </p>
           </div>
         </aside>

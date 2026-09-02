@@ -10,6 +10,22 @@ const production = {
   shoot_day_count: 2,
 };
 
+const actorClaims = {
+  name: "Authenticated Operator",
+  email: "operator@coverset.local",
+  role: "first_ad",
+  roles: [
+    "first_ad",
+    "second_ad",
+    "script_supervisor",
+    "director",
+    "upm",
+    "line_producer",
+  ],
+  authenticated: true,
+  source: "test-claim",
+};
+
 const board = {
   id: "board_1",
   production_id: "prod_1",
@@ -65,6 +81,7 @@ let monitoredSources: Json[];
 let monitorFindings: Json[];
 let replanRequests: Json[];
 let scheduleDiffs: Json[];
+let scheduleRuns: Json[];
 let coverageItems: Json[];
 let coverageFindings: Json[];
 let pickupTasks: Json[];
@@ -86,6 +103,42 @@ function resetState() {
   monitorFindings = [];
   replanRequests = [];
   scheduleDiffs = [];
+  scheduleRuns = [
+    {
+      id: "sched_conflict",
+      production_id: "prod_1",
+      status: "infeasible",
+      error: "C-MAYA-D1, C-DEV-D2 (irreducible)",
+      input_hash: "abc123",
+      board_id: null,
+      diagnostics: ["no schedule exists under 2 binding constraint(s)"],
+      conflict: {
+        status: "infeasible",
+        constraint_ids: ["C-DEV-D2"],
+        structural_causes: [],
+        irreducible: true,
+        detail: "reduced from 2 sufficient to 2 load-bearing constraint(s)",
+        binding_constraint_count: 2,
+        constraint_snapshot_hash: "snapshot abc123def456",
+        relaxable_constraints: [
+          {
+            constraint_id: "C-DEV-D2",
+            family: "cast",
+            policy: "hard",
+            subject: "cast:cast-dev",
+            expression: "DateWindows(2026-09-15..2026-09-15)",
+            relaxable: true,
+            active: true,
+            source: {
+              label: "HUMAN RULE",
+              description: "R. Okonkwo: 'cast-dev is only available day 2'",
+            },
+          },
+        ],
+        relaxation_check: { status: "feasible_after_relaxation" },
+      },
+    },
+  ];
   coverageItems = [];
   coverageFindings = [];
   pickupTasks = [];
@@ -161,6 +214,8 @@ async function mockApi(page: Page) {
     const path = url.pathname.replace("/api/coverset", "");
     const method = request.method();
 
+    if (path === "/session" && method === "GET")
+      return route.fulfill(json(actorClaims));
     if (path === "/productions/prod_1" && method === "GET")
       return route.fulfill(json(production));
     if (path === "/productions/prod_1/jobs" && method === "GET")
@@ -185,6 +240,8 @@ async function mockApi(page: Page) {
       return route.fulfill(json(replanRequests));
     if (path === "/productions/prod_1/schedule-diffs" && method === "GET")
       return route.fulfill(json(scheduleDiffs));
+    if (path === "/productions/prod_1/schedule-runs" && method === "GET")
+      return route.fulfill(json(scheduleRuns));
     if (path === "/productions/prod_1/coverage-items" && method === "GET")
       return route.fulfill(json(coverageItems));
     if (path === "/productions/prod_1/coverage-findings" && method === "GET")
@@ -662,7 +719,7 @@ test("full UI routes expose operational workflows", async ({ page }) => {
 
   await page.goto("/productions/prod_1/infeasible?boardId=board_1");
   await expect(page.locator(".infeasibleWorkbench")).toBeVisible();
-  await expect(
-    page.getByText("No infeasible or failed schedule run is available"),
-  ).toBeVisible();
+  await expect(page.getByText("Irreducible conflicting subset")).toBeVisible();
+  await expect(page.getByText("C-DEV-D2")).toBeVisible();
+  await expect(page.getByText("feasible_after_relaxation").first()).toBeVisible();
 });
