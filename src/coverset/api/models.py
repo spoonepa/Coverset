@@ -275,6 +275,7 @@ class ScheduleRunModel(Base):
     input_hash: Mapped[str] = mapped_column(String(64), default="")
     board_id: Mapped[str | None] = mapped_column(String(48), nullable=True)
     diagnostics: Mapped[list[str]] = mapped_column(JSON, default=list)
+    conflict_json: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )

@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, File, Query, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
@@ -162,6 +162,7 @@ from .services import (  # type: ignore[import-not-found]
     list_pickup_tasks,
     list_replan_requests,
     list_schedule_diffs,
+    list_schedule_runs,
     list_shoot_days,
     lock_board_day,
     mark_coverage_item_shot,
@@ -186,6 +187,87 @@ from .services import (  # type: ignore[import-not-found]
 from .tasks import dispatch_job  # type: ignore[import-not-found]
 
 settings = get_settings()
+
+
+class ActorClaim:
+    def __init__(
+        self,
+        *,
+        present: bool,
+        authenticated: bool,
+        name: str,
+        roles: tuple[str, ...],
+    ) -> None:
+        self.present = present
+        self.authenticated = authenticated
+        self.name = name
+        self.roles = roles
+
+
+def get_actor_claim(
+    x_coverset_authenticated: Annotated[
+        str | None, Header(alias="x-coverset-authenticated")
+    ] = None,
+    x_coverset_actor_name: Annotated[
+        str | None, Header(alias="x-coverset-actor-name")
+    ] = None,
+    x_coverset_actor_roles: Annotated[
+        str | None, Header(alias="x-coverset-actor-roles")
+    ] = None,
+) -> ActorClaim:
+    roles = tuple(
+        role.strip()
+        for role in (x_coverset_actor_roles or "").split(",")
+        if role.strip()
+    )
+    return ActorClaim(
+        present=x_coverset_authenticated is not None,
+        authenticated=(x_coverset_authenticated or "").lower() == "true",
+        name=x_coverset_actor_name or "Authenticated user",
+        roles=roles,
+    )
+
+
+def actor_name_value(claim: ActorClaim, *, requested_name: str) -> str:
+    if not claim.present:
+        return requested_name
+    if not claim.authenticated:
+        raise HTTPException(status_code=401, detail="authenticated user is required")
+    return claim.name
+
+
+def actor_values(
+    claim: ActorClaim,
+    *,
+    requested_name: str,
+    requested_role: str,
+) -> tuple[str, str]:
+    if not claim.present:
+        return requested_name, requested_role
+    if not claim.authenticated:
+        raise HTTPException(status_code=401, detail="authenticated user is required")
+    if requested_role not in claim.roles:
+        raise HTTPException(
+            status_code=403,
+            detail=f"authenticated user lacks required role: {requested_role}",
+        )
+    return claim.name, requested_role
+
+
+def actor_payload(
+    payload: dict,
+    claim: ActorClaim,
+    *,
+    requested_name: str,
+    requested_role: str,
+) -> dict:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=requested_name, requested_role=requested_role
+    )
+    return {**payload, "actor_name": actor_name, "actor_role": actor_role}
+
+
+ActorClaimDep = Annotated[ActorClaim, Depends(get_actor_claim)]
 
 
 @asynccontextmanager
@@ -624,6 +706,7 @@ def translate_constraints_endpoint(
     production_id: str,
     payload: ConstraintTranslationRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> list[ConstraintProposalResponse]:
     return [
         _constraint_proposal_response(row)
@@ -631,7 +714,7 @@ def translate_constraints_endpoint(
             session,
             production_id,
             text=payload.text,
-            actor_name=payload.actor_name,
+            actor_name=actor_name_value(claim, requested_name=payload.actor_name),
         )
     ]
 
@@ -658,13 +741,17 @@ def accept_constraint_proposal_endpoint(
     proposal_id: str,
     payload: ConstraintProposalDecisionRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> ConstraintResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     return _constraint_response(
         accept_constraint_proposal(
             session,
             proposal_id=proposal_id,
-            actor_name=payload.actor_name,
-            actor_role=payload.actor_role,
+            actor_name=actor_name,
+            actor_role=actor_role,
         )
     )
 
@@ -677,13 +764,17 @@ def reject_constraint_proposal_endpoint(
     proposal_id: str,
     payload: ConstraintProposalDecisionRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> ConstraintProposalResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     return _constraint_proposal_response(
         reject_constraint_proposal(
             session,
             proposal_id=proposal_id,
-            actor_name=payload.actor_name,
-            actor_role=payload.actor_role,
+            actor_name=actor_name,
+            actor_role=actor_role,
         )
     )
 
@@ -693,12 +784,18 @@ def create_constraint_endpoint(
     production_id: str,
     payload: ConstraintCreate,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> ConstraintResponse:
     return _constraint_response(
         create_constraint(
             session,
             production_id,
-            payload=payload.model_dump(exclude_unset=True),
+            payload=actor_payload(
+                payload.model_dump(exclude_unset=True),
+                claim,
+                requested_name=payload.actor_name,
+                requested_role=payload.actor_role,
+            ),
         )
     )
 
@@ -720,14 +817,18 @@ def activate_constraint_endpoint(
     constraint_id: str,
     payload: ConstraintActivationRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> ConstraintResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     return _constraint_response(
         activate_constraint(
             session,
             constraint_row_id=constraint_id,
             active=payload.active,
-            actor_name=payload.actor_name,
-            actor_role=payload.actor_role,
+            actor_name=actor_name,
+            actor_role=actor_role,
         )
     )
 
@@ -737,15 +838,19 @@ def lock_board_day_endpoint(
     board_id: str,
     payload: LockDayRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> LockedDayResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     return _locked_day_response(
         lock_board_day(
             session,
             board_id=board_id,
             shoot_date=payload.shoot_date,
             call_sheet_version=payload.call_sheet_version,
-            actor_name=payload.actor_name,
-            actor_role=payload.actor_role,
+            actor_name=actor_name,
+            actor_role=actor_role,
         )
     )
 
@@ -847,13 +952,17 @@ def decide_monitor_finding_endpoint(
     finding_id: str,
     payload: MonitorFindingDecisionRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> MonitorFindingDecisionResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     finding, replan = decide_monitor_finding(
         session,
         finding_id=finding_id,
         decision=payload.decision,
-        actor_name=payload.actor_name,
-        actor_role=payload.actor_role,
+        actor_name=actor_name,
+        actor_role=actor_role,
     )
     return MonitorFindingDecisionResponse(
         finding=_monitor_finding_response(finding),
@@ -931,13 +1040,17 @@ def select_board_endpoint(
     board_id: str,
     payload: BoardSelectionRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> BoardSelectionResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     return _board_selection_response(
         select_board(
             session,
             board_id=board_id,
-            actor_name=payload.actor_name,
-            actor_role=payload.actor_role,
+            actor_name=actor_name,
+            actor_role=actor_role,
             prior_board_id=payload.prior_board_id,
         )
     )
@@ -976,13 +1089,17 @@ def approve_cost_endpoint(
     board_id: str,
     payload: CostApprovalRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> CostApprovalResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     return _cost_approval_response(
         approve_cost(
             session,
             board_id=board_id,
-            actor_name=payload.actor_name,
-            actor_role=payload.actor_role,
+            actor_name=actor_name,
+            actor_role=actor_role,
             cost_delta=payload.cost_delta,
             added_shoot_days=payload.added_shoot_days,
             decision=payload.decision,
@@ -1074,15 +1191,19 @@ def raise_coverage_finding_endpoint(
     coverage_item_id: str,
     payload: CoverageFindingCreate,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> CoverageFindingResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     return _coverage_finding_response(
         raise_coverage_finding(
             session,
             coverage_item_id=coverage_item_id,
             board_id=payload.board_id,
             message=payload.message,
-            actor_name=payload.actor_name,
-            actor_role=payload.actor_role,
+            actor_name=actor_name,
+            actor_role=actor_role,
             severity=payload.severity,
         )
     )
@@ -1096,13 +1217,17 @@ def request_pickup_from_finding_endpoint(
     finding_id: str,
     payload: PickupDecisionRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> PickupTaskResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     return _pickup_task_response(
         request_pickup_from_finding(
             session,
             finding_id=finding_id,
-            actor_name=payload.actor_name,
-            actor_role=payload.actor_role,
+            actor_name=actor_name,
+            actor_role=actor_role,
             decision=payload.decision,
         )
     )
@@ -1113,14 +1238,18 @@ def confirm_pickup_task_endpoint(
     pickup_task_id: str,
     payload: PickupConfirmRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> PickupTaskResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     return _pickup_task_response(
         confirm_pickup_task(
             session,
             pickup_task_id=pickup_task_id,
             pickup_spec=payload.pickup_spec,
-            actor_name=payload.actor_name,
-            actor_role=payload.actor_role,
+            actor_name=actor_name,
+            actor_role=actor_role,
         )
     )
 
@@ -1150,14 +1279,18 @@ def generate_call_sheet_endpoint(
     board_id: str,
     payload: CallSheetGenerateRequest,
     session: Annotated[Session, Depends(get_session)],
+    claim: ActorClaimDep,
 ) -> CallSheetResponse:
+    actor_name, actor_role = actor_values(
+        claim, requested_name=payload.actor_name, requested_role=payload.actor_role
+    )
     return _call_sheet_response(
         generate_call_sheet(
             session,
             board_id=board_id,
             shoot_date=payload.shoot_date,
-            actor_name=payload.actor_name,
-            actor_role=payload.actor_role,
+            actor_name=actor_name,
+            actor_role=actor_role,
         )
     )
 
@@ -1207,6 +1340,17 @@ def solve_board_endpoint(
     session: Annotated[Session, Depends(get_session)],
 ) -> ScheduleRunResponse:
     return _schedule_response(run_scheduler(session, production_id=production_id))
+
+
+@app.get(
+    "/productions/{production_id}/schedule-runs",
+    response_model=list[ScheduleRunResponse],
+)
+def list_schedule_runs_endpoint(
+    production_id: str,
+    session: Annotated[Session, Depends(get_session)],
+) -> list[ScheduleRunResponse]:
+    return [_schedule_response(run) for run in list_schedule_runs(session, production_id)]
 
 
 @app.get("/schedule-runs/{run_id}", response_model=ScheduleRunResponse)
@@ -1687,6 +1831,7 @@ def _schedule_response(run: ScheduleRunModel) -> ScheduleRunResponse:
         input_hash=run.input_hash,
         board_id=run.board_id,
         diagnostics=list(run.diagnostics),
+        conflict=dict(run.conflict_json or {}),
     )
 
 

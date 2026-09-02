@@ -525,7 +525,7 @@ summary {
   top: 0;
   z-index: 40;
   display: flex;
-  min-height: 64px;
+  min-height: 56px;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
@@ -537,9 +537,9 @@ summary {
 .routeTopbarLeft {
   display: flex;
   min-width: 0;
-  height: 64px;
+  height: 56px;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
 }
 
 .routeTopbar h1 {
@@ -552,7 +552,7 @@ summary {
 
 .routeTabs {
   display: flex;
-  height: 64px;
+  height: 56px;
   min-width: 0;
   align-items: stretch;
 }
@@ -611,6 +611,17 @@ summary {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.topbarIcon {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  color: var(--on-surface-variant);
+  font-size: 22px;
+  border-left: 1px solid var(--outline-variant);
 }
 
 .routeTopbarActions button,
@@ -682,6 +693,14 @@ summary {
 
 .actorControl {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.claimControl {
+  grid-template-columns: 1fr;
+}
+
+.claimControl .pill {
+  justify-self: start;
 }
 
 .metricGrid {
@@ -813,7 +832,7 @@ summary {
 .workflowTri,
 .replanBoard {
   display: grid;
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 56px);
   gap: 8px;
   padding: 16px;
 }
@@ -1543,6 +1562,72 @@ summary {
 
 .conflictCard header {
   justify-content: flex-start;
+}
+
+.conflictWhy,
+.sectionTitleRow {
+  padding: 12px;
+  border: 1px solid var(--outline-variant);
+  background: var(--surface-container-lowest);
+}
+
+.conflictWhy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  align-items: center;
+}
+
+.conflictWhy p,
+.sectionTitleRow p {
+  margin: 0;
+  color: var(--on-surface-variant);
+}
+
+.sectionTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.conflictRecords {
+  display: grid;
+  gap: 8px;
+}
+
+.conflictRecord {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--outline-variant);
+  border-left: 3px solid var(--warning);
+  border-radius: 6px;
+  background: var(--surface-container-lowest);
+}
+
+.conflictRecord > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.conflictRecord p {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-size: 12px;
+}
+
+.conflictRecord small,
+.conflictRecord span,
+.conflictProof span {
+  color: var(--outline);
+}
+
+.conflictProof {
+  justify-content: space-between;
 }
 
 @media (max-width: 1180px) {

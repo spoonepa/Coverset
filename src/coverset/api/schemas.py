@@ -318,6 +318,7 @@ class ScheduleRunResponse(BaseModel):
     input_hash: str = ""
     board_id: str | None = None
     diagnostics: list[str] = Field(default_factory=list)
+    conflict: dict[str, Any] = Field(default_factory=dict)
 
 
 class BoardResponse(BaseModel):

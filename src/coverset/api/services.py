@@ -9,7 +9,7 @@ import json
 import re
 from dataclasses import replace
 from io import BytesIO, StringIO
-from typing import Any, Protocol
+from typing import Any, Protocol, Sequence
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
@@ -23,12 +23,14 @@ from coverset.call_sheet import (  # type: ignore[import-not-found]
     render_call_sheet_text,
 )
 from coverset.constraints import (
+    AlgorithmSource,
     BlackoutDates,
     ConstraintError,
     ConstraintRecord,
     ConstraintSet,
     DateWindows,
     Family,
+    GroundedSource,
     HumanSource,
     PinnedDay,
     Policy,
@@ -44,7 +46,13 @@ from coverset.grounding import (
 )
 from coverset.locations import Location
 from coverset.scenes import CandidateStatus, SceneRecord
-from coverset.solver import ProductionCalendar, ScheduleProblem, SolverError, solve
+from coverset.solver import (
+    ConflictSet,
+    ProductionCalendar,
+    ScheduleProblem,
+    SolverError,
+    solve,
+)
 from coverset.stripboard import stripboard
 from coverset.work import DayNight
 
@@ -530,6 +538,73 @@ def seed_demo_workflow_state(
             added_shoot_days=added_days,
             decision="approved",
         )
+
+    _seed_demo_infeasible_conflict(
+        session,
+        production_id=production_id,
+        shoot_days=days,
+        cast_ids=cast_ids,
+    )
+
+
+def _seed_demo_infeasible_conflict(
+    session: Session,
+    *,
+    production_id: str,
+    shoot_days: Sequence[dt.date],
+    cast_ids: Sequence[str],
+) -> None:
+    """Persist one truthful infeasible run for the demo conflict screen.
+
+    The temporary hard constraints are deactivated after the run so the seeded
+    production keeps its selected optimal board while `/schedule-runs` still
+    exposes real backend conflict metadata for the infeasible diagnostics route.
+    """
+    if len(shoot_days) < 2 or not cast_ids:
+        return
+
+    created: list[ConstraintModel] = []
+    pairs = (("DEMO-CONFLICT-DEV-D2", cast_ids[-1], shoot_days[1]),)
+    try:
+        for constraint_id, cast_id, day in pairs:
+            created.append(
+                create_constraint(
+                    session,
+                    production_id,
+                    payload={
+                        "constraint_id": constraint_id,
+                        "family": "cast",
+                        "policy": "hard",
+                        "subject_kind": "cast",
+                        "subject_ref": cast_id,
+                        "expression_type": "date_windows",
+                        "windows": [{"start": day, "end": day}],
+                        "statement": (
+                            f"{cast_id} fixture availability is restricted "
+                            f"to {day.isoformat()}."
+                        ),
+                        "active": True,
+                    },
+                )
+            )
+        run = run_scheduler(session, production_id=production_id)
+        if run.status != "infeasible" or not run.conflict_json:
+            audit(
+                session,
+                production_id,
+                "production.demo_seed_conflict_skipped",
+                {"schedule_run_id": run.id, "status": run.status},
+            )
+            session.commit()
+    finally:
+        for row in created:
+            activate_constraint(
+                session,
+                constraint_row_id=row.id,
+                active=False,
+                actor_name="R. Okonkwo",
+                actor_role="first_ad",
+            )
 
 
 def get_production(session: Session, production_id: str) -> ProductionModel:
@@ -1433,8 +1508,6 @@ def _constraint_activation_validation(
     payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Family-specific checks that must pass before activation."""
-    from coverset.constraints import GroundedSource
-
     errors: list[str] = []
     if isinstance(record.source, GroundedSource):
         source_urls = set(record.source.source_urls)
@@ -3000,13 +3073,14 @@ def run_job(
             run = run_scheduler(
                 session, production_id=str(job.production_id or job.target_id)
             )
-            if run.status == "failed" or not run.board_id:
-                raise ServiceError(run.error or f"schedule {run.status}")
             job.result_json = {
                 "schedule_run_id": run.id,
                 "board_id": run.board_id,
                 "status": run.status,
+                "conflict": dict(run.conflict_json or {}),
             }
+            if run.status == "failed" or not run.board_id:
+                raise ServiceError(run.error or f"schedule {run.status}")
         elif job.job_type == "grounding":
             evidence = ground_fact(
                 session,
@@ -3172,6 +3246,7 @@ def run_scheduler(
         result = solve(problem, seed=seed)
         run.status = str(result.status)
         run.diagnostics = list(result.diagnostics)
+        run.conflict_json = _conflict_to_json(result.conflict_set, problem)
         run.input_hash = _input_hash(scenes, problem.constraint_snapshot_hash)
         if result.viable_boards:
             board = result.board
@@ -3398,11 +3473,115 @@ def list_candidates_for_run(session: Session, run_id: str) -> list[SceneCandidat
     )
 
 
+def list_schedule_runs(session: Session, production_id: str) -> list[ScheduleRunModel]:
+    get_production(session, production_id)
+    return list(
+        session.scalars(
+            select(ScheduleRunModel)
+            .where(ScheduleRunModel.production_id == production_id)
+            .order_by(ScheduleRunModel.created_at.desc())
+        )
+    )
+
+
 def get_schedule_run(session: Session, run_id: str) -> ScheduleRunModel:
     run = session.get(ScheduleRunModel, run_id)
     if run is None:
         raise ServiceError(f"schedule run not found: {run_id}", status_code=404)
     return run
+
+
+def _source_metadata(source: Any) -> dict[str, Any]:
+    if isinstance(source, GroundedSource):
+        return {
+            "kind": "source_url",
+            "label": "SOURCE URL",
+            "description": source.describe(),
+            "evidence_id": source.evidence_id,
+            "grounded_value_id": source.grounded_value_id,
+            "source_urls": list(source.source_urls),
+            "derived_from": source.derived_from.value,
+        }
+    if isinstance(source, AlgorithmSource):
+        return {
+            "kind": "algorithm",
+            "label": "ALGORITHM",
+            "description": source.describe(),
+            "name": source.name,
+            "version": source.version,
+            "derived_from": source.derived_from.value,
+        }
+    if isinstance(source, HumanSource):
+        return {
+            "kind": "human_rule",
+            "label": "HUMAN RULE",
+            "description": source.describe(),
+            "actor": str(source.author),
+            "statement": source.statement,
+            "derived_from": source.derived_from.value,
+        }
+    return {
+        "kind": type(source).__name__.replace("Source", "").casefold(),
+        "label": type(source).__name__.replace("Source", "").upper(),
+        "description": source.describe() if hasattr(source, "describe") else str(source),
+        "derived_from": getattr(getattr(source, "derived_from", None), "value", ""),
+    }
+
+
+def _conflict_record_metadata(record: ConstraintRecord) -> dict[str, Any]:
+    return {
+        "constraint_id": record.constraint_id,
+        "family": record.family.value,
+        "policy": record.policy.value,
+        "subject": str(record.subject),
+        "expression": f"{type(record.expression).__name__}({record.expression})",
+        "source": _source_metadata(record.source),
+        "relaxable": record.policy.bounds_feasibility,
+        "active": record.active,
+    }
+
+
+def _conflict_to_json(
+    conflict: ConflictSet | None, problem: ScheduleProblem
+) -> dict[str, Any]:
+    if conflict is None:
+        return {}
+    binding = list(problem.constraints.binding)
+    by_id = {record.constraint_id: record for record in binding}
+    records = [
+        _conflict_record_metadata(by_id[constraint_id])
+        for constraint_id in conflict.constraint_ids
+        if constraint_id in by_id
+    ]
+    remaining = [
+        record.constraint_id
+        for record in binding
+        if record.constraint_id not in set(conflict.constraint_ids)
+    ]
+    relaxed_status = "not_applicable"
+    if conflict.constraint_ids:
+        from coverset.solver import _infeasible_with
+
+        relaxed_status = (
+            "still_infeasible"
+            if _infeasible_with(problem, remaining)
+            else "feasible_after_relaxation"
+        )
+    return {
+        "status": "infeasible",
+        "constraint_ids": list(conflict.constraint_ids),
+        "structural_causes": list(conflict.structural_causes),
+        "irreducible": conflict.irreducible,
+        "detail": conflict.detail,
+        "binding_constraint_count": len(binding),
+        "constraint_snapshot_hash": problem.constraint_snapshot_hash,
+        "relaxable_constraints": records,
+        "relaxation_check": {
+            "relaxed_constraint_ids": list(conflict.constraint_ids),
+            "remaining_constraint_ids": remaining,
+            "status": relaxed_status,
+        },
+    }
 
 
 def get_board(session: Session, board_id: str) -> BoardModel:

@@ -1,6 +1,8 @@
 import { GoogleAuth } from "google-auth-library";
 import type { NextRequest } from "next/server";
 
+import { actorClaimsFromHeaders, internalActorHeaders } from "../../../../shared/auth-claims";
+
 export const runtime = "nodejs";
 
 type RouteContext = {
@@ -29,11 +31,13 @@ function headersToRecord(
   if (typeof (headers as Headers).entries === "function") {
     return Object.fromEntries((headers as Headers).entries());
   }
-  return Object.fromEntries(
-    Object.entries(headers)
-      .filter(([, value]) => value !== undefined && value !== null)
-      .map(([key, value]) => [key, String(value)]),
-  );
+  const record: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (value !== undefined && value !== null) {
+      record[key] = String(value);
+    }
+  }
+  return record;
 }
 
 async function authHeaders(url: string): Promise<Record<string, string>> {
@@ -63,8 +67,17 @@ async function proxy(
     "authorization",
     "x-serverless-authorization",
     "proxy-authorization",
+    "x-coverset-authenticated",
+    "x-coverset-actor-name",
+    "x-coverset-actor-email",
+    "x-coverset-actor-role",
+    "x-coverset-actor-roles",
   ]) {
     headers.delete(name);
+  }
+  const actorHeaders = internalActorHeaders(actorClaimsFromHeaders(request.headers));
+  for (const [key, value] of Object.entries(actorHeaders)) {
+    headers.set(key, value);
   }
   const identityHeaders = await authHeaders(upstreamUrl.toString());
   for (const [key, value] of Object.entries(identityHeaders)) {
