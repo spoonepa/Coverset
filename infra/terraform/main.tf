@@ -855,14 +855,6 @@ resource "google_cloud_run_v2_service" "web" {
         value = "1"
       }
       env {
-        name  = "COVERSET_ACTOR_EMAIL"
-        value = local.developer_email
-      }
-      env {
-        name  = "COVERSET_ACTOR_ROLES"
-        value = join(",", local.dev_actor_roles)
-      }
-      env {
         name  = "COVERSET_AUTH_ROLE_MAP"
         value = local.developer_email == "" ? "{}" : jsonencode({ (local.developer_email) = local.dev_actor_roles })
       }

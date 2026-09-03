@@ -47,9 +47,9 @@ variable "web_image" {
 }
 
 variable "agent_mode" {
-  description = "Default API breakdown agent mode. Use fixture for safe deployed smoke, gemini for real uploads."
+  description = "Default API breakdown agent mode. Use gemini for real uploads; fixture is allowed only with explicit fixture-mode runtime config."
   type        = string
-  default     = "fixture"
+  default     = "gemini"
 
   validation {
     condition     = contains(["fixture", "gemini"], var.agent_mode)

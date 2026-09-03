@@ -1,7 +1,10 @@
 import { GoogleAuth } from "google-auth-library";
 import type { NextRequest } from "next/server";
 
-import { actorClaimsFromHeaders, internalActorHeaders } from "../../../../shared/auth-claims";
+import {
+  actorClaimsFromHeaders,
+  internalActorHeaders,
+} from "../../../../shared/auth-claims";
 
 export const runtime = "nodejs";
 
@@ -75,7 +78,9 @@ async function proxy(
   ]) {
     headers.delete(name);
   }
-  const actorHeaders = internalActorHeaders(actorClaimsFromHeaders(request.headers));
+  const actorHeaders = internalActorHeaders(
+    actorClaimsFromHeaders(request.headers),
+  );
   for (const [key, value] of Object.entries(actorHeaders)) {
     headers.set(key, value);
   }

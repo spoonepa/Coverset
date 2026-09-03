@@ -87,46 +87,55 @@ function rolesFromClaimMap(email: string): ActorRole[] {
   return [];
 }
 
+function staticActorClaimsEnabled(): boolean {
+  return process.env.COVERSET_ENABLE_STATIC_ACTOR_CLAIMS === "1";
+}
+
 export function actorClaimsFromHeaders(headers: Headers): ActorClaims {
-  const envRoles = parseRoles(
-    process.env.COVERSET_ACTOR_ROLES ?? process.env.COVERSET_ACTOR_ROLE ?? "",
-  );
+  const staticActorClaims = staticActorClaimsEnabled();
+  const envRoles = staticActorClaims
+    ? parseRoles(
+        process.env.COVERSET_ACTOR_ROLES ?? process.env.COVERSET_ACTOR_ROLE ?? "",
+      )
+    : [];
   const headerRoles = parseRoles(
     header(headers, process.env.COVERSET_AUTH_ROLES_HEADER),
   );
   const singleHeaderRole = parseRoles(
     header(headers, process.env.COVERSET_AUTH_ROLE_HEADER),
   );
-  const envEmail = process.env.COVERSET_ACTOR_EMAIL;
+  const envEmail = staticActorClaims
+    ? (process.env.COVERSET_ACTOR_EMAIL ?? "")
+    : "";
   const headerEmail = header(
     headers,
     process.env.COVERSET_AUTH_EMAIL_HEADER ?? "x-goog-authenticated-user-email",
   );
   const email = cleanEmail(
-    envEmail ?? (headerEmail || emailFromAuthorization(headers)),
+    envEmail || headerEmail || emailFromAuthorization(headers),
   );
   const mappedRoles = rolesFromClaimMap(email);
   let roles: ActorRole[] = [];
-  if (envRoles.length > 0) {
-    roles = envRoles;
-  } else if (headerRoles.length > 0) {
+  if (headerRoles.length > 0) {
     roles = headerRoles;
   } else if (singleHeaderRole.length > 0) {
     roles = singleHeaderRole;
   } else if (mappedRoles.length > 0) {
     roles = mappedRoles;
+  } else if (envRoles.length > 0) {
+    roles = envRoles;
   }
 
   const explicitName =
-    process.env.COVERSET_ACTOR_NAME ??
+    (staticActorClaims ? process.env.COVERSET_ACTOR_NAME : undefined) ??
     header(headers, process.env.COVERSET_AUTH_NAME_HEADER);
   const role = roles[0] ?? null;
   const hasIdentity = Boolean(
     email ||
       explicitName ||
-      envRoles.length ||
       headerRoles.length ||
-      singleHeaderRole.length,
+      singleHeaderRole.length ||
+      envRoles.length,
   );
   let name = "Unauthenticated user";
   if (explicitName) {

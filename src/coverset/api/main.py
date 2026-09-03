@@ -440,6 +440,7 @@ def enqueue_breakdown_endpoint(
         screenplay_asset_id=payload.screenplay_asset_id,
         auto_accept_schedulable=payload.auto_accept_schedulable,
         agent_mode=payload.agent_mode,
+        settings=settings,
     )
     _dispatch_job_or_raise(job)
     return _job_response(job)
@@ -459,6 +460,7 @@ def run_breakdown_endpoint(
         screenplay_asset_id=payload.screenplay_asset_id,
         auto_accept_schedulable=payload.auto_accept_schedulable,
         agent_mode=payload.agent_mode,
+        settings=settings,
     )
     return _breakdown_response(session, run)
 
@@ -1417,6 +1419,7 @@ def run_demo_endpoint(
         screenplay_asset_id=asset.id,
         auto_accept_schedulable=True,
         agent_mode="fixture",
+        settings=settings,
     )
     schedule_run = run_scheduler(session, production_id=production.id)
     if not schedule_run.board_id:
