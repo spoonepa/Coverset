@@ -46,6 +46,9 @@ type BoardScreenProps = {
   boardId: string;
 };
 
+const ENABLE_FIXTURE_MODE =
+  process.env.NEXT_PUBLIC_COVERSET_ENABLE_FIXTURE_MODE === "1";
+
 type ScreenData = {
   production: Production | null;
   board: Board | null;
@@ -71,19 +74,12 @@ type ScreenData = {
 };
 
 const defaultActorClaims: ActorClaims = {
-  name: "Developer",
+  name: "Unauthenticated user",
   email: "",
-  role: "first_ad",
-  roles: [
-    "first_ad",
-    "second_ad",
-    "script_supervisor",
-    "director",
-    "upm",
-    "line_producer",
-  ],
-  authenticated: true,
-  source: "development-fallback",
+  role: null,
+  roles: [],
+  authenticated: false,
+  source: "missing-claim",
 };
 
 const initialData: ScreenData = {
@@ -229,7 +225,12 @@ function productionInitials(title?: string): string {
     .split(/\s+/)
     .map((word) => word.replace(/[^A-Za-z0-9]/g, ""))
     .filter(Boolean);
-  return (words.slice(0, 2).map((word) => word[0]).join("") || "CS").toUpperCase();
+  return (
+    words
+      .slice(0, 2)
+      .map((word) => word[0])
+      .join("") || "CS"
+  ).toUpperCase();
 }
 
 function withBoard(path: string, boardId?: string): string {
@@ -245,7 +246,8 @@ function hasActorRole(claims: ActorClaims, roles: ActorRole[]): boolean {
 }
 
 function actorForRoles(claims: ActorClaims, roles: ActorRole[]): Actor {
-  const role = roles.find((candidate) => claims.roles.includes(candidate)) ?? roles[0];
+  const role =
+    roles.find((candidate) => claims.roles.includes(candidate)) ?? roles[0];
   return { name: claims.name || "Authenticated user", role };
 }
 
@@ -482,7 +484,9 @@ function ScreenShell({
             <h1>{productionTitle ?? title}</h1>
             <nav className="routeTabs" aria-label="Current workflow context">
               <span className="active mono">{title}</span>
-              <span className="mono" title={description}>{eyebrow}</span>
+              <span className="mono" title={description}>
+                {eyebrow}
+              </span>
             </nav>
             <div className="topbarMetrics" aria-live="polite">
               <span>Status</span>
@@ -502,16 +506,25 @@ function ScreenShell({
             >
               View Sources
             </a>
-            <a className="buttonLink secondary" href={boardNav(productionId, boardId)}>
+            <a
+              className="buttonLink secondary"
+              href={boardNav(productionId, boardId)}
+            >
               Validate Board
             </a>
             <button type="button" onClick={onRefresh}>
               Generate Board
             </button>
-            <span className="topbarIcon material-symbols-outlined" aria-hidden="true">
+            <span
+              className="topbarIcon material-symbols-outlined"
+              aria-hidden="true"
+            >
               notifications
             </span>
-            <span className="topbarIcon material-symbols-outlined" aria-hidden="true">
+            <span
+              className="topbarIcon material-symbols-outlined"
+              aria-hidden="true"
+            >
               settings
             </span>
           </div>
@@ -669,8 +682,8 @@ function BoardMini({
   if (!board) {
     return (
       <EmptyState>
-        No board id is attached to this route yet. Start from the root demo or
-        pass `?boardId=...`.
+        No board id is attached to this route yet. Pass `?boardId=...` after a
+        board has been solved.
       </EmptyState>
     );
   }
@@ -844,7 +857,7 @@ export function ProductionOverviewScreen({
           />
           <p className="muted">
             Use the navigation row to open the implemented screen routes. If no
-            board link is available, run the root demo first.
+            board link is available, solve accepted scenes first.
           </p>
         </div>
         <div>
@@ -1015,7 +1028,7 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
     useProductionData(productionId, boardId);
   const [file, setFile] = useState<File | null>(null);
   const [breakdown, setBreakdown] = useState<BreakdownRun | null>(null);
-  const [agentMode, setAgentMode] = useState("fixture");
+  const [agentMode, setAgentMode] = useState("gemini");
   const activeBreakdown = breakdown ?? data.breakdowns[0] ?? null;
   const candidates = activeBreakdown?.candidates ?? [];
 
@@ -1222,8 +1235,8 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
             ))}
             {!activeBreakdown && (
               <EmptyState>
-                No breakdown runs loaded yet. Upload a screenplay or use the
-                root fixture demo.
+                No breakdown runs loaded yet. Upload a screenplay from this
+                production.
               </EmptyState>
             )}
           </div>
@@ -1242,8 +1255,10 @@ export function BreakdownReviewScreen({ productionId, boardId }: ScreenProps) {
               value={agentMode}
               onChange={(event) => setAgentMode(event.target.value)}
             >
-              <option value="fixture">Fixture</option>
               <option value="gemini">Gemini advisory</option>
+              {ENABLE_FIXTURE_MODE && (
+                <option value="fixture">Fixture smoke</option>
+              )}
             </select>
           </label>
           <label>
@@ -1391,7 +1406,11 @@ export function ConstraintEntryScreen({ productionId, boardId }: ScreenProps) {
             type="button"
             onClick={translate}
             disabled={!text.trim() || !canTranslate}
-            title={canTranslate ? undefined : actorDeniedReason(data.actorClaims, ["first_ad"])}
+            title={
+              canTranslate
+                ? undefined
+                : actorDeniedReason(data.actorClaims, ["first_ad"])
+            }
           >
             Translate into inactive proposals
           </button>
@@ -1795,6 +1814,11 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
   const [monitorKind, setMonitorKind] = useState("permit");
   const [monitorSourceUrl, setMonitorSourceUrl] = useState("");
   const [monitorQuery, setMonitorQuery] = useState("");
+  const [monitorExternalId, setMonitorExternalId] = useState("");
+  const [monitorOldFingerprint, setMonitorOldFingerprint] = useState("");
+  const [monitorNewFingerprint, setMonitorNewFingerprint] = useState("");
+  const [monitorMessage, setMonitorMessage] = useState("");
+  const [monitorMaterial, setMonitorMaterial] = useState(false);
   const board = data.board;
   const lockedDates = new Set(data.locks.map((lock) => lock.shoot_date));
 
@@ -1817,8 +1841,17 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
       setError("Enter a monitored source URL before creating a replan.");
       return;
     }
-    const query =
-      monitorQuery.trim() || `${monitorKind} monitor for ${strip.location_id}`;
+    const query = monitorQuery.trim() || existingSource?.query || "";
+    const oldFingerprint =
+      monitorOldFingerprint.trim() || existingSource?.last_fingerprint || "";
+    const newFingerprint = monitorNewFingerprint.trim();
+    const changeMessage = monitorMessage.trim();
+    if (!query || !newFingerprint || !changeMessage) {
+      setError(
+        "Enter the source query, new fingerprint, and change message before recording a monitor event.",
+      );
+      return;
+    }
     setError("");
     try {
       const source =
@@ -1833,7 +1866,7 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
               fact_kind: monitorKind,
               location_id: strip.location_id,
               query,
-              external_monitor_id: `operator-monitor-${Date.now()}`,
+              external_monitor_id: monitorExternalId.trim(),
             }),
           },
         ));
@@ -1846,18 +1879,18 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
             board_id: board.id,
             source_url: source.source_url,
             fact_kind: source.fact_kind,
-            old_fingerprint: source.last_fingerprint || "unseen",
-            new_fingerprint: `${source.last_fingerprint || "changed"}-${Date.now()}`,
+            old_fingerprint: oldFingerprint,
+            new_fingerprint: newFingerprint,
             affected_work_ids: [strip.work_id],
-            material: true,
-            message: `Material ${source.fact_kind} change: ${query}`,
+            material: monitorMaterial,
+            message: changeMessage,
           }),
         },
       );
       setMessage(
         event.replan_request_id
           ? `Material change created replan ${event.replan_request_id}.`
-          : "Material event recorded.",
+          : "Monitor event recorded.",
       );
       await refresh();
     } catch (err) {
@@ -1976,8 +2009,8 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
                     </span>
                     <h3>{diff.id}</h3>
                     <p>
-                      {diff.base_board_id} → {diff.revised_board_id} · validation
-                      report expected before selection
+                      {diff.base_board_id} → {diff.revised_board_id} ·
+                      validation report expected before selection
                     </p>
                   </div>
                   <Pill tone={selectionBlocked ? "warn" : "good"}>
@@ -1993,7 +2026,8 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
                     ],
                     [
                       "Added pickups",
-                      asStringList(diff.diff.added_pickups).join(", ") || "none",
+                      asStringList(diff.diff.added_pickups).join(", ") ||
+                        "none",
                     ],
                     ["Approvals", diff.required_approvals.length || "none"],
                   ]}
@@ -2066,9 +2100,7 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
             Source URL
             <input
               value={monitorSourceUrl}
-              placeholder={
-                data.monitoredSources[0]?.source_url ?? "https://..."
-              }
+              placeholder={data.monitoredSources[0]?.source_url ?? "Source URL"}
               onChange={(event) => setMonitorSourceUrl(event.target.value)}
             />
           </label>
@@ -2076,16 +2108,61 @@ export function ReplanOptionsScreen({ productionId, boardId }: ScreenProps) {
             Monitor query
             <input
               value={monitorQuery}
-              placeholder="What changed in the source?"
+              placeholder="Source query"
               onChange={(event) => setMonitorQuery(event.target.value)}
             />
+          </label>
+          <label>
+            External monitor id
+            <input
+              value={monitorExternalId}
+              placeholder="Optional provider monitor id"
+              onChange={(event) => setMonitorExternalId(event.target.value)}
+            />
+          </label>
+          <label>
+            Previous fingerprint
+            <input
+              value={monitorOldFingerprint}
+              placeholder="Optional if source already has one"
+              onChange={(event) => setMonitorOldFingerprint(event.target.value)}
+            />
+          </label>
+          <label>
+            New fingerprint
+            <input
+              value={monitorNewFingerprint}
+              placeholder="Observed source fingerprint"
+              onChange={(event) => setMonitorNewFingerprint(event.target.value)}
+            />
+          </label>
+          <label>
+            Change message
+            <textarea
+              value={monitorMessage}
+              placeholder="Describe the observed source change."
+              onChange={(event) => setMonitorMessage(event.target.value)}
+            />
+          </label>
+          <label className="inline">
+            <input
+              type="checkbox"
+              checked={monitorMaterial}
+              onChange={(event) => setMonitorMaterial(event.target.checked)}
+            />
+            Mark this change material
           </label>
           <button
             type="button"
             onClick={createMaterialMonitorReplan}
-            disabled={!board}
+            disabled={
+              !board ||
+              !monitorQuery.trim() ||
+              !monitorNewFingerprint.trim() ||
+              !monitorMessage.trim()
+            }
           >
-            Create material monitor replan
+            Record monitor change
           </button>
           <div className="inspectorSection">
             <h3>Replan requests</h3>
@@ -2116,12 +2193,21 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
   const [pickup, setPickup] = useState<PickupTask | null>(null);
   const [pickupReplan, setPickupReplan] = useState<ReplanRequest | null>(null);
   const [findingMessage, setFindingMessage] = useState("");
+  const [coverageKey, setCoverageKey] = useState("");
+  const [coverageType, setCoverageType] = useState("");
+  const [takeLabel, setTakeLabel] = useState("");
+  const [shotOutcome, setShotOutcome] = useState("");
+  const [pickupDurationMinutes, setPickupDurationMinutes] = useState("");
+  const [pickupPriority, setPickupPriority] = useState("");
+  const [pickupCutoffAt, setPickupCutoffAt] = useState("");
   const board = data.board;
   const strips = board?.result.strips ?? [];
   const scriptActor = actorForRoles(data.actorClaims, ["script_supervisor"]);
   const directorActor = actorForRoles(data.actorClaims, ["director"]);
   const firstAdActor = actorForRoles(data.actorClaims, ["first_ad"]);
-  const canRecordActuals = hasActorRole(data.actorClaims, ["script_supervisor"]);
+  const canRecordActuals = hasActorRole(data.actorClaims, [
+    "script_supervisor",
+  ]);
   const canRequestPickup = hasActorRole(data.actorClaims, ["director"]);
   const canConfirmPickup = hasActorRole(data.actorClaims, ["first_ad"]);
   const primaryStrip = firstBoardStrip(board);
@@ -2162,8 +2248,22 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
       );
       return;
     }
+    const trimmedCoverageKey = coverageKey.trim();
+    const trimmedCoverageType = coverageType.trim();
+    const trimmedTake = takeLabel.trim();
     if (!findingMessage.trim()) {
       setError("Enter a coverage finding before recording actuals.");
+      return;
+    }
+    if (
+      !trimmedCoverageKey ||
+      !trimmedCoverageType ||
+      !trimmedTake ||
+      !shotOutcome
+    ) {
+      setError(
+        "Enter coverage key, type, take label, and shot outcome before recording actuals.",
+      );
       return;
     }
     setError("");
@@ -2174,9 +2274,9 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
           method: "POST",
           body: JSON.stringify({
             scene_id: strip.scene_id,
-            coverage_key: `operator-${strip.scene_id}-insert-${Date.now()}`,
-            coverage_type: "insert",
-            planned: { shot: "insert", source: "script supervisor actual" },
+            coverage_key: trimmedCoverageKey,
+            coverage_type: trimmedCoverageType,
+            planned: { source: "operator-entered actual" },
           }),
         },
       );
@@ -2184,7 +2284,9 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
         `/coverage-items/${item.id}/shot`,
         {
           method: "POST",
-          body: JSON.stringify({ shot: { take: "A3", usable: false } }),
+          body: JSON.stringify({
+            shot: { take: trimmedTake, usable: shotOutcome === "usable" },
+          }),
         },
       );
       const raised = await coversetFetch<CoverageFinding>(
@@ -2224,7 +2326,9 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
       );
       setPickup(task);
       await refresh();
-      setMessage(`${roleNames[directorActor.role]} requested pickup ${task.id}.`);
+      setMessage(
+        `${roleNames[directorActor.role]} requested pickup ${task.id}.`,
+      );
     } catch (err) {
       setError(formatError(err));
     }
@@ -2233,6 +2337,21 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
   const confirmPickup = async () => {
     const strip = firstBoardStrip(board);
     if (!selectedPickup || !strip) return;
+    const duration = Number(pickupDurationMinutes);
+    const resolvedCoverageType =
+      selectedCoverageItem?.coverage_type || coverageType.trim();
+    const priority = pickupPriority.trim();
+    if (
+      !resolvedCoverageType ||
+      !Number.isFinite(duration) ||
+      duration <= 0 ||
+      !priority
+    ) {
+      setError(
+        "Enter coverage type, positive pickup duration, and pickup priority before confirming the spec.",
+      );
+      return;
+    }
     setError("");
     try {
       const task = await coversetFetch<PickupTask>(
@@ -2244,11 +2363,11 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
             actor_role: firstAdActor.role,
             pickup_spec: {
               scene_id: strip.scene_id,
-              coverage_type: "insert",
+              coverage_type: resolvedCoverageType,
               location_id: strip.location_id,
               cast_ids: strip.cast_ids,
-              duration_minutes: 15,
-              priority: "must_have",
+              duration_minutes: duration,
+              priority,
               day_night: strip.day_night,
             },
           }),
@@ -2256,15 +2375,17 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
       );
       setPickup(task);
       await refresh();
-      setMessage(`${roleNames[firstAdActor.role]} confirmed pickup spec ${task.id}.`);
+      setMessage(
+        `${roleNames[firstAdActor.role]} confirmed pickup spec ${task.id}.`,
+      );
     } catch (err) {
       setError(formatError(err));
     }
   };
 
   const createPickupReplan = async () => {
-    const shootDate = firstBoardDate(board);
-    if (!selectedPickup || !board || !shootDate) return;
+    const cutoffAt = pickupCutoffAt.trim();
+    if (!selectedPickup || !board || !cutoffAt) return;
     setError("");
     try {
       const request = await coversetFetch<ReplanRequest>(
@@ -2273,7 +2394,7 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
           method: "POST",
           body: JSON.stringify({
             current_board_id: board.id,
-            cutoff_at: `${shootDate}T12:00:00-04:00`,
+            cutoff_at: cutoffAt,
             lock_policy: "preserve_locked",
           }),
         },
@@ -2419,7 +2540,10 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
           <div className="inspectorHeader">
             <p className="eyebrow">Authenticated claims</p>
             <h2>Production floor authority</h2>
-            <p>Script Supervisor, Director, and First AD actions use signed session role claims.</p>
+            <p>
+              Script Supervisor, Director, and First AD actions use signed
+              session role claims.
+            </p>
           </div>
           <ActorRoleControl
             claims={data.actorClaims}
@@ -2439,6 +2563,41 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
             Lock first board day
           </button>
           <label>
+            Coverage key
+            <input
+              value={coverageKey}
+              placeholder="Coverage key"
+              onChange={(event) => setCoverageKey(event.target.value)}
+            />
+          </label>
+          <label>
+            Coverage type
+            <input
+              value={coverageType}
+              placeholder="Coverage type"
+              onChange={(event) => setCoverageType(event.target.value)}
+            />
+          </label>
+          <label>
+            Take label
+            <input
+              value={takeLabel}
+              placeholder="Recorded take label"
+              onChange={(event) => setTakeLabel(event.target.value)}
+            />
+          </label>
+          <label>
+            Shot outcome
+            <select
+              value={shotOutcome}
+              onChange={(event) => setShotOutcome(event.target.value)}
+            >
+              <option value="">Choose outcome</option>
+              <option value="usable">Usable</option>
+              <option value="unusable">Unusable</option>
+            </select>
+          </label>
+          <label>
             Finding message
             <textarea
               value={findingMessage}
@@ -2449,10 +2608,48 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
           <button
             type="button"
             onClick={createFinding}
-            disabled={!board || !findingMessage.trim() || !canRecordActuals}
+            disabled={
+              !board ||
+              !findingMessage.trim() ||
+              !coverageKey.trim() ||
+              !coverageType.trim() ||
+              !takeLabel.trim() ||
+              !shotOutcome ||
+              !canRecordActuals
+            }
           >
             Record coverage finding
           </button>
+          <div className="inspectorSection">
+            <h3>Pickup spec</h3>
+            <label>
+              Pickup duration minutes
+              <input
+                value={pickupDurationMinutes}
+                inputMode="numeric"
+                placeholder="Duration in minutes"
+                onChange={(event) =>
+                  setPickupDurationMinutes(event.target.value)
+                }
+              />
+            </label>
+            <label>
+              Pickup priority
+              <input
+                value={pickupPriority}
+                placeholder="Priority label"
+                onChange={(event) => setPickupPriority(event.target.value)}
+              />
+            </label>
+            <label>
+              Replan cutoff
+              <input
+                value={pickupCutoffAt}
+                placeholder="ISO timestamp with timezone"
+                onChange={(event) => setPickupCutoffAt(event.target.value)}
+              />
+            </label>
+          </div>
           <div className="inspectorSection">
             <h3>Director decision</h3>
             <div className="stackedButtons">
@@ -2466,7 +2663,12 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
               <button
                 type="button"
                 onClick={confirmPickup}
-                disabled={!selectedPickup || !canConfirmPickup}
+                disabled={
+                  !selectedPickup ||
+                  !canConfirmPickup ||
+                  !pickupDurationMinutes.trim() ||
+                  !pickupPriority.trim()
+                }
                 title={
                   canConfirmPickup
                     ? undefined
@@ -2478,7 +2680,7 @@ export function CoverageWorkflowScreen({ productionId, boardId }: ScreenProps) {
               <button
                 type="button"
                 onClick={createPickupReplan}
-                disabled={!selectedPickup}
+                disabled={!selectedPickup || !pickupCutoffAt.trim()}
               >
                 Create pickup replan
               </button>
@@ -2796,7 +2998,10 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
   const { data, error, message, refresh, setError, setMessage } =
     useProductionData(productionId, boardId);
   const actor = actorForRoles(data.actorClaims, ["upm", "line_producer"]);
-  const canApproveCosts = hasActorRole(data.actorClaims, ["upm", "line_producer"]);
+  const canApproveCosts = hasActorRole(data.actorClaims, [
+    "upm",
+    "line_producer",
+  ]);
   const approvals = data.costApprovals;
   const selectedDiff = data.scheduleDiffs[0] ?? null;
 
@@ -2805,7 +3010,12 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
     decision: "approved" | "rejected",
   ) => {
     const addedDays = asStringList(diff.diff.added_days);
-    const fallbackDay = data.board?.result.days?.at(-1)?.date;
+    if (diff.cost_delta > 0 && !addedDays.length) {
+      setError(
+        "Cost approval requires added shoot days from the schedule diff.",
+      );
+      return;
+    }
     setError("");
     try {
       await coversetFetch<CostApproval>(
@@ -2814,11 +3024,7 @@ export function CostApprovalScreen({ productionId, boardId }: ScreenProps) {
           method: "POST",
           body: JSON.stringify({
             cost_delta: diff.cost_delta,
-            added_shoot_days: addedDays.length
-              ? addedDays
-              : fallbackDay
-                ? [fallbackDay]
-                : [],
+            added_shoot_days: addedDays,
             decision,
             actor_name: actor.name,
             actor_role: actor.role,
@@ -3077,8 +3283,8 @@ export function InfeasibleConflictScreen({
                     {conflictItemCount === 1 ? "constraint" : "constraints"}
                   </h2>
                   <p>
-                    Only backend-persisted conflict members are listed; unrelated
-                    active constraints stay out of the subset.
+                    Only backend-persisted conflict members are listed;
+                    unrelated active constraints stay out of the subset.
                   </p>
                 </div>
                 <span className="mono">
@@ -3096,7 +3302,9 @@ export function InfeasibleConflictScreen({
                 return (
                   <article className="conflictCard" key={run.id}>
                     <header>
-                      <span className="mono">STATUS: {run.status.toUpperCase()}</span>
+                      <span className="mono">
+                        STATUS: {run.status.toUpperCase()}
+                      </span>
                       <strong>{run.id}</strong>
                       <Pill tone={run.conflict.irreducible ? "warn" : "error"}>
                         {run.conflict.irreducible
@@ -3106,7 +3314,10 @@ export function InfeasibleConflictScreen({
                     </header>
                     <MetricGrid
                       items={[
-                        ["Snapshot", run.conflict.constraint_snapshot_hash ?? "—"],
+                        [
+                          "Snapshot",
+                          run.conflict.constraint_snapshot_hash ?? "—",
+                        ],
                         ["Binding", run.conflict.binding_constraint_count ?? 0],
                         ["Relaxed check", relaxationStatus],
                       ]}
@@ -3158,7 +3369,9 @@ export function InfeasibleConflictScreen({
                       </div>
                     )}
                     <div className="authorizationTrace conflictProof">
-                      <Pill tone="good">Re-solved with reported set relaxed</Pill>
+                      <Pill tone="good">
+                        Re-solved with reported set relaxed
+                      </Pill>
                       <span className="mono">{relaxationStatus}</span>
                     </div>
                   </article>

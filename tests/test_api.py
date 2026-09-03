@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from coverset.api import main as api_main  # type: ignore[import-not-found]
 from coverset.api.config import Settings  # type: ignore[import-not-found]
 from coverset.api.db import (  # type: ignore[import-not-found]
     create_coverset_engine,
@@ -63,8 +64,14 @@ def db_session() -> Iterator[Session]:
         yield session
 
 
+def fixture_settings(tmp_path) -> Settings:
+    return Settings(
+        upload_root=tmp_path, agent_mode="fixture", enable_fixture_mode=True
+    )
+
+
 def solved_board(db_session: Session, tmp_path):
-    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    settings = fixture_settings(tmp_path)
     storage = ObjectStorage(settings)
     production = create_production(db_session, title="P3", seed_demo_data=True)
     asset = upload_screenplay(
@@ -93,7 +100,7 @@ def solved_board(db_session: Session, tmp_path):
 
 @pytest.mark.req("BRK-001", "BRK-004", "BRK-013", "SOL-001", "SOL-007")
 def test_service_runs_screenplay_to_persisted_board(db_session: Session, tmp_path):
-    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    settings = fixture_settings(tmp_path)
     storage = ObjectStorage(settings)
     production = create_production(
         db_session, title="The Ferry Job", seed_demo_data=True
@@ -136,11 +143,78 @@ def test_health_alias_is_available():
     assert response.json()["storage_backend"] in {"local", "gcs"}
 
 
-@pytest.mark.req("BRK-001", "SOL-001")
-def test_demo_endpoint_runs_the_vertical_slice(db_session: Session):
+def test_demo_endpoint_is_disabled_by_default(db_session: Session):
     def override_session() -> Iterator[Session]:
         yield db_session
 
+    previous_settings = api_main.settings
+    api_main.settings = Settings(enable_fixture_mode=False)
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        response = client.post("/demo/run")
+        assert response.status_code == 404, response.text
+    finally:
+        api_main.settings = previous_settings
+        app.dependency_overrides.clear()
+
+
+def test_fixture_breakdown_mode_requires_explicit_runtime_flag(
+    db_session: Session, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        api_main,
+        "settings",
+        Settings(task_queue="", worker_url="", enable_fixture_mode=False),
+    )
+
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    settings = Settings(upload_root=tmp_path)
+    storage = ObjectStorage(settings)
+    production = create_production(
+        db_session, title="Fixture Gate", seed_demo_data=True
+    )
+    asset = upload_screenplay(
+        db_session,
+        production_id=production.id,
+        filename="the_ferry_job.txt",
+        media="text",
+        content=materialize_demo_script(),
+        storage=storage,
+    )
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        payload = {
+            "screenplay_asset_id": asset.id,
+            "auto_accept_schedulable": True,
+            "agent_mode": "fixture",
+        }
+        immediate = client.post(
+            f"/productions/{production.id}/breakdowns", json=payload
+        )
+        assert immediate.status_code == 404, immediate.text
+        assert "fixture breakdown mode is disabled" in immediate.text
+
+        queued = client.post(
+            f"/productions/{production.id}/breakdowns/jobs", json=payload
+        )
+        assert queued.status_code == 404, queued.text
+        assert "fixture breakdown mode is disabled" in queued.text
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.req("BRK-001", "SOL-001")
+def test_demo_endpoint_runs_the_vertical_slice_when_enabled(db_session: Session):
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    previous_settings = api_main.settings
+    api_main.settings = Settings(enable_fixture_mode=True)
     app.dependency_overrides[get_session] = override_session
     try:
         client = TestClient(app)
@@ -175,6 +249,7 @@ def test_demo_endpoint_runs_the_vertical_slice(db_session: Session):
         schedule_runs = client.get(f"/productions/{production_id}/schedule-runs").json()
         assert any(run["conflict"].get("constraint_ids") for run in schedule_runs)
     finally:
+        api_main.settings = previous_settings
         app.dependency_overrides.clear()
 
 
@@ -313,7 +388,7 @@ def test_production_setup_api_builds_scheduler_ready_state(
     finally:
         app.dependency_overrides.clear()
 
-    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    settings = fixture_settings(tmp_path)
     storage = ObjectStorage(settings)
     asset = upload_screenplay(
         db_session,
@@ -344,7 +419,7 @@ def test_production_setup_api_builds_scheduler_ready_state(
 def test_screenplay_upload_records_normalized_text_and_pdf_errors(
     db_session: Session, tmp_path
 ):
-    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    settings = fixture_settings(tmp_path)
     storage = ObjectStorage(settings)
     production = create_production(db_session, title="Assets", seed_demo_data=True)
 
@@ -416,7 +491,7 @@ def test_candidate_edit_clears_blockers_before_explicit_accept(
             == 200
         )
 
-        settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+        settings = fixture_settings(tmp_path)
         storage = ObjectStorage(settings)
         asset = upload_screenplay(
             db_session,
@@ -481,7 +556,7 @@ def test_candidate_edit_clears_blockers_before_explicit_accept(
 def test_async_jobs_are_enqueued_and_worker_updates_status(
     db_session: Session, tmp_path
 ):
-    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    settings = fixture_settings(tmp_path)
     storage = ObjectStorage(settings)
     production = create_production(db_session, title="Async Jobs", seed_demo_data=True)
     asset = upload_screenplay(
@@ -499,6 +574,7 @@ def test_async_jobs_are_enqueued_and_worker_updates_status(
         screenplay_asset_id=asset.id,
         auto_accept_schedulable=True,
         agent_mode="fixture",
+        settings=settings,
     )
     assert breakdown_job.status == "queued"
     completed_breakdown = run_job(
@@ -526,12 +602,16 @@ def test_job_enqueue_api_returns_pollable_job(
 ):
     import coverset.api.main as api_main  # type: ignore[import-not-found]
 
-    monkeypatch.setattr(api_main, "settings", Settings(task_queue="", worker_url=""))
+    monkeypatch.setattr(
+        api_main,
+        "settings",
+        Settings(task_queue="", worker_url="", enable_fixture_mode=True),
+    )
 
     def override_session() -> Iterator[Session]:
         yield db_session
 
-    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    settings = fixture_settings(tmp_path)
     storage = ObjectStorage(settings)
     production = create_production(db_session, title="Job API", seed_demo_data=True)
     asset = upload_screenplay(
@@ -622,7 +702,7 @@ def test_grounding_evidence_creates_inactive_constraint_until_activated(
 def test_active_lock_constraint_pins_work_item_in_schedule(
     db_session: Session, tmp_path
 ):
-    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    settings = fixture_settings(tmp_path)
     storage = ObjectStorage(settings)
     production = create_production(
         db_session, title="Locked Board", seed_demo_data=True
@@ -678,7 +758,7 @@ def test_active_lock_constraint_pins_work_item_in_schedule(
 def test_infeasible_schedule_response_includes_conflict_metadata(
     db_session: Session, tmp_path
 ):
-    settings = Settings(upload_root=tmp_path, agent_mode="fixture")
+    settings = fixture_settings(tmp_path)
     storage = ObjectStorage(settings)
     production = create_production(
         db_session, title="Conflicted Board", seed_demo_data=True
@@ -738,8 +818,7 @@ def test_infeasible_schedule_response_includes_conflict_metadata(
             record["constraint_id"] for record in conflict["relaxable_constraints"]
         } == conflict_ids
         assert {
-            record["source"]["label"]
-            for record in conflict["relaxable_constraints"]
+            record["source"]["label"] for record in conflict["relaxable_constraints"]
         } == {"HUMAN RULE"}
 
         history = client.get(f"/productions/{production.id}/schedule-runs")
@@ -1236,6 +1315,13 @@ def test_completion_constraint_translation_grounded_values_and_permit_activation
         assert listed_proposals.status_code == 200, listed_proposals.text
         assert listed_proposals.json()[0]["id"] == proposal["id"]
 
+        unauthorized_accept = client.post(
+            f"/constraint-proposals/{proposal['id']}/accept",
+            json={"actor_name": "S. Alvarez", "actor_role": "second_ad"},
+        )
+        assert unauthorized_accept.status_code == 403, unauthorized_accept.text
+        assert "may not select board" in unauthorized_accept.text
+
         accepted = client.post(
             f"/constraint-proposals/{proposal['id']}/accept",
             json={"actor_name": "R. Okonkwo", "actor_role": "first_ad"},
@@ -1243,6 +1329,25 @@ def test_completion_constraint_translation_grounded_values_and_permit_activation
         assert accepted.status_code == 200, accepted.text
         assert accepted.json()["active"] is True
         assert accepted.json()["constraint"]["accepted_by"]["role"] == "first_ad"
+
+        translated_for_reject = client.post(
+            f"/productions/{production.id}/constraints/translate",
+            json={"text": "Maximum daily hours 10", "actor_name": "R. Okonkwo"},
+        )
+        assert translated_for_reject.status_code == 200, translated_for_reject.text
+        proposal_to_reject = translated_for_reject.json()[0]
+        unauthorized_reject = client.post(
+            f"/constraint-proposals/{proposal_to_reject['id']}/reject",
+            json={"actor_name": "S. Alvarez", "actor_role": "second_ad"},
+        )
+        assert unauthorized_reject.status_code == 403, unauthorized_reject.text
+        assert "may not select board" in unauthorized_reject.text
+        rejected = client.post(
+            f"/constraint-proposals/{proposal_to_reject['id']}/reject",
+            json={"actor_name": "R. Okonkwo", "actor_role": "first_ad"},
+        )
+        assert rejected.status_code == 200, rejected.text
+        assert rejected.json()["status"] == "rejected"
 
         weather_client, _ = parallel_stub()
         weather = ground_fact(
@@ -1312,6 +1417,26 @@ def test_completion_constraint_translation_grounded_values_and_permit_activation
             target_date=dt.date(2026, 9, 14),
             grounder=SearchGrounder(permit_client),
         )
+        unauthorized_create = client.post(
+            f"/productions/{production.id}/constraints",
+            json={
+                "constraint_id": "PERMIT-BBP-UNAUTH",
+                "family": "permit",
+                "policy": "hard",
+                "subject_kind": "location",
+                "subject_ref": "brooklyn-bridge-park",
+                "expression_type": "date_windows",
+                "windows": [{"start": "2026-09-14", "end": "2026-09-14"}],
+                "evidence_id": permit.id,
+                "timezone": "America/New_York",
+                "actor_name": "S. Alvarez",
+                "actor_role": "second_ad",
+                "active": True,
+            },
+        )
+        assert unauthorized_create.status_code == 403, unauthorized_create.text
+        assert "may not select board" in unauthorized_create.text
+
         created = client.post(
             f"/productions/{production.id}/constraints",
             json={
@@ -1329,6 +1454,43 @@ def test_completion_constraint_translation_grounded_values_and_permit_activation
         )
         assert created.status_code == 200, created.text
         assert created.json()["constraint"]["activation_validation"]["passed"] is True
+
+        inactive = client.post(
+            f"/productions/{production.id}/constraints",
+            json={
+                "constraint_id": "PERMIT-BBP-002",
+                "family": "permit",
+                "policy": "hard",
+                "subject_kind": "location",
+                "subject_ref": "brooklyn-bridge-park",
+                "expression_type": "date_windows",
+                "windows": [{"start": "2026-09-14", "end": "2026-09-14"}],
+                "evidence_id": permit.id,
+                "timezone": "America/New_York",
+                "active": False,
+            },
+        )
+        assert inactive.status_code == 200, inactive.text
+        unauthorized_activation = client.patch(
+            f"/constraints/{inactive.json()['id']}/activation",
+            json={
+                "active": True,
+                "actor_name": "S. Alvarez",
+                "actor_role": "second_ad",
+            },
+        )
+        assert unauthorized_activation.status_code == 403, unauthorized_activation.text
+        assert "may not select board" in unauthorized_activation.text
+        activated = client.patch(
+            f"/constraints/{inactive.json()['id']}/activation",
+            json={
+                "active": True,
+                "actor_name": "R. Okonkwo",
+                "actor_role": "first_ad",
+            },
+        )
+        assert activated.status_code == 200, activated.text
+        assert activated.json()["active"] is True
     finally:
         app.dependency_overrides.clear()
 

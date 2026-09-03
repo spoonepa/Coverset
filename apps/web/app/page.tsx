@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import type { ActorClaims } from "../shared/auth-claims";
+import type { ActorRole } from "../shared/coverset-types";
+
 type CastMember = {
     id: string;
     production_id: string;
@@ -248,6 +251,16 @@ type CandidatePatch = {
 };
 
 const STORAGE_KEY = "coverset.production_id";
+const ENABLE_FIXTURE_MODE =
+    process.env.NEXT_PUBLIC_COVERSET_ENABLE_FIXTURE_MODE === "1";
+
+function actorForRole(
+    claims: ActorClaims | null,
+    role: ActorRole,
+): { name: string; role: ActorRole } | null {
+    if (!claims?.authenticated || !claims.roles.includes(role)) return null;
+    return { name: claims.name || "Authenticated user", role };
+}
 
 function textExcerpt(text: string): string {
     return text
@@ -565,30 +578,28 @@ function CandidateEditor({
 }
 
 export default function Home() {
-    const [title, setTitle] = useState("The Ferry Job");
-    const [seedDemo, setSeedDemo] = useState(true);
+    const [title, setTitle] = useState("");
+    const [seedDemo, setSeedDemo] = useState(false);
     const [agentMode, setAgentMode] = useState<AgentMode>("gemini");
     const [file, setFile] = useState<File | null>(null);
     const [production, setProduction] = useState<Production | null>(null);
     const [castMembers, setCastMembers] = useState<CastMember[]>([]);
     const [locations, setLocations] = useState<LocationRow[]>([]);
-    const [shootDates, setShootDates] = useState(
-        "2026-09-14\n2026-09-15\n2026-09-16",
-    );
+    const [shootDates, setShootDates] = useState("");
     const [castForm, setCastForm] = useState({
-        cast_id: "cast-maya",
+        cast_id: "",
         performer: "",
-        character: "MAYA",
+        character: "",
         is_minor: false,
     });
     const [locationForm, setLocationForm] = useState({
-        location_id: "maya-s-apartment",
-        name: "Maya's Apartment",
-        city: "Brooklyn",
-        state: "NY",
+        location_id: "",
+        name: "",
+        city: "",
+        state: "",
         latitude: "",
         longitude: "",
-        timezone: "America/New_York",
+        timezone: "",
         aliases: "",
     });
     const [asset, setAsset] = useState<ScreenplayAsset | null>(null);
@@ -599,24 +610,34 @@ export default function Home() {
     const [callSheets, setCallSheets] = useState<CallSheet[]>([]);
     const [selectedCallSheet, setSelectedCallSheet] =
         useState<CallSheet | null>(null);
-    const [callSheetDate, setCallSheetDate] = useState("2026-09-14");
+    const [callSheetDate, setCallSheetDate] = useState("");
     const [jobs, setJobs] = useState<Job[]>([]);
     const [grounding, setGrounding] = useState<GroundingEvidence[]>([]);
     const [constraints, setConstraints] = useState<ConstraintRow[]>([]);
-    const [lockWorkId, setLockWorkId] = useState("W-BRK-001");
-    const [lockDate, setLockDate] = useState("2026-09-14");
-    const [groundingLocationId, setGroundingLocationId] = useState(
-        "brooklyn-bridge-park",
-    );
-    const [groundingDate, setGroundingDate] = useState("2026-03-17");
+    const [lockWorkId, setLockWorkId] = useState("");
+    const [lockDate, setLockDate] = useState("");
+    const [groundingLocationId, setGroundingLocationId] = useState("");
+    const [groundingDate, setGroundingDate] = useState("");
+    const [actorClaims, setActorClaims] = useState<ActorClaims | null>(null);
     const [status, setStatus] = useState("Ready");
     const [error, setError] = useState("");
 
     useEffect(() => {
+        let cancelled = false;
+        jsonFetch<ActorClaims>("/api/coverset/session")
+            .then((claims) => {
+                if (!cancelled) setActorClaims(claims);
+            })
+            .catch(() => {
+                if (!cancelled) setActorClaims(null);
+            });
         const savedProduction = window.localStorage.getItem(STORAGE_KEY);
         if (savedProduction) {
             void refreshSetup(savedProduction);
         }
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const acceptedCount = useMemo(
@@ -644,7 +665,18 @@ export default function Home() {
             return;
         }
         const firstDate = board.result.days?.[0]?.date;
-        if (firstDate) setCallSheetDate(firstDate);
+        const firstStrip =
+            board.result.strips?.[0] ?? board.result.days?.[0]?.strips?.[0];
+        if (firstDate) {
+            setCallSheetDate(firstDate);
+            if (!lockDate) setLockDate(firstDate);
+            if (!groundingDate) setGroundingDate(firstDate);
+        }
+        if (firstStrip?.work_id && !lockWorkId)
+            setLockWorkId(firstStrip.work_id);
+        if (firstStrip?.location_id && !groundingLocationId) {
+            setGroundingLocationId(firstStrip.location_id);
+        }
         let cancelled = false;
         jsonFetch<CallSheet[]>(`/api/coverset/boards/${board.id}/call-sheets`)
             .then((loaded) => {
@@ -658,7 +690,7 @@ export default function Home() {
         return () => {
             cancelled = true;
         };
-    }, [board]);
+    }, [board, groundingDate, groundingLocationId, lockDate, lockWorkId]);
 
     const visibleCandidates = useMemo(() => {
         const candidates = breakdown?.candidates ?? [];
@@ -813,12 +845,18 @@ export default function Home() {
     }
 
     async function createProduction() {
+        const trimmedTitle = title.trim();
+        if (!trimmedTitle) {
+            setError("Enter a production title before creating a production.");
+            return;
+        }
+        const useDemoSeed = ENABLE_FIXTURE_MODE && seedDemo;
         setError("");
         setBoard(null);
         setBreakdown(null);
         setAsset(null);
         setStatus(
-            seedDemo
+            useDemoSeed
                 ? "Creating production with demo setup..."
                 : "Creating empty production...",
         );
@@ -827,7 +865,10 @@ export default function Home() {
                 "/api/coverset/productions",
                 {
                     method: "POST",
-                    body: JSON.stringify({ title, seed_demo_data: seedDemo }),
+                    body: JSON.stringify({
+                        title: trimmedTitle,
+                        seed_demo_data: useDemoSeed,
+                    }),
                 },
             );
             window.localStorage.setItem(STORAGE_KEY, createdProduction.id);
@@ -943,14 +984,20 @@ export default function Home() {
         setSchedule(null);
         try {
             if (!currentProduction) {
+                const trimmedTitle = title.trim();
+                if (!trimmedTitle) {
+                    throw new Error(
+                        "Enter a production title before uploading a screenplay.",
+                    );
+                }
                 setStatus("Creating production before upload...");
                 currentProduction = await jsonFetch<Production>(
                     "/api/coverset/productions",
                     {
                         method: "POST",
                         body: JSON.stringify({
-                            title,
-                            seed_demo_data: seedDemo,
+                            title: trimmedTitle,
+                            seed_demo_data: ENABLE_FIXTURE_MODE && seedDemo,
                         }),
                     },
                 );
@@ -1134,6 +1181,13 @@ export default function Home() {
 
     async function generateCallSheet(shootDate = callSheetDate) {
         if (!board) return;
+        const secondAdActor = actorForRole(actorClaims, "second_ad");
+        if (!secondAdActor) {
+            setError(
+                "Authenticated Second AD claim is required to generate a call sheet.",
+            );
+            return;
+        }
         if (!shootDate) {
             setError("Choose a shoot date from the board first.");
             return;
@@ -1147,8 +1201,8 @@ export default function Home() {
                     method: "POST",
                     body: JSON.stringify({
                         shoot_date: shootDate,
-                        actor_name: "T. Nguyen",
-                        actor_role: "second_ad",
+                        actor_name: secondAdActor.name,
+                        actor_role: secondAdActor.role,
                     }),
                 },
             );
@@ -1200,15 +1254,17 @@ export default function Home() {
                     CS
                 </a>
                 <nav className="railNav">
-                    <a href="#demo" title="Fixture demo">
-                        <span
-                            className="material-symbols-outlined railIcon"
-                            aria-hidden="true"
-                        >
-                            dashboard
-                        </span>
-                        <span className="railLabel">Fixture demo</span>
-                    </a>
+                    {ENABLE_FIXTURE_MODE && (
+                        <a href="#demo" title="Fixture demo">
+                            <span
+                                className="material-symbols-outlined railIcon"
+                                aria-hidden="true"
+                            >
+                                dashboard
+                            </span>
+                            <span className="railLabel">Fixture demo</span>
+                        </a>
+                    )}
                     <a href="#manual-setup" title="Manual setup">
                         <span
                             className="material-symbols-outlined railIcon"
@@ -1237,10 +1293,9 @@ export default function Home() {
                     <p className="eyebrow">Coverset operations cockpit</p>
                     <h1>Launch the stripboard command center.</h1>
                     <p>
-                        Run the fixture demo to create a production and jump
-                        into the v4-style workflow shell: left rail navigation,
-                        grounded facts, replans, call sheets, audit, and cost
-                        approval.
+                        Create or reopen a production, then move through the
+                        v4-style workflow shell: left rail navigation, grounded
+                        facts, replans, call sheets, audit, and cost approval.
                     </p>
                 </section>
 
@@ -1324,39 +1379,49 @@ export default function Home() {
                     </section>
                 )}
 
-                <section className="panel grid" id="demo">
+                <section className="panel grid" id="manual-setup">
+                    {ENABLE_FIXTURE_MODE && (
+                        <div id="demo">
+                            <h2>Fast smoke</h2>
+                            <p>
+                                Runs the authored fixture through the API,
+                                database, and scheduler, then opens the new
+                                board cockpit.
+                            </p>
+                            <button type="button" onClick={runFixtureDemo}>
+                                Run fixture demo
+                            </button>
+                        </div>
+                    )}
                     <div>
-                        <h2>Fast smoke</h2>
-                        <p>
-                            Runs the authored fixture through the API, database,
-                            and scheduler, then opens the new board cockpit.
-                        </p>
-                        <button type="button" onClick={runFixtureDemo}>
-                            Run fixture demo
-                        </button>
-                    </div>
-                    <div id="manual-setup">
                         <h2>Production</h2>
                         <label>
                             Title
                             <input
                                 value={title}
+                                placeholder="Production title"
                                 onChange={(event) =>
                                     setTitle(event.target.value)
                                 }
                             />
                         </label>
-                        <label className="inline">
-                            <input
-                                type="checkbox"
-                                checked={seedDemo}
-                                onChange={(event) =>
-                                    setSeedDemo(event.target.checked)
-                                }
-                            />
-                            Seed Ferry Job demo cast, locations, and dates
-                        </label>
-                        <button type="button" onClick={createProduction}>
+                        {ENABLE_FIXTURE_MODE && (
+                            <label className="inline">
+                                <input
+                                    type="checkbox"
+                                    checked={seedDemo}
+                                    onChange={(event) =>
+                                        setSeedDemo(event.target.checked)
+                                    }
+                                />
+                                Seed demo cast, locations, and dates
+                            </label>
+                        )}
+                        <button
+                            type="button"
+                            onClick={createProduction}
+                            disabled={!title.trim()}
+                        >
                             Create / reset production
                         </button>
                         {production && (
@@ -1533,7 +1598,6 @@ export default function Home() {
                                                 aliases: event.target.value,
                                             })
                                         }
-                                        placeholder="FERRY TERMINAL / RIVER DOCK"
                                     />
                                 </label>
                                 <button type="button" onClick={addLocation}>
@@ -1554,6 +1618,7 @@ export default function Home() {
                                     One ISO date per line
                                     <textarea
                                         value={shootDates}
+                                        placeholder="One date per line"
                                         onChange={(event) =>
                                             setShootDates(event.target.value)
                                         }
@@ -1718,7 +1783,11 @@ export default function Home() {
                                 }
                             >
                                 <option value="gemini">Gemini live</option>
-                                <option value="fixture">Fixture smoke</option>
+                                {ENABLE_FIXTURE_MODE && (
+                                    <option value="fixture">
+                                        Fixture smoke
+                                    </option>
+                                )}
                             </select>
                         </label>
                         <label>
@@ -1936,6 +2005,14 @@ export default function Home() {
                                 <button
                                     type="button"
                                     onClick={() => void generateCallSheet()}
+                                    disabled={
+                                        !actorForRole(actorClaims, "second_ad")
+                                    }
+                                    title={
+                                        actorForRole(actorClaims, "second_ad")
+                                            ? undefined
+                                            : "Authenticated Second AD claim is required."
+                                    }
                                 >
                                     Generate call sheet
                                 </button>

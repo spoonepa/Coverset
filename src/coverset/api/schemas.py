@@ -21,7 +21,7 @@ class HealthResponse(BaseModel):
 
 class ProductionCreate(BaseModel):
     title: str = Field(min_length=1, max_length=240)
-    seed_demo_data: bool = True
+    seed_demo_data: bool = False
 
 
 class ProductionResponse(BaseModel):
@@ -226,7 +226,7 @@ class ConstraintCreate(BaseModel):
     grounded_value_id: str = ""
     derived_from: Literal["excerpt", "full_content"] | None = None
     timezone: str | None = None
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "first_ad"
     statement: str = "Production entered constraint"
     active: bool = False
@@ -234,7 +234,7 @@ class ConstraintCreate(BaseModel):
 
 class ConstraintActivationRequest(BaseModel):
     active: bool = True
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "first_ad"
 
 
@@ -251,12 +251,12 @@ class ConstraintResponse(BaseModel):
 
 class ConstraintTranslationRequest(BaseModel):
     text: str = Field(min_length=1)
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
 
 
 class ConstraintProposalDecisionRequest(BaseModel):
     decision: Literal["accept", "reject"] = "accept"
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "first_ad"
 
 
@@ -349,7 +349,7 @@ class AuditBigQueryExportResponse(BaseModel):
 class LockDayRequest(BaseModel):
     shoot_date: dt.date
     call_sheet_version: str = Field(min_length=1, max_length=120)
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "first_ad"
 
 
@@ -443,7 +443,7 @@ class MonitorFindingResponse(BaseModel):
 
 class MonitorFindingDecisionRequest(BaseModel):
     decision: Literal["accept", "reject"]
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "first_ad"
 
 
@@ -484,7 +484,7 @@ class ScheduleDiffResponse(BaseModel):
 
 class BoardSelectionRequest(BaseModel):
     prior_board_id: str | None = None
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "first_ad"
 
 
@@ -503,7 +503,7 @@ class CostApprovalRequest(BaseModel):
     cost_delta: float = Field(ge=0)
     added_shoot_days: list[dt.date] = Field(default_factory=list)
     decision: Literal["approved", "rejected"] = "approved"
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "upm"
 
 
@@ -533,7 +533,7 @@ class CoverageFindingCreate(BaseModel):
     board_id: str | None = None
     message: str = Field(min_length=1)
     severity: str = "medium"
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "script_supervisor"
 
 
@@ -563,13 +563,13 @@ class CoverageFindingResponse(BaseModel):
 
 class PickupDecisionRequest(BaseModel):
     decision: Literal["request_pickup", "reject"] = "request_pickup"
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "director"
 
 
 class PickupConfirmRequest(BaseModel):
     pickup_spec: dict[str, Any]
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "director"
 
 
@@ -597,7 +597,7 @@ class PickupTaskResponse(BaseModel):
 
 class CallSheetGenerateRequest(BaseModel):
     shoot_date: dt.date
-    actor_name: str = "Developer"
+    actor_name: str = "Direct API actor"
     actor_role: ActorRole = "second_ad"
 
 

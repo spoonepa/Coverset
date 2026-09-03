@@ -145,7 +145,9 @@ class ConstraintProposalModel(Base):
     confidence: Mapped[float] = mapped_column(Float, default=0.0)
     payload_json: Mapped[dict] = mapped_column(JSON, default=dict)
     validation_errors_json: Mapped[list[str]] = mapped_column(JSON, default=list)
-    created_by_name: Mapped[str] = mapped_column(String(120), default="Developer")
+    created_by_name: Mapped[str] = mapped_column(
+        String(120), default="Direct API actor"
+    )
     accepted_by_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     accepted_by_role: Mapped[str | None] = mapped_column(String(80), nullable=True)
     accepted_constraint_id: Mapped[str | None] = mapped_column(

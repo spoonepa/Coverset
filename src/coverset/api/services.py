@@ -171,6 +171,8 @@ class FixtureBreakdownAgent:
 
 def _agent_for_mode(mode: str, *, settings: Settings) -> HasExtract:
     if mode == "fixture":
+        if not settings.enable_fixture_mode:
+            raise ServiceError("fixture breakdown mode is disabled", status_code=404)
         return FixtureBreakdownAgent()
     if mode == "gemini":
         return breakdown.GeminiBreakdown()
@@ -193,7 +195,7 @@ def _actor_for_decision(
 
 
 def create_production(
-    session: Session, *, title: str, seed_demo_data: bool = True
+    session: Session, *, title: str, seed_demo_data: bool = False
 ) -> ProductionModel:
     production = ProductionModel(id=new_id("prod"), title=title)
     session.add(production)
@@ -449,7 +451,10 @@ def seed_demo_workflow_state(
                 session,
                 production_id,
                 "production.demo_seed_replan_skipped",
-                {"replan_request_id": monitor_event.replan_request_id, "error": str(exc)},
+                {
+                    "replan_request_id": monitor_event.replan_request_id,
+                    "error": str(exc),
+                },
             )
 
     lock_board_day(
@@ -926,6 +931,8 @@ def run_breakdown(
 ) -> BreakdownRunModel:
     resolved_settings = settings or get_settings()
     mode = agent_mode or resolved_settings.agent_mode
+    if mode == "fixture" and not resolved_settings.enable_fixture_mode:
+        raise ServiceError("fixture breakdown mode is disabled", status_code=404)
     get_production(session, production_id)
     asset = session.get(ScreenplayAssetModel, screenplay_asset_id)
     if asset is None or asset.production_id != production_id:
@@ -1211,7 +1218,7 @@ def translate_constraint_text(
     production_id: str,
     *,
     text: str,
-    actor_name: str = "Developer",
+    actor_name: str = "Direct API actor",
 ) -> list[Any]:
     """Persist inactive typed constraint candidates from production prose."""
     from coverset.constraint_translation import (  # local: completion-layer service
@@ -1281,7 +1288,7 @@ def accept_constraint_proposal(
     session: Session,
     *,
     proposal_id: str,
-    actor_name: str = "Developer",
+    actor_name: str = "Direct API actor",
     actor_role: str = "first_ad",
 ) -> ConstraintModel:
     """Activate a typed candidate only after an attributed human acceptance."""
@@ -1301,7 +1308,7 @@ def accept_constraint_proposal(
             "constraint proposal has validation errors and cannot be accepted",
             status_code=409,
         )
-    actor = _actor_for_decision(actor_name, actor_role)
+    actor = _actor_for_decision(actor_name, actor_role, capability="select_board")
     payload = dict(proposal.payload_json or {})
     payload["active"] = True
     payload["actor_name"] = actor.name
@@ -1327,7 +1334,7 @@ def reject_constraint_proposal(
     session: Session,
     *,
     proposal_id: str,
-    actor_name: str = "Developer",
+    actor_name: str = "Direct API actor",
     actor_role: str = "first_ad",
 ) -> Any:
     from .models import ConstraintProposalModel
@@ -1337,7 +1344,7 @@ def reject_constraint_proposal(
         raise ServiceError(
             f"constraint proposal not found: {proposal_id}", status_code=404
         )
-    actor = _actor_for_decision(actor_name, actor_role)
+    actor = _actor_for_decision(actor_name, actor_role, capability="select_board")
     proposal.status = "rejected"
     proposal.accepted_by_name = actor.name
     proposal.accepted_by_role = actor.role.value
@@ -1603,6 +1610,13 @@ def create_constraint(
             "constraint failed activation validation: "
             + "; ".join(validation["errors"])
         )
+    activation_actor: Actor | None = None
+    if record.active:
+        activation_actor = _actor_for_decision(
+            str(payload.get("actor_name") or "Direct API actor"),
+            str(payload.get("actor_role") or "first_ad"),
+            capability="select_board",
+        )
     snapshot = constraint_to_json(record)
     snapshot["activation_validation"] = validation
     snapshot["activation_payload"] = {
@@ -1610,10 +1624,10 @@ def create_constraint(
         for key in ("timezone", "grounded_value_id", "derived_from")
         if key in payload
     }
-    if record.active:
+    if record.active and activation_actor is not None:
         snapshot["accepted_by"] = {
-            "name": str(payload.get("actor_name") or "Developer"),
-            "role": str(payload.get("actor_role") or "first_ad"),
+            "name": activation_actor.name,
+            "role": activation_actor.role.value,
             "accepted_at": record.activated_at.isoformat()
             if record.activated_at
             else "",
@@ -1644,7 +1658,7 @@ def activate_constraint(
     *,
     constraint_row_id: str,
     active: bool,
-    actor_name: str = "Developer",
+    actor_name: str = "Direct API actor",
     actor_role: str = "first_ad",
 ) -> ConstraintModel:
     row = session.get(ConstraintModel, constraint_row_id)
@@ -1652,7 +1666,7 @@ def activate_constraint(
         raise ServiceError(
             f"constraint not found: {constraint_row_id}", status_code=404
         )
-    actor = _actor_for_decision(actor_name, actor_role)
+    actor = _actor_for_decision(actor_name, actor_role, capability="select_board")
     current = constraint_from_json(row.constraint_json)
     evidence_payload = _evidence_payload_for_constraint(session, current)
     validation = _constraint_activation_validation(
@@ -2435,9 +2449,7 @@ def _apply_cost_approval_state(board: BoardModel, diff_row: Any) -> None:
     board.result_json = result
 
 
-def _ensure_board_cost_approval_resolved(
-    session: Session, board: BoardModel
-) -> None:
+def _ensure_board_cost_approval_resolved(session: Session, board: BoardModel) -> None:
     result = dict(board.result_json or {})
     required_approvals = {str(value) for value in result.get("required_approvals", [])}
     cost_required = (
@@ -2445,9 +2457,7 @@ def _ensure_board_cost_approval_resolved(
         or "upm_or_line_producer_cost_approval" in required_approvals
     )
     if board.approval_state == "cost_rejected":
-        raise ServiceError(
-            "cost approval was rejected for this board", status_code=409
-        )
+        raise ServiceError("cost approval was rejected for this board", status_code=409)
     if not cost_required:
         return
     approved = session.scalars(
@@ -2928,7 +2938,12 @@ def enqueue_breakdown_job(
     screenplay_asset_id: str,
     auto_accept_schedulable: bool = False,
     agent_mode: str | None = None,
+    settings: Settings | None = None,
 ) -> JobModel:
+    resolved_settings = settings or get_settings()
+    mode = agent_mode or resolved_settings.agent_mode
+    if mode == "fixture" and not resolved_settings.enable_fixture_mode:
+        raise ServiceError("fixture breakdown mode is disabled", status_code=404)
     get_production(session, production_id)
     return enqueue_job(
         session,
@@ -2938,7 +2953,7 @@ def enqueue_breakdown_job(
         payload={
             "screenplay_asset_id": screenplay_asset_id,
             "auto_accept_schedulable": auto_accept_schedulable,
-            "agent_mode": agent_mode,
+            "agent_mode": mode,
         },
     )
 
@@ -3524,7 +3539,9 @@ def _source_metadata(source: Any) -> dict[str, Any]:
     return {
         "kind": type(source).__name__.replace("Source", "").casefold(),
         "label": type(source).__name__.replace("Source", "").upper(),
-        "description": source.describe() if hasattr(source, "describe") else str(source),
+        "description": source.describe()
+        if hasattr(source, "describe")
+        else str(source),
         "derived_from": getattr(getattr(source, "derived_from", None), "value", ""),
     }
 

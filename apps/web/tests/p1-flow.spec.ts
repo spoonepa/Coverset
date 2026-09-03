@@ -184,7 +184,13 @@ async function mockApi(page: Page) {
     const method = request.method();
 
     if (path === "/productions" && method === "POST") {
-      return route.fulfill(json(production));
+      const payload = request.postDataJSON() as {
+        title: string;
+        seed_demo_data?: boolean;
+      };
+      expect(payload.title).toBe("Operator production");
+      expect(payload.seed_demo_data).toBe(false);
+      return route.fulfill(json({ ...production, title: payload.title }));
     }
     if (path === "/session" && method === "GET") {
       return route.fulfill(json(actorClaims));
@@ -244,7 +250,10 @@ async function mockApi(page: Page) {
     if (path === "/productions/prod_1/grounded-values" && method === "GET") {
       return route.fulfill(json([]));
     }
-    if (path === "/productions/prod_1/constraint-proposals" && method === "GET") {
+    if (
+      path === "/productions/prod_1/constraint-proposals" &&
+      method === "GET"
+    ) {
       return route.fulfill(json([]));
     }
     if (path === "/productions/prod_1/constraints" && method === "GET") {
@@ -421,8 +430,10 @@ async function mockApi(page: Page) {
     if (path === "/boards/board_1/call-sheets" && method === "POST") {
       const payload = request.postDataJSON() as {
         shoot_date: string;
+        actor_name: string;
         actor_role: string;
       };
+      expect(payload.actor_name).toBe("Authenticated Operator");
       if (payload.actor_role !== "second_ad") {
         return route.fulfill(
           json({ detail: "may not generate call sheet" }, 403),
@@ -547,9 +558,23 @@ test("production setup, candidate edit, accept, and solve flow", async ({
   await mockApi(page);
   await page.goto("/");
 
+  await expect(page.getByLabel("Title")).toHaveValue("");
+  await expect(
+    page.getByRole("button", { name: "Create / reset production" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Run fixture demo" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Seed demo cast, locations, and dates"),
+  ).toHaveCount(0);
+
+  await page.getByLabel("Title").fill("Operator production");
   await page.getByRole("button", { name: "Create / reset production" }).click();
   await expect(page.getByText("Production setup ready.")).toBeVisible();
 
+  await page.getByRole("textbox", { name: "Cast ID" }).fill("cast-maya");
+  await page.getByRole("textbox", { name: "Character" }).fill("MAYA");
   await page.getByRole("textbox", { name: "Performer" }).fill("A. Idowu");
   await page.getByRole("button", { name: "Add cast" }).click();
   await expect(page.getByText("cast-maya — MAYA")).toBeVisible();
@@ -557,7 +582,6 @@ test("production setup, candidate edit, accept, and solve flow", async ({
   await page.getByRole("button", { name: "Save calendar" }).click();
   await expect(page.getByText("Shooting calendar saved.")).toBeVisible();
 
-  await page.getByLabel("Breakdown mode").selectOption("fixture");
   await page.getByLabel("PDF or text screenplay").setInputFiles({
     name: "fixture.txt",
     mimeType: "text/plain",

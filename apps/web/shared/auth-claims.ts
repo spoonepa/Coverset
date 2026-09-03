@@ -18,15 +18,6 @@ const ROLE_VALUES: ActorRole[] = [
   "line_producer",
 ];
 
-const DEV_ROLES: ActorRole[] = [
-  "first_ad",
-  "second_ad",
-  "script_supervisor",
-  "director",
-  "upm",
-  "line_producer",
-];
-
 function header(headers: Headers, name: string | undefined): string {
   return name ? (headers.get(name) ?? "") : "";
 }
@@ -43,9 +34,7 @@ function emailFromAuthorization(headers: Headers): string {
   }
   try {
     const payload = JSON.parse(
-      Buffer.from(match[1].split(".")[1] ?? "", "base64url").toString(
-        "utf8",
-      ),
+      Buffer.from(match[1].split(".")[1] ?? "", "base64url").toString("utf8"),
     ) as { email?: unknown };
     return typeof payload.email === "string" ? cleanEmail(payload.email) : "";
   } catch {
@@ -98,75 +87,80 @@ function rolesFromClaimMap(email: string): ActorRole[] {
   return [];
 }
 
+function staticActorClaimsEnabled(): boolean {
+  return process.env.COVERSET_ENABLE_STATIC_ACTOR_CLAIMS === "1";
+}
+
 export function actorClaimsFromHeaders(headers: Headers): ActorClaims {
-  const envRoles = parseRoles(
-    process.env.COVERSET_ACTOR_ROLES ?? process.env.COVERSET_ACTOR_ROLE ?? "",
-  );
+  const staticActorClaims = staticActorClaimsEnabled();
+  const envRoles = staticActorClaims
+    ? parseRoles(
+        process.env.COVERSET_ACTOR_ROLES ??
+          process.env.COVERSET_ACTOR_ROLE ??
+          "",
+      )
+    : [];
   const headerRoles = parseRoles(
     header(headers, process.env.COVERSET_AUTH_ROLES_HEADER),
   );
   const singleHeaderRole = parseRoles(
     header(headers, process.env.COVERSET_AUTH_ROLE_HEADER),
   );
-  const envEmail = process.env.COVERSET_ACTOR_EMAIL;
+  const envEmail = staticActorClaims
+    ? (process.env.COVERSET_ACTOR_EMAIL ?? "")
+    : "";
   const headerEmail = header(
     headers,
     process.env.COVERSET_AUTH_EMAIL_HEADER ?? "x-goog-authenticated-user-email",
   );
-  const email = cleanEmail(envEmail ?? (headerEmail || emailFromAuthorization(headers)));
+  const email = cleanEmail(
+    envEmail || headerEmail || emailFromAuthorization(headers),
+  );
   const mappedRoles = rolesFromClaimMap(email);
   let roles: ActorRole[] = [];
-  if (envRoles.length > 0) {
-    roles = envRoles;
-  } else if (headerRoles.length > 0) {
+  if (headerRoles.length > 0) {
     roles = headerRoles;
   } else if (singleHeaderRole.length > 0) {
     roles = singleHeaderRole;
   } else if (mappedRoles.length > 0) {
     roles = mappedRoles;
-  } else if (process.env.NODE_ENV !== "production") {
-    roles = DEV_ROLES;
+  } else if (envRoles.length > 0) {
+    roles = envRoles;
   }
 
   const explicitName =
-    process.env.COVERSET_ACTOR_NAME ??
+    (staticActorClaims ? process.env.COVERSET_ACTOR_NAME : undefined) ??
     header(headers, process.env.COVERSET_AUTH_NAME_HEADER);
   const role = roles[0] ?? null;
   const hasIdentity = Boolean(
     email ||
       explicitName ||
-      envRoles.length ||
       headerRoles.length ||
-      singleHeaderRole.length,
+      singleHeaderRole.length ||
+      envRoles.length,
   );
-  const devFallback = process.env.NODE_ENV !== "production" && roles.length > 0;
   let name = "Unauthenticated user";
   if (explicitName) {
     name = explicitName;
   } else if (email) {
     name = nameFromEmail(email);
-  } else if (devFallback) {
-    name = "Developer";
   }
 
-  let source = "missing-claim";
-  if (hasIdentity) {
-    source = "identity-claim";
-  } else if (devFallback) {
-    source = "development-fallback";
-  }
+  const source = hasIdentity ? "identity-claim" : "missing-claim";
 
   return {
     name,
     email,
     role,
     roles,
-    authenticated: hasIdentity || devFallback,
+    authenticated: hasIdentity,
     source,
   };
 }
 
-export function internalActorHeaders(claims: ActorClaims): Record<string, string> {
+export function internalActorHeaders(
+  claims: ActorClaims,
+): Record<string, string> {
   return {
     "x-coverset-authenticated": claims.authenticated ? "true" : "false",
     "x-coverset-actor-name": claims.name,

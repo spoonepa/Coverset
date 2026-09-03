@@ -10,7 +10,7 @@ REPOSITORY="${REPOSITORY:-coverset}"
 TAG="${TAG:-$(git rev-parse --short HEAD)}"
 ACCOUNT="${DEVELOPER_ACCOUNT:-$(gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>/dev/null | head -1)}"
 DEVELOPER_PRINCIPAL="${DEVELOPER_PRINCIPAL:-user:${ACCOUNT}}"
-AGENT_MODE="${AGENT_MODE:-fixture}"
+AGENT_MODE="${AGENT_MODE:-gemini}"
 PLACEHOLDER_IMAGE="us-docker.pkg.dev/cloudrun/container/hello"
 TF_DIR="infra/terraform"
 GENERATED_TFVARS="${TF_DIR}/dev.auto.tfvars"
@@ -121,17 +121,21 @@ echo "== smoke: API readiness =="
 curl -fsS -H "Authorization: Bearer ${TOKEN}" "${API_URL}/readyz"
 echo
 
-echo "== smoke: fixture demo end-to-end =="
-DEMO_OUT="$(mktemp)"
-curl -fsS -X POST -H "Authorization: Bearer ${TOKEN}" "${API_URL}/demo/run" >"${DEMO_OUT}"
-python - "${DEMO_OUT}" <<'PY'
+if [[ "${COVERSET_ENABLE_FIXTURE_MODE:-0}" == "1" ]]; then
+  echo "== smoke: fixture demo end-to-end =="
+  DEMO_OUT="$(mktemp)"
+  curl -fsS -X POST -H "Authorization: Bearer ${TOKEN}" "${API_URL}/demo/run" >"${DEMO_OUT}"
+  uv run python - "${DEMO_OUT}" <<'PY'
 import json, sys
 payload = json.load(open(sys.argv[1]))
 print('board_id=' + payload['id'])
 print('solver_status=' + payload['solver_status'])
 print(payload['stripboard'].splitlines()[0])
 PY
-rm -f "${DEMO_OUT}"
+  rm -f "${DEMO_OUT}"
+else
+  echo "== smoke: fixture demo skipped (set COVERSET_ENABLE_FIXTURE_MODE=1 to enable) =="
+fi
 
 echo "== deployed URLs =="
 echo "api=${API_URL}"
