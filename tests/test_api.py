@@ -173,7 +173,9 @@ def test_fixture_breakdown_mode_requires_explicit_runtime_flag(
 
     settings = Settings(upload_root=tmp_path)
     storage = ObjectStorage(settings)
-    production = create_production(db_session, title="Fixture Gate", seed_demo_data=True)
+    production = create_production(
+        db_session, title="Fixture Gate", seed_demo_data=True
+    )
     asset = upload_screenplay(
         db_session,
         production_id=production.id,
@@ -1477,9 +1479,7 @@ def test_completion_constraint_translation_grounded_values_and_permit_activation
                 "actor_role": "second_ad",
             },
         )
-        assert (
-            unauthorized_activation.status_code == 403
-        ), unauthorized_activation.text
+        assert unauthorized_activation.status_code == 403, unauthorized_activation.text
         assert "may not select board" in unauthorized_activation.text
         activated = client.patch(
             f"/constraints/{inactive.json()['id']}/activation",

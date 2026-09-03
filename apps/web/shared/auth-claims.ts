@@ -95,7 +95,9 @@ export function actorClaimsFromHeaders(headers: Headers): ActorClaims {
   const staticActorClaims = staticActorClaimsEnabled();
   const envRoles = staticActorClaims
     ? parseRoles(
-        process.env.COVERSET_ACTOR_ROLES ?? process.env.COVERSET_ACTOR_ROLE ?? "",
+        process.env.COVERSET_ACTOR_ROLES ??
+          process.env.COVERSET_ACTOR_ROLE ??
+          "",
       )
     : [];
   const headerRoles = parseRoles(
