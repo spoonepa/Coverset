@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from coverset.api import main as api_main  # type: ignore[import-not-found]
 from coverset.api.config import Settings  # type: ignore[import-not-found]
 from coverset.api.db import (  # type: ignore[import-not-found]
     create_coverset_engine,
@@ -136,11 +137,29 @@ def test_health_alias_is_available():
     assert response.json()["storage_backend"] in {"local", "gcs"}
 
 
-@pytest.mark.req("BRK-001", "SOL-001")
-def test_demo_endpoint_runs_the_vertical_slice(db_session: Session):
+def test_demo_endpoint_is_disabled_by_default(db_session: Session):
     def override_session() -> Iterator[Session]:
         yield db_session
 
+    previous_settings = api_main.settings
+    api_main.settings = Settings(enable_fixture_mode=False)
+    app.dependency_overrides[get_session] = override_session
+    try:
+        client = TestClient(app)
+        response = client.post("/demo/run")
+        assert response.status_code == 404, response.text
+    finally:
+        api_main.settings = previous_settings
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.req("BRK-001", "SOL-001")
+def test_demo_endpoint_runs_the_vertical_slice_when_enabled(db_session: Session):
+    def override_session() -> Iterator[Session]:
+        yield db_session
+
+    previous_settings = api_main.settings
+    api_main.settings = Settings(enable_fixture_mode=True)
     app.dependency_overrides[get_session] = override_session
     try:
         client = TestClient(app)
@@ -175,6 +194,7 @@ def test_demo_endpoint_runs_the_vertical_slice(db_session: Session):
         schedule_runs = client.get(f"/productions/{production_id}/schedule-runs").json()
         assert any(run["conflict"].get("constraint_ids") for run in schedule_runs)
     finally:
+        api_main.settings = previous_settings
         app.dependency_overrides.clear()
 
 
@@ -738,8 +758,7 @@ def test_infeasible_schedule_response_includes_conflict_metadata(
             record["constraint_id"] for record in conflict["relaxable_constraints"]
         } == conflict_ids
         assert {
-            record["source"]["label"]
-            for record in conflict["relaxable_constraints"]
+            record["source"]["label"] for record in conflict["relaxable_constraints"]
         } == {"HUMAN RULE"}
 
         history = client.get(f"/productions/{production.id}/schedule-runs")

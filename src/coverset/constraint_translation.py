@@ -50,7 +50,7 @@ def translate_plain_english_constraints(
     production_id: str,
     text: str,
     *,
-    created_by: str = "Developer",
+    created_by: str = "Direct API actor",
 ) -> tuple[ConstraintCandidate, ...]:
     """Convert recognizable sentences into inactive typed constraint candidates.
 

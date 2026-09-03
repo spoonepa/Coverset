@@ -50,6 +50,7 @@ class Settings:
     worker_url: str = os.getenv("COVERSET_WORKER_URL", "")
     task_oidc_service_account: str = os.getenv("COVERSET_TASK_OIDC_SERVICE_ACCOUNT", "")
     agent_mode: str = os.getenv("COVERSET_AGENT_MODE", "gemini")
+    enable_fixture_mode: bool = os.getenv("COVERSET_ENABLE_FIXTURE_MODE") == "1"
     cors_origins: tuple[str, ...] = tuple(
         origin.strip()
         for origin in os.getenv("COVERSET_CORS_ORIGINS", "*").split(",")

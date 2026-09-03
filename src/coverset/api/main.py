@@ -1350,7 +1350,9 @@ def list_schedule_runs_endpoint(
     production_id: str,
     session: Annotated[Session, Depends(get_session)],
 ) -> list[ScheduleRunResponse]:
-    return [_schedule_response(run) for run in list_schedule_runs(session, production_id)]
+    return [
+        _schedule_response(run) for run in list_schedule_runs(session, production_id)
+    ]
 
 
 @app.get("/schedule-runs/{run_id}", response_model=ScheduleRunResponse)
@@ -1399,6 +1401,8 @@ def export_board_endpoint(
 def run_demo_endpoint(
     session: Annotated[Session, Depends(get_session)],
 ) -> BoardResponse:
+    if not settings.enable_fixture_mode:
+        raise HTTPException(status_code=404, detail="fixture demo is disabled")
     production = create_production(session, title="The Ferry Job", seed_demo_data=True)
     asset = upload_screenplay(
         session,

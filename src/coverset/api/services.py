@@ -193,7 +193,7 @@ def _actor_for_decision(
 
 
 def create_production(
-    session: Session, *, title: str, seed_demo_data: bool = True
+    session: Session, *, title: str, seed_demo_data: bool = False
 ) -> ProductionModel:
     production = ProductionModel(id=new_id("prod"), title=title)
     session.add(production)
@@ -449,7 +449,10 @@ def seed_demo_workflow_state(
                 session,
                 production_id,
                 "production.demo_seed_replan_skipped",
-                {"replan_request_id": monitor_event.replan_request_id, "error": str(exc)},
+                {
+                    "replan_request_id": monitor_event.replan_request_id,
+                    "error": str(exc),
+                },
             )
 
     lock_board_day(
@@ -1211,7 +1214,7 @@ def translate_constraint_text(
     production_id: str,
     *,
     text: str,
-    actor_name: str = "Developer",
+    actor_name: str = "Direct API actor",
 ) -> list[Any]:
     """Persist inactive typed constraint candidates from production prose."""
     from coverset.constraint_translation import (  # local: completion-layer service
@@ -1281,7 +1284,7 @@ def accept_constraint_proposal(
     session: Session,
     *,
     proposal_id: str,
-    actor_name: str = "Developer",
+    actor_name: str = "Direct API actor",
     actor_role: str = "first_ad",
 ) -> ConstraintModel:
     """Activate a typed candidate only after an attributed human acceptance."""
@@ -1327,7 +1330,7 @@ def reject_constraint_proposal(
     session: Session,
     *,
     proposal_id: str,
-    actor_name: str = "Developer",
+    actor_name: str = "Direct API actor",
     actor_role: str = "first_ad",
 ) -> Any:
     from .models import ConstraintProposalModel
@@ -1612,7 +1615,7 @@ def create_constraint(
     }
     if record.active:
         snapshot["accepted_by"] = {
-            "name": str(payload.get("actor_name") or "Developer"),
+            "name": str(payload.get("actor_name") or "Direct API actor"),
             "role": str(payload.get("actor_role") or "first_ad"),
             "accepted_at": record.activated_at.isoformat()
             if record.activated_at
@@ -1644,7 +1647,7 @@ def activate_constraint(
     *,
     constraint_row_id: str,
     active: bool,
-    actor_name: str = "Developer",
+    actor_name: str = "Direct API actor",
     actor_role: str = "first_ad",
 ) -> ConstraintModel:
     row = session.get(ConstraintModel, constraint_row_id)
@@ -2435,9 +2438,7 @@ def _apply_cost_approval_state(board: BoardModel, diff_row: Any) -> None:
     board.result_json = result
 
 
-def _ensure_board_cost_approval_resolved(
-    session: Session, board: BoardModel
-) -> None:
+def _ensure_board_cost_approval_resolved(session: Session, board: BoardModel) -> None:
     result = dict(board.result_json or {})
     required_approvals = {str(value) for value in result.get("required_approvals", [])}
     cost_required = (
@@ -2445,9 +2446,7 @@ def _ensure_board_cost_approval_resolved(
         or "upm_or_line_producer_cost_approval" in required_approvals
     )
     if board.approval_state == "cost_rejected":
-        raise ServiceError(
-            "cost approval was rejected for this board", status_code=409
-        )
+        raise ServiceError("cost approval was rejected for this board", status_code=409)
     if not cost_required:
         return
     approved = session.scalars(
@@ -3524,7 +3523,9 @@ def _source_metadata(source: Any) -> dict[str, Any]:
     return {
         "kind": type(source).__name__.replace("Source", "").casefold(),
         "label": type(source).__name__.replace("Source", "").upper(),
-        "description": source.describe() if hasattr(source, "describe") else str(source),
+        "description": source.describe()
+        if hasattr(source, "describe")
+        else str(source),
         "derived_from": getattr(getattr(source, "derived_from", None), "value", ""),
     }
 

@@ -125,7 +125,7 @@ def constraint_from_payload(
         ),
         expression=_expression_from_payload(payload),
         source=source,
-        created_by=str(payload.get("actor_name") or "Developer"),
+        created_by=str(payload.get("actor_name") or "Direct API actor"),
         validated_against=str(payload.get("validated_against") or "coverset.api"),
         active=active,
         activated_at=dt.datetime.now(dt.UTC) if active else None,
@@ -233,7 +233,7 @@ def _source_from_json(data: dict[str, Any]) -> Provenance:
     if kind == "human":
         return HumanSource(
             Actor(
-                str(data.get("actor_name") or "Developer"),
+                str(data.get("actor_name") or "Direct API actor"),
                 Role(str(data.get("actor_role") or "first_ad")),
             ),
             str(data.get("statement") or "Production entered constraint"),
@@ -267,7 +267,7 @@ def _source_from_payload(
         )
     return HumanSource(
         Actor(
-            str(payload.get("actor_name") or "Developer"),
+            str(payload.get("actor_name") or "Direct API actor"),
             Role(str(payload.get("actor_role") or "first_ad")),
         ),
         str(payload.get("statement") or "Production entered constraint"),

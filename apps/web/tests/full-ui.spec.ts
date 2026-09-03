@@ -383,16 +383,23 @@ async function mockApi(page: Page) {
     }
 
     if (path === "/productions/prod_1/monitored-sources" && method === "POST") {
+      const payload = request.postDataJSON() as {
+        source_url: string;
+        query: string;
+        external_monitor_id: string;
+      };
+      expect(payload.query).toBe("operator permit hours");
+      expect(payload.external_monitor_id).toBe("operator-monitor-1");
       const source = {
         id: "msrc_1",
         production_id: "prod_1",
         board_id: "board_1",
-        source_url: "https://film.example.gov/permits",
+        source_url: payload.source_url,
         fact_kind: "permit",
         location_id: "maya-s-apartment",
-        query: "film permit hours",
+        query: payload.query,
         provider: "ui",
-        external_monitor_id: "ui-monitor",
+        external_monitor_id: payload.external_monitor_id,
         status: "active",
         last_fingerprint: "old",
       };
@@ -400,6 +407,16 @@ async function mockApi(page: Page) {
       return route.fulfill(json(source));
     }
     if (path === "/productions/prod_1/monitor/events" && method === "POST") {
+      const payload = request.postDataJSON() as {
+        old_fingerprint: string;
+        new_fingerprint: string;
+        material: boolean;
+        message: string;
+      };
+      expect(payload.old_fingerprint).toBe("old-permit");
+      expect(payload.new_fingerprint).toBe("new-permit");
+      expect(payload.material).toBe(true);
+      expect(payload.message).toBe("Permit window changed.");
       const requestRow = {
         id: "replan_1",
         production_id: "prod_1",
@@ -446,7 +463,10 @@ async function mockApi(page: Page) {
       );
       if (!approved)
         return route.fulfill(
-          json({ detail: "cost approval is required before board selection" }, 409),
+          json(
+            { detail: "cost approval is required before board selection" },
+            409,
+          ),
         );
       return route.fulfill(
         json({
@@ -475,12 +495,18 @@ async function mockApi(page: Page) {
       return route.fulfill(json(row));
     }
     if (path === "/productions/prod_1/coverage-items" && method === "POST") {
+      const payload = request.postDataJSON() as {
+        coverage_key: string;
+        coverage_type: string;
+      };
+      expect(payload.coverage_key).toBe("floor-report-insert");
+      expect(payload.coverage_type).toBe("operator insert");
       coverageItem = {
         id: "cov_1",
         production_id: "prod_1",
         scene_id: "BRK-001",
-        coverage_key: "ui-insert",
-        coverage_type: "insert",
+        coverage_key: payload.coverage_key,
+        coverage_type: payload.coverage_type,
         planned: {},
         shot: {},
         status: "planned",
@@ -489,6 +515,11 @@ async function mockApi(page: Page) {
       return route.fulfill(json(coverageItem));
     }
     if (path === "/coverage-items/cov_1/shot" && method === "POST") {
+      const payload = request.postDataJSON() as {
+        shot: { take: string; usable: boolean };
+      };
+      expect(payload.shot.take).toBe("take from floor report");
+      expect(payload.shot.usable).toBe(false);
       coverageItem = {
         ...coverageItem,
         shot: { take: "A3", usable: false },
@@ -540,6 +571,16 @@ async function mockApi(page: Page) {
       return route.fulfill(json(pickupTask));
     }
     if (path === "/pickup-tasks/ptask_1/confirm" && method === "POST") {
+      const payload = request.postDataJSON() as {
+        pickup_spec: {
+          coverage_type: string;
+          duration_minutes: number;
+          priority: string;
+        };
+      };
+      expect(payload.pickup_spec.coverage_type).toBe("operator insert");
+      expect(payload.pickup_spec.duration_minutes).toBe(12);
+      expect(payload.pickup_spec.priority).toBe("director requested");
       pickupTask = {
         ...pickupTask,
         status: "schedulable",
@@ -553,6 +594,8 @@ async function mockApi(page: Page) {
       return route.fulfill(json(pickupTask));
     }
     if (path === "/pickup-tasks/ptask_1/replan" && method === "POST") {
+      const payload = request.postDataJSON() as { cutoff_at: string };
+      expect(payload.cutoff_at).toBe("2026-09-14T18:00:00-04:00");
       const requestRow = {
         id: "replan_pickup",
         production_id: "prod_1",
@@ -655,10 +698,13 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   await page.goto("/productions/prod_1/replans?boardId=board_1");
   await expect(page.locator(".replanBoard")).toBeVisible();
   await page.getByLabel("Source URL").fill("https://film.example.gov/permits");
-  await page.getByLabel("Monitor query").fill("film permit hours");
-  await page
-    .getByRole("button", { name: "Create material monitor replan" })
-    .click();
+  await page.getByLabel("Monitor query").fill("operator permit hours");
+  await page.getByLabel("External monitor id").fill("operator-monitor-1");
+  await page.getByLabel("Previous fingerprint").fill("old-permit");
+  await page.getByLabel("New fingerprint").fill("new-permit");
+  await page.getByLabel("Change message").fill("Permit window changed.");
+  await page.getByLabel("Mark this change material").check();
+  await page.getByRole("button", { name: "Record monitor change" }).click();
   await expect(page.getByText("replan_1")).toBeVisible();
   await page.getByRole("button", { name: "Generate options" }).click();
   await expect(page.getByText("sdiff_1")).toBeVisible();
@@ -671,6 +717,10 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   await expect(page.locator(".coverageWorkbench")).toBeVisible();
   await page.getByRole("button", { name: "Lock first board day" }).click();
   await expect(page.getByText("2026-09-14").first()).toBeVisible();
+  await page.getByLabel("Coverage key").fill("floor-report-insert");
+  await page.getByLabel("Coverage type").fill("operator insert");
+  await page.getByLabel("Take label").fill("take from floor report");
+  await page.getByLabel("Shot outcome").selectOption("unusable");
   await page
     .getByLabel("Finding message")
     .fill("insert is unusable from camera shake");
@@ -682,6 +732,9 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   await expect(
     page.getByText("Director requested pickup ptask_1."),
   ).toBeVisible();
+  await page.getByLabel("Pickup duration minutes").fill("12");
+  await page.getByLabel("Pickup priority").fill("director requested");
+  await page.getByLabel("Replan cutoff").fill("2026-09-14T18:00:00-04:00");
   await page.getByRole("button", { name: "First AD confirms spec" }).click();
   await expect(
     page.getByText("First AD confirmed pickup spec ptask_1."),
@@ -721,5 +774,7 @@ test("full UI routes expose operational workflows", async ({ page }) => {
   await expect(page.locator(".infeasibleWorkbench")).toBeVisible();
   await expect(page.getByText("Irreducible conflicting subset")).toBeVisible();
   await expect(page.getByText("C-DEV-D2")).toBeVisible();
-  await expect(page.getByText("feasible_after_relaxation").first()).toBeVisible();
+  await expect(
+    page.getByText("feasible_after_relaxation").first(),
+  ).toBeVisible();
 });
